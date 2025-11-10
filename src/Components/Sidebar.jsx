@@ -20,7 +20,8 @@ import {
   FiPlus,
   FiStar,
   FiRefreshCw,
-  FiCreditCard
+  FiCreditCard,
+  FiUsers
 } from 'react-icons/fi';
 import { label } from 'framer-motion/client';
 
@@ -105,7 +106,7 @@ const SubNavItem = ({ to, children, icon, isActive, onClick }) => {
       transition="all 0.2s ease"
       onClick={onClick}
     >
-      <HStack spacing={3}>
+      <HStack spacing={5}>
         <Icon 
           as={icon} 
           boxSize={4} 
@@ -119,33 +120,53 @@ const SubNavItem = ({ to, children, icon, isActive, onClick }) => {
   );
 };
 
-function Sidebar() {
+function Sidebar({ userRole = 'Client' }) {
   const location = useLocation();
   const sidebarBg = useColorModeValue("white", "gray.800");
   const borderColor = useColorModeValue("gray.200", "gray.700");
-  
+
   const [expandedItems, setExpandedItems] = useState({
     orderNumbers: location.pathname.startsWith('/order-numbers')
   });
 
-  const menuItems = [
-    { label: 'Dashboard', path: '/', icon: FiHome },
-    { 
-      label: 'Order Numbers', 
-      path: '/order-numbers', 
-      icon: FiShoppingCart,
-      hasSubItems: true,
-      subItems: [
-        { label: 'New Number', path: '/order-numbers/new', icon: FiPlus },
-        { label: 'Vanity Number', path: '/order-numbers/vanity', icon: FiStar },
-        { label: 'Port Number', path: '/order-numbers/port', icon: FiRefreshCw }
-      ]
-    },
-    { label: 'My Numbers', path: '/my-numbers', icon: FiPhone },
-    { label: 'My Orders', path: '/my-orders', icon: FiPackage },
-    { label: 'Product Info', path: '/product-info', icon: FiInfo },
-    { label: 'Billing & Invoices', path: '/billing-invoices', icon: FiCreditCard}
-  ];
+  const getMenuItems = () => {
+    const commonItems = [
+      { label: 'Dashboard', path: '/', icon: FiHome },
+    ];
+
+    const clientItems = [
+      {
+        label: 'Order Numbers',
+        path: '/order-numbers',
+        icon: FiShoppingCart,
+        hasSubItems: true,
+        subItems: [
+          { label: 'New Number', path: '/order-numbers/new', icon: FiPlus },
+          { label: 'Vanity Number', path: '/order-numbers/vanity', icon: FiStar },
+          { label: 'Port Number', path: '/order-numbers/port', icon: FiRefreshCw }
+        ]
+      },
+      { label: 'My Numbers', path: '/my-numbers', icon: FiPhone },
+      { label: 'My Orders', path: '/my-orders', icon: FiPackage },
+      { label: 'Product Info', path: '/product-info', icon: FiInfo },
+      { label: 'Billing & Invoices', path: '/billing-invoices', icon: FiCreditCard}
+    ];
+
+    const internalItems = [
+      { label: 'Vendors', path: '/vendors', icon: FiUsers },
+      { label: 'Customers', path: '/customers', icon: FiUsers },
+      { label: 'Orders', path: '/orders', icon: FiPackage },
+      { label: 'Invoices', path: '/invoices', icon: FiCreditCard },
+      { label: 'Disconnection Requests', path: '/disconnection-requests', icon: FiRefreshCw },
+      { label: 'Vendor/Customer', path: '/add-vendor-customer', icon: FiPlus }
+    ];
+
+    return userRole === 'Internal'
+      ? [...commonItems, ...internalItems]
+      : [...commonItems, ...clientItems];
+  };
+
+  const menuItems = getMenuItems();
 
   const handleToggle = (itemLabel) => {
     setExpandedItems(prev => ({
@@ -185,7 +206,7 @@ function Sidebar() {
       height="calc(100vh - 60px)"
       overflowY="auto"
     >
-      <VStack spacing={6} align="stretch">
+      <VStack spacing={4} align="stretch">
         {menuItems.map(item => {
           const isActive = isItemActive(item);
           const isExpanded = expandedItems[item.label] || isActive;

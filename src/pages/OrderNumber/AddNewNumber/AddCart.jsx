@@ -102,7 +102,7 @@ const AddCart = ({ selectedNumbers = [], formData = {}, onAddToCart = () => {} }
                 <Box>
                   <Text fontSize="sm" color="gray.700" fontWeight="medium">Quantity</Text>
                   <Badge mt={2} borderRadius={"full"} colorScheme="green" fontSize="sm" px={3} py={1}>
-                    {selectedNumbers?.length || 0} Numbers
+                    {formData?.quantity || 0} Numbers
                   </Badge>
                 </Box>
               </HStack>

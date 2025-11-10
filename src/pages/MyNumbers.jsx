@@ -1,49 +1,160 @@
-import React, { useState } from 'react';
-import { 
-  Box, 
-  Heading, 
-  Text, 
-  Table, 
-  Thead, 
-  Tbody, 
-  Tr, 
-  Th, 
+import React, { useState, useMemo } from 'react';
+import {
+  Box,
+  Heading,
+  Text,
+  Table,
+  Thead,
+  Tbody,
+  Tr,
+  Th,
   Td,
   VStack,
   HStack,
   Button,
   Icon,
   Select,
-  Flex
+  Flex,
+  InputGroup,
+  Input,
+  Spacer,
+  InputRightElement
 } from '@chakra-ui/react';
-import { FaFileExcel, FaEye, FaPlug } from 'react-icons/fa';
+import { FaFileExcel, FaEye, FaPlug, FaSearch, FaUnlink } from 'react-icons/fa';
+import NumberPricingModal from '../Modals/NumberPricingModal';
 
-function MyNumbers() {
+function MyNumbers({ onRequestDisconnection }) {
   const [currentPage, setCurrentPage] = useState(1);
   const [resultsPerPage, setResultsPerPage] = useState(20);
+  const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
+  const [selectedNumber, setSelectedNumber] = useState(null);
+  const [disconnectRequests, setDisconnectRequests] = useState({});
+  const [searchTerm, setSearchTerm] = useState('');
+  
+  const [numbers, setNumbers] = useState([
+    {
+      id: 1,
+      country: 'United States (+)',
+      productType: 'Freephone',
+      areaCode: 'Freephone (866)',
+      number: '18664970069',
+      linkedOrderId: 3,
+      disconnectionStatus: null
+    },
+    {
+      id: 2,
+      country: 'United States (+)',
+      productType: 'Freephone',
+      areaCode: 'Freephone (866)',
+      number: '18664970071',
+      linkedOrderId: 3,
+      disconnectionStatus: null
+    },
+    {
+      id: 3,
+      country: 'United States (+)',
+      productType: 'Freephone',
+      areaCode: 'Freephone (866)',
+      number: '18664970082',
+      linkedOrderId: 3,
+      disconnectionStatus: null
+    },
+    {
+      id: 4,
+      country: 'United States (+)',
+      productType: 'Freephone',
+      areaCode: 'Freephone (866)',
+      number: '18664970087',
+      linkedOrderId: 3,
+      disconnectionStatus: null
+    },
+    {
+      id: 5,
+      country: 'United States (+)',
+      productType: 'Freephone',
+      areaCode: 'Freephone (868)',
+      number: '18552942813',
+      linkedOrderId: 1,
+      disconnectionStatus: null
+    },
+    {
+      id: 6,
+      country: 'Myanmar (+95)',
+      productType: 'DID',
+      areaCode: 'Mobile (9)',
+      number: '959652005122',
+      linkedOrderId: 1,
+      disconnectionStatus: null
+    },
+    {
+      id: 7,
+      country: 'Myanmar (+95)',
+      productType: 'DID',
+      areaCode: 'Mobile (9)',
+      number: '959652005123',
+      linkedOrderId: 2,
+      disconnectionStatus: null
+    },
+    {
+      id: 8,
+      country: 'Myanmar (+95)',
+      productType: 'DID',
+      areaCode: 'Mobile (9)',
+      number: '959652005124',
+      linkedOrderId: 2,
+      disconnectionStatus: null
+    }
+  ]);
 
-  // Sample data matching the screenshot
-  const numbers = [
-    { id: 1, country: 'United States (+)', productType: 'Freephone', areaCode: 'Freephone (866)', number: '18664970069' },
-    { id: 2, country: 'United States (+)', productType: 'Freephone', areaCode: 'Freephone (866)', number: '18664970071' },
-    { id: 3, country: 'United States (+)', productType: 'Freephone', areaCode: 'Freephone (866)', number: '18664970082' },
-    { id: 4, country: 'United States (+)', productType: 'Freephone', areaCode: 'Freephone (866)', number: '18664970087' },
-    { id: 5, country: 'United States (+)', productType: 'Freephone', areaCode: 'Freephone (868)', number: '18552942813' },
-    { id: 6, country: 'Myanmar (+95)', productType: 'DID', areaCode: 'Mobile (9)', number: '959652005122' },
-    { id: 7, country: 'Myanmar (+95)', productType: 'DID', areaCode: 'Mobile (9)', number: '959652005123' },
-    { id: 8, country: 'Myanmar (+95)', productType: 'DID', areaCode: 'Mobile (9)', number: '959652005124' }
-  ];
+  // Filter numbers based on search term
+  const filteredNumbers = useMemo(() => {
+    if (!searchTerm.trim()) {
+      return numbers;
+    }
 
-  // Pagination calculations
-  const totalResults = numbers.length;
+    const searchLower = searchTerm.toLowerCase();
+    return numbers.filter(number =>
+      number.country.toLowerCase().includes(searchLower) ||
+      number.productType.toLowerCase().includes(searchLower) ||
+      number.areaCode.toLowerCase().includes(searchLower) ||
+      number.number.toLowerCase().includes(searchLower)
+    );
+  }, [numbers, searchTerm]);
+
+  const handleDisconnectClick = (number) => {
+    if (!onRequestDisconnection) {
+      return;
+    }
+
+    setNumbers(prevNumbers => prevNumbers.map(item => (
+      item.id === number.id
+        ? { ...item, disconnectionStatus: 'Pending' }
+        : item
+    )));
+
+    setDisconnectRequests(prev => ({
+      ...prev,
+      [number.id]: 'Pending'
+    }));
+
+    onRequestDisconnection(number);
+  };
+
+  // Pagination calculations based on filtered numbers
+  const totalResults = filteredNumbers.length;
   const totalPages = Math.ceil(totalResults / resultsPerPage);
   const startIndex = (currentPage - 1) * resultsPerPage;
   const endIndex = Math.min(startIndex + resultsPerPage, totalResults);
-  const currentNumbers = numbers.slice(startIndex, endIndex);
+  const currentNumbers = filteredNumbers.slice(startIndex, endIndex);
+
+  // Reset to first page when search changes
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
 
   const handleExportToExcel = () => {
     const headers = ['S. No.', 'Country', 'Product Type', 'Area Code', 'Number'];
-    const rows = numbers.map((num, index) => [
+    const rows = filteredNumbers.map((num, index) => [
       index + 1,
       num.country,
       num.productType,
@@ -74,6 +185,24 @@ function MyNumbers() {
     setCurrentPage(1); // Reset to first page when changing results per page
   };
 
+  const handleViewNumber = (number) => {
+    setSelectedNumber(number);
+    setIsPricingModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsPricingModalOpen(false);
+    setSelectedNumber(null);
+  };
+
+  const handleSearchChange = (e) => {
+    setSearchTerm(e.target.value);
+  };
+
+  const clearSearch = () => {
+    setSearchTerm('');
+  };
+
   return (
     <Box
       flex={1}
@@ -82,8 +211,8 @@ function MyNumbers() {
       height="calc(100vh - 76px)"
       overflowY="auto"
     >
-      <VStack spacing={6} align="stretch">
-        <HStack justify="space-between" align="center">
+      <VStack spacing={4} align="stretch">
+        <HStack justify="space-between">
           <Heading
             color="#1a3a52"
             fontSize="3xl"
@@ -92,17 +221,64 @@ function MyNumbers() {
           >
             My Numbers
           </Heading>
-          <Button
-            leftIcon={<Icon as={FaFileExcel} />}
-            onClick={handleExportToExcel}
-            colorScheme="blue"
-            variant="outline"
-            borderRadius="lg"
-            fontWeight="medium"
-          >
-            Export
-          </Button>
+          <HStack spacing={6}>
+            <Spacer/>
+            <InputGroup w="250px">
+              <Input
+                boxShadow="lg"
+                type="text"
+                bg="white"
+                placeholder="Search . . . ."
+                borderRadius="full"
+                value={searchTerm}
+                onChange={handleSearchChange}
+              />
+              <InputRightElement width="4.5rem">
+                {searchTerm ? (
+                  <Button
+                    h="1.75rem"
+                    size="sm"
+                    onClick={clearSearch}
+                    variant="ghost"
+                    color="gray.500"
+                    _hover={{ color: 'gray.700' }}
+                  >
+                    ✕
+                  </Button>
+                ) : (
+                  <Icon as={FaSearch} color="gray.400" />
+                )}
+              </InputRightElement>
+            </InputGroup>
+            <Button
+              leftIcon={<Icon as={FaFileExcel} />}
+              onClick={handleExportToExcel}
+              colorScheme="blue"
+              variant="ghost"
+              borderRadius="full"
+              fontWeight="medium"
+              isDisabled={filteredNumbers.length === 0}
+            >
+              Export
+            </Button>
+          </HStack>
         </HStack>
+
+        {/* Search Results Info */}
+        {searchTerm && (
+          <Box
+            bg="blue.50"
+            borderRadius="md"
+            p={3}
+            border="1px solid"
+            borderColor="blue.200"
+          >
+            <Text fontSize="sm" color="blue.700" fontWeight="medium">
+              Found {filteredNumbers.length} number(s) matching "{searchTerm}"
+              {filteredNumbers.length === 0 && ' - Try a different search term'}
+            </Text>
+          </Box>
+        )}
 
         <Box
           bg="white"
@@ -110,11 +286,11 @@ function MyNumbers() {
           boxShadow="sm"
           border="1px solid"
           borderColor="gray.200"
-          h="450px"
+          h="480px"
           overflowY="auto"
           p={2}
         >
-          <Table variant="simple">
+          <Table variant="simple" h="470px">
             <Thead position="sticky" top={0} bg="white" zIndex={1}>
               <Tr
                 sx={{
@@ -130,7 +306,7 @@ function MyNumbers() {
                   }
                 }}
               >
-                <Th width="10%">ID</Th>
+                <Th width="10%">No.</Th>
                 <Th>Country</Th>
                 <Th>Product Type</Th>
                 <Th>Area Code</Th>
@@ -140,9 +316,9 @@ function MyNumbers() {
             </Thead>
             <Tbody>
               {currentNumbers.length > 0 ? (
-                currentNumbers.map((number) => (
+                currentNumbers.map((number, index) => (
                   <Tr key={number.id} _hover={{ bg: 'gray.50' }}>
-                    <Td textAlign="center">{number.id}</Td>
+                    <Td textAlign="center">{startIndex + index + 1}</Td>
                     <Td textAlign="center">{number.country}</Td>
                     <Td textAlign="center">{number.productType}</Td>
                     <Td textAlign="center">{number.areaCode}</Td>
@@ -153,8 +329,8 @@ function MyNumbers() {
                           size="sm"
                           colorScheme="blue"
                           variant="ghost"
-                          fontWeight="bold"
                           leftIcon={<Icon as={FaEye} />}
+                          onClick={() => handleViewNumber(number)}
                         >
                           View
                         </Button>
@@ -162,10 +338,11 @@ function MyNumbers() {
                           size="sm"
                           colorScheme="red"
                           variant="ghost"
-                          fontWeight="bold"
-                          leftIcon={<Icon as={FaPlug} />}
+                          leftIcon={<Icon as={FaUnlink} />}
+                          onClick={() => handleDisconnectClick(number)}
+                          isDisabled={number.disconnectionStatus === 'Pending'}
                         >
-                          Disconnect
+                          {number.disconnectionStatus === 'Pending' ? 'Pending...' : 'Disconnect'}
                         </Button>
                       </HStack>
                     </Td>
@@ -180,7 +357,7 @@ function MyNumbers() {
                     py={8}
                     fontSize="sm"
                   >
-                    No numbers purchased yet
+                    {searchTerm ? 'No numbers found matching your search' : 'No numbers purchased yet'}
                   </Td>
                 </Tr>
               )}
@@ -253,14 +430,20 @@ function MyNumbers() {
 
               {/* Results count */}
               <Text fontSize="sm" color="gray.600">
-                Results {startIndex + 1} - {endIndex} from the {totalResults}
+                Results {startIndex + 1} - {endIndex} of {totalResults}
+                {searchTerm && ` (filtered from ${numbers.length} total)`}
               </Text>
             </Flex>
           </Box>
         )}
+      </VStack>
 
-        {/* Footer */}
-       </VStack>
+      {/* Pricing Modal */}
+      <NumberPricingModal
+        isOpen={isPricingModalOpen}
+        onClose={handleCloseModal}
+        selectedNumber={selectedNumber}
+      />
     </Box>
   );
 }

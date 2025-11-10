@@ -30,7 +30,7 @@ import {
   Icon,
   useToast
 } from '@chakra-ui/react';
-import NumberSelection from './NumberSelection';
+import NumberSelection, { defaultPricingData } from './NumberSelection';
 import AddCart from './AddCart';
 import PlaceOrder from './PlaceOrder';
 import Submitted from './Submitted';
@@ -47,6 +47,7 @@ function NewNumbers({ onAddToCart = () => {} }) {
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedProductType, setSelectedProductType] = useState('');
   const [selectedNumbers, setSelectedNumbers] = useState([]);
+  const [desiredPricingData, setDesiredPricingData] = useState(() => ({ ...defaultPricingData }));
   const [formData, setFormData] = useState({
     country: '',
     productType: '',
@@ -131,6 +132,10 @@ function NewNumbers({ onAddToCart = () => {} }) {
       ...prev,
       [field]: value
     }));
+
+    if (field === 'productType') {
+      setDesiredPricingData(() => ({ ...defaultPricingData }));
+    }
   };
 
   // Utility function to generate mock phone numbers based on search criteria
@@ -171,6 +176,7 @@ function NewNumbers({ onAddToCart = () => {} }) {
     });
     
     setSelectedNumbers([]);
+    setDesiredPricingData(() => ({ ...defaultPricingData }));
 
     if (countryRef.current) countryRef.current.value = '';
     if (productTypeRef.current) productTypeRef.current.value = '';
@@ -219,46 +225,38 @@ function NewNumbers({ onAddToCart = () => {} }) {
 
   // Function to handle Configure button click from NumberSelection
   const handleConfigure = (selectedNumbersData) => {
-    if (!selectedNumbersData || selectedNumbersData.length === 0) {
-      toast({
-        title: 'No Numbers Selected',
-        description: 'Please select at least one number to configure',
-        status: 'warning',
-        duration: 3,
-        isClosable: true,
-      });
-      return;
-    }
-    
     setShowNumbers(false);
     setShowAddCart(true);
     setCurrentStep(3);
   };
 
   const handleAddToCart = (cartConfig) => {
-    if (!cartConfig || !selectedNumbers || selectedNumbers.length === 0) {
+    if (!cartConfig) {
       toast({
         title: 'Invalid Configuration',
-        description: 'Please select numbers and complete the configuration',
+        description: 'Please complete the configuration',
         status: 'error',
         duration: 3,
         isClosable: true,
       });
       return;
     }
-    
-    // Create cart item with selected numbers and configuration
+
+    // Create cart item with configuration
     const item = {
       id: Date.now(),
       productType: formData.productType,
       country: formData.country,
       areaCode: formData.areaCode,
-      quantity: selectedNumbers.length,
-      selectedNumbers: selectedNumbers,
+      quantity: formData.quantity,
+      selectedNumbers: [],
       connectivity: cartConfig.connectivityMode,
-      prefix: cartConfig.selectedPrefix
+      prefix: cartConfig.selectedPrefix,
+      desiredPricing: { ...desiredPricingData },
+      pricing: { ...defaultPricingData },
+      orderStatus: 'In Progress'
     };
-    
+
     onAddToCart(item);
     // Navigate to cart page instead of showing inline
     navigate('/order-numbers/place-order');
@@ -483,6 +481,8 @@ function NewNumbers({ onAddToCart = () => {} }) {
             onNumberSelectionChange={handleNumberSelectionChange}
             onConfigure={handleConfigure}
             initialStep={currentStep}
+            desiredPricingData={desiredPricingData}
+            onDesiredPricingChange={setDesiredPricingData}
           />
         )}
 

@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Heading,
@@ -20,18 +21,19 @@ import {
   Card,
   CardBody,
   Button,
-  Divider,
+  Icon,
   Flex,
   Badge,
 } from '@chakra-ui/react';
-import { FiSearch, FiXCircle } from 'react-icons/fi';
+import { FiSearch, FiXCircle,FiCheck, FiClock, FiX, FiDollarSign,FiPackage } from 'react-icons/fi';
 import { FaEye } from 'react-icons/fa';
 function MyOrders() {
+  const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
   const [resultsPerPage, setResultsPerPage] = useState(20);
 
   // Sample orders data
-  const orders = [
+  const [orders, setOrders] = useState([
     {
       id: 1,
       orderNo: 'ORD-001',
@@ -40,8 +42,19 @@ function MyOrders() {
       serviceName: 'Voice',
       areaCode: 'Toll Free (800)',
       quantity: 5,
-      orderStatus: 'Active',
-      orderDate: '2025-01-15'
+      orderStatus: 'In Progress',
+      orderDate: '2025-01-15',
+      disconnectionStatus: null,
+      pricing: {
+        nrc: '$24.00',
+        mrc: '$24.00',
+        ppm: '$0.0380'
+      },
+      desiredPricing: {
+        nrc: '$18.00',
+        mrc: '$20.00',
+        ppm: '$0.0300'
+      }
     },
     {
       id: 2,
@@ -51,8 +64,23 @@ function MyOrders() {
       serviceName: 'SMS',
       areaCode: 'London (020)',
       quantity: 3,
-      orderStatus: 'Completed',
-      orderDate: '2025-01-10'
+      orderStatus: 'Confirmed',
+      orderDate: '2025-01-10',
+      disconnectionStatus: null,
+      pricing: {
+        nrc: '$30.00',
+        mrc: '$28.00',
+        ppmFix: '$0.0400',
+        ppmMobile: '$0.0550',
+        ppmPayphone: '$0.0650'
+      },
+      desiredPricing: {
+        nrc: '$27.00',
+        mrc: '$25.00',
+        ppmFix: '$0.0350',
+        ppmMobile: '$0.0500',
+        ppmPayphone: '$0.0580'
+      }
     },
     {
       id: 3,
@@ -62,8 +90,19 @@ function MyOrders() {
       serviceName: 'Voice & SMS',
       areaCode: 'Toronto (416)',
       quantity: 2,
-      orderStatus: 'Pending',
-      orderDate: '2025-01-20'
+      orderStatus: 'Amount Paid',
+      orderDate: '2025-01-20',
+      disconnectionStatus: null,
+      pricing: {
+        nrc: '$26.00',
+        mrc: '$26.00',
+        ppm: '$0.0400'
+      },
+      desiredPricing: {
+        nrc: '$24.00',
+        mrc: '$24.00',
+        ppm: '$0.0350'
+      }
     },
     {
       id: 4,
@@ -73,10 +112,57 @@ function MyOrders() {
       serviceName: 'Voice',
       areaCode: 'Sydney (02)',
       quantity: 4,
-      orderStatus: 'Active',
-      orderDate: '2025-01-08'
+      orderStatus: 'Delivered',
+      orderDate: '2025-01-08',
+      disconnectionStatus: null,
+      pricing: {
+        nrc: '$32.00',
+        mrc: '$30.00',
+        ppm: '$0.0450'
+      },
+      desiredPricing: {
+        nrc: '$30.00',
+        mrc: '$28.00',
+        ppm: '$0.0400'
+      }
+    },
+    {
+      id: 5,
+      orderNo: 'ORD-005',
+      country: 'Germany (+49)',
+      productType: 'Mobile',
+      serviceName: 'Voice',
+      areaCode: 'Berlin (030)',
+      quantity: 1,
+      orderStatus: 'Cancelled',
+      orderDate: '2025-01-05',
+      disconnectionStatus: null,
+      pricing: {
+        nrc: '$36.00',
+        mrc: '$34.00',
+        Incomingppm: '$0.0250',
+        Outgoingppmfix: '$0.0370',
+        Outgoingppmmobile: '$0.0470',
+        incmongsms: '$0.0130',
+        outgoingsms: '$0.0180'
+      },
+      desiredPricing: {
+        nrc: '$33.00',
+        mrc: '$31.00',
+        Incomingppm: '$0.0220',
+        Outgoingppmfix: '$0.0340',
+        Outgoingppmmobile: '$0.0430',
+        incmongsms: '$0.0100',
+        outgoingsms: '$0.0150'
+      }
     }
-  ];
+  ]);
+
+  const updateOrderDisconnectionStatus = (orderId, status) => {
+    setOrders(prevOrders => prevOrders.map(order => (
+      order.id === orderId ? { ...order, disconnectionStatus: status } : order
+    )));
+  };
 
   const countryRef = useRef(null);
   const productTypeRef = useRef(null);
@@ -123,15 +209,31 @@ function MyOrders() {
     setCurrentPage(1);
   };
 
+  const handleViewOrder = (order) => {
+    navigate('/order-number-view', { state: { orderData: order } });
+  };
+
   const getStatusColor = (status) => {
     switch (status?.toLowerCase()) {
-      case 'active': return 'green';
-      case 'completed': return 'blue';
-      case 'pending': return 'orange';
+      case 'delivered': return 'green';
+      case 'confirmed': return 'blue';
       case 'cancelled': return 'red';
+      case 'in progress': return 'yellow';
+      case 'amount paid': return 'purple';
       default: return 'gray';
     }
   };
+  const getStatusIcon = (status) => {
+      switch (status?.toLowerCase()) {
+        case 'delivered': return FiCheck;
+        case 'confirmed': return FiClock;
+        case 'cancelled': return FiX;
+        case 'in progress': return FiClock;
+        case 'amount paid': return FiDollarSign;
+        default: return FiPackage;
+      }
+    };
+  
 
   return (
     <Box
@@ -148,7 +250,7 @@ function MyOrders() {
 
         <Card bg="white" borderRadius="12px" boxShadow="sm" border="1px solid" borderColor="gray.200">
           <CardBody p={6}>
-            <Grid templateColumns={{ base: "1fr", md: "repeat(6, 1fr)" }} gap={4} alignItems="end" w="full">
+            <Grid templateColumns={{ base: "1fr", md: "repeat(3, 1fr)" }} gap={4} alignItems="end" w="full">
               <FormControl>
                 <FormLabel color="#1a3a52" fontWeight="medium" fontSize="sm">
                   Country
@@ -238,24 +340,25 @@ function MyOrders() {
                 <FormLabel color="#1a3a52" fontWeight="medium" fontSize="sm">
                   Status
                 </FormLabel>
-                <Select 
+                <Select
                   ref={statusRef}
-                  placeholder="Select status" 
+                  placeholder="Select status"
                   bg="white"
                   borderColor="gray.300"
                   _hover={{ borderColor: "blue.400" }}
                   onKeyDown={(e) => handleKeyDown(e, null)}
                 >
-                  <option value="pending">Pending</option>
-                  <option value="active">Active</option>
-                  <option value="completed">Completed</option>
+                  <option value="in progress">In Progress</option>
+                  <option value="confirmed">Confirmed</option>
+                  <option value="amount paid">Amount Paid</option>
+                  <option value="delivered">Delivered</option>
                   <option value="cancelled">Cancelled</option>
                 </Select>
               </FormControl>
 
-              
-              <GridItem colSpan={{ base: 1, md: 6 }} display="flex" justifyContent="flex-end" alignItems="center" gap={3}>
+              <GridItem colSpan={{ base: 1, md: 6 }} display="flex" justifyContent="center" alignItems="center" gap={3}>
                 <Button
+                  // variant={"ghost"}
                   colorScheme="blue"
                   size="md"
                   borderRadius="full"
@@ -271,7 +374,7 @@ function MyOrders() {
                 </Button>
 
                 <Button
-                  variant="outline"
+                  variant="ghost"
                   size="md"
                   borderRadius="full"
                   fontWeight="semibold"
@@ -291,9 +394,6 @@ function MyOrders() {
             </Grid>
           </CardBody>
         </Card>
-
-        <Divider borderColor="gray.300" />
-
         <Box
           bg="white"
           borderRadius="12px"
@@ -318,7 +418,7 @@ function MyOrders() {
                   }
                 }}
               >
-                <Th width="3%">No.</Th>
+                {/* <Th width="3%">No.</Th> */}
                 <Th w="5%">Order</Th>
                 <Th w={"5%"}>Country</Th>
                 <Th w={"15%"}>Product Type</Th>
@@ -326,7 +426,7 @@ function MyOrders() {
                 <Th w={"15%"}>Area Code(Prefix)</Th>
                 <Th w={"5%"}>Quantity</Th>
                 <Th w={"10%"}>Order Status</Th>
-                <Th w={"10%"}>Order Date</Th>
+                <Th w={"20%"}>Order Date</Th>
                 <Th width="5%">Action</Th>
               </Tr>
             </Thead>
@@ -334,7 +434,7 @@ function MyOrders() {
               {currentOrders.length > 0 ? (
                 currentOrders.map((order) => (
                   <Tr key={order.id} _hover={{ bg: 'gray.50' }}>
-                    <Td textAlign="center">{order.id}</Td>
+                    {/* <Td textAlign="center">{order.id}</Td> */}
                     <Td textAlign="center">{order.orderNo}</Td>
                     <Td textAlign="center">{order.country}</Td>
                     <Td textAlign="center">{order.productType}</Td>
@@ -342,11 +442,15 @@ function MyOrders() {
                     <Td textAlign="center">{order.areaCode}</Td>
                     <Td textAlign="center">{order.quantity}</Td>
                     <Td textAlign="center">
-                      <Badge colorScheme={getStatusColor(order.orderStatus)}>
-                        {order.orderStatus}
+                      
+                      <Badge borderRadius={"full"} colorScheme={getStatusColor(order.orderStatus)}>
+                        <HStack spacing={1}>
+                          <Icon as={getStatusIcon(order.orderStatus)} boxSize={3} />
+                          <Text>{order.orderStatus}</Text>
+                       </HStack>
                       </Badge>
                     </Td>
-                    <Td textAlign="center">{order.orderDate}</Td>
+                    <Td w={"15%"} textAlign="center">{order.orderDate}</Td>
                     <Td textAlign="center">
                       <HStack spacing={2} justify="center">
                         
@@ -356,6 +460,7 @@ function MyOrders() {
                           variant="ghost"
                           fontWeight="bold"
                           leftIcon={<FaEye />}
+                          onClick={() => handleViewOrder(order)}
                         >
                           View
                         </Button>

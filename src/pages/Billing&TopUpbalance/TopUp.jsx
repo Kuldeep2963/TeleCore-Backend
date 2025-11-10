@@ -84,19 +84,18 @@ const TopUp = ({ walletBalance = 50.00, onUpdateBalance = () => {} }) => {
                     step="0.01"
                   />
                 </InputGroup>
+                 {/* TopUp Button */}
               </Box>
-
-              {/* TopUp Button */}
-              <Button
+                <Button
+                
                 colorScheme="green"
-                size="lg"
+                size="md"
                 leftIcon={<FaCreditCard />}
                 onClick={handleTopup}
                 isDisabled={!topupAmount || parseFloat(topupAmount) <= 0}
               >
                 TopUp Now
               </Button>
-
               {/* Available Payment Methods */}
               <Box p={4} bg={useColorModeValue('gray.50', 'gray.700')} borderRadius="md">
                 <Text fontWeight="semibold" fontSize="sm" mb={2}>Payment Methods</Text>
@@ -155,7 +154,7 @@ const TopUp = ({ walletBalance = 50.00, onUpdateBalance = () => {} }) => {
               {/* Set Threshold Button */}
               <Button
                 colorScheme="orange"
-                size="lg"
+                size="md"
                 onClick={() => {
                   const input = document.getElementById('thresholdInput');
                   handleSetThreshold(input.value);

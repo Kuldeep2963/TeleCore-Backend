@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
+  Badge,
   VStack,
   HStack,
   Heading,
@@ -12,18 +14,16 @@ import {
   Tr,
   Th,
   Td,
-  Input,
   Select,
   Button,
-  IconButton,
   useColorModeValue,
-  Divider,
   SimpleGrid,
   Flex
 } from '@chakra-ui/react';
-import { DownloadIcon, SearchIcon, CloseIcon, ViewIcon } from '@chakra-ui/icons';
-
+import { DownloadIcon, SearchIcon,ViewIcon } from '@chakra-ui/icons';
+import { FiXCircle } from 'react-icons/fi';
 function Products() {
+  const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
   const [resultsPerPage, setResultsPerPage] = useState(20);
 
@@ -85,7 +85,7 @@ function Products() {
   const pageBg = useColorModeValue('#f8f9fa', 'gray.900');
   const cardBg = useColorModeValue('white', 'gray.800');
   const headingColor = useColorModeValue('#1a3a52', 'white');
-  const subheadingColor = useColorModeValue('#274c65', 'gray.700');
+  const subheadingColor = useColorModeValue('gray.800', 'gray.900');
   const textColor = useColorModeValue('gray.700', 'gray.300');
   const mutedTextColor = useColorModeValue('gray.500', 'gray.400');
   const borderColor = useColorModeValue('gray.200', 'gray.700');
@@ -105,10 +105,28 @@ function Products() {
     console.log('Clear filters');
   };
 
+  const handleViewProduct = (product) => {
+    // Transform product data to match OrderNumberView expected format
+    const orderData = {
+      orderNo: `PROD-${product.id}`,
+      country: product.country,
+      productType: product.productType.toLowerCase(),
+      serviceName: product.productType.toLowerCase().replace('-', ' '),
+      areaCode: product.areaCode,
+      quantity: 1, // Default quantity for product view
+      orderStatus: 'Available',
+      orderDate: new Date().toISOString().split('T')[0], // Today's date
+      region: product.region, // Add region for product view
+      edt: product.edt // Add estimated delivery time for product view
+    };
+
+    navigate('/order-number-view', { state: { orderData } });
+  };
+
   return (
     <Box
       flex={1}
-      py={8}
+      py={6}
       px={{ base: 4, md: 6 }}
       bg={pageBg}
       height="calc(100vh - 76px)"
@@ -131,10 +149,6 @@ function Products() {
           mb={6}
         >
           <VStack align="flex-start" spacing={4} w="full">
-            <Heading as="h2" color={subheadingColor} fontSize="lg" fontWeight="semibold">
-              Filter Products
-            </Heading>
-
             <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} spacing={4} w="full">
               <Box>
                 <Text color={mutedTextColor} fontSize="sm" mb={2}>
@@ -184,7 +198,7 @@ function Products() {
                   </Button>
                   <Button
                     borderRadius={"full"}
-                    leftIcon={<CloseIcon />}
+                    leftIcon={<FiXCircle />}
                     variant="outline"
                     colorScheme="gray"
                     onClick={handleClear}
@@ -211,9 +225,6 @@ function Products() {
               <Heading as="h2" color={subheadingColor} fontSize="lg" fontWeight="semibold">
                 Product Inventory
               </Heading>
-              <Text color={mutedTextColor} fontSize="sm">
-                Monitor available numbers and their respective provisioning windows.
-              </Text>
             </VStack>
             <Button
               leftIcon={<DownloadIcon />}
@@ -226,19 +237,18 @@ function Products() {
             </Button>
           </HStack>
 
-          <Divider borderColor={borderColor} mb={4} />
 
           <Table variant="simple" size="md">
             <Thead bg={headerBg}>
               <Tr>
-                <Th color={subheadingColor} fontWeight="semibold">#</Th>
-                <Th color={subheadingColor} fontWeight="semibold">Country</Th>
-                <Th color={subheadingColor} fontWeight="semibold">Region</Th>
-                <Th color={subheadingColor} fontWeight="semibold">Product Type</Th>
-                <Th color={subheadingColor} fontWeight="semibold">Area Code (Prefix)</Th>
-                <Th color={subheadingColor} fontWeight="semibold">EDT</Th>
-                <Th color={subheadingColor} fontWeight="semibold">Inventory Count</Th>
-                <Th color={subheadingColor} fontWeight="semibold">Actions</Th>
+                <Th fontSize={"sm"} color={subheadingColor} fontWeight="semibold">#</Th>
+                <Th fontSize={"sm"} color={subheadingColor} fontWeight="semibold">Country</Th>
+                <Th fontSize={"sm"} color={subheadingColor} fontWeight="semibold">Region</Th>
+                <Th fontSize={"sm"} color={subheadingColor} fontWeight="semibold">Product Type</Th>
+                <Th fontSize={"sm"} color={subheadingColor} fontWeight="semibold">Area Code (Prefix)</Th>
+                <Th fontSize={"sm"} color={subheadingColor} fontWeight="semibold">EDT</Th>
+                {/* <Th fontSize={"sm"} color={subheadingColor} fontWeight="semibold">Inventory Count</Th> */}
+                <Th fontSize={"sm"} color={subheadingColor} fontWeight="semibold">Actions</Th>
               </Tr>
             </Thead>
             <Tbody>
@@ -252,17 +262,17 @@ function Products() {
                     <Td color={textColor} fontWeight="medium">{product.id}</Td>
                     <Td color={textColor}>{product.country}</Td>
                     <Td color={textColor}>{product.region}</Td>
-                    <Td color={textColor}>{product.productType}</Td>
+                    <Td color={"Gray.700"}><Badge colorScheme='teal'>{product.productType}</Badge></Td>
                     <Td color={textColor}>{product.areaCode}</Td>
                     <Td color={textColor}>{product.edt}</Td>
-                    <Td color={textColor}>{product.inventoryCount}</Td>
+                    {/* <Td color={textColor}>{product.inventoryCount}</Td> */}
                     <Td>
                       <Button
                         variant="ghost"
                         colorScheme="blue"
                         size="sm"
                         leftIcon={<ViewIcon />}
-                        onClick={() => console.log('View product', product.id)}
+                        onClick={() => handleViewProduct(product)}
                       >
                         View
                       </Button>
@@ -289,6 +299,7 @@ function Products() {
         {/* Pagination Section */}
         {totalResults > 0 && (
           <Box
+          mt={4}
             bg={cardBg}
             borderRadius="16px"
             boxShadow="sm"

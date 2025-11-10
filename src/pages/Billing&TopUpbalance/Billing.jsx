@@ -1,4 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {Box, Container, VStack, HStack, Text, Table, Thead, Tbody, Tr, Th, Td, IconButton, Badge, Button, Card, CardBody, Heading, Flex, Select,Icon,Input, InputGroup, InputLeftElement, Grid, GridItem, Divider, useColorModeValue, Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalCloseButton, useDisclosure, Tabs, TabList, TabPanels, Tab, TabPanel, Collapse, Wrap, WrapItem
 } from '@chakra-ui/react';
 import { FaSearch, FaDownload, FaEye, FaPrint, FaFileInvoice, FaCreditCard, FaWallet, FaChevronDown, FaChevronUp, FaFilter, FaCalendarAlt, FaTimes } from 'react-icons/fa';
@@ -104,6 +105,11 @@ const Billing = ({ walletBalance = 50.00, onUpdateBalance = () => {} }) => {
   const [sortDirection, setSortDirection] = useState('desc');
   const [currentPage, setCurrentPage] = useState(1);
   const [resultsPerPage, setResultsPerPage] = useState(10);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [tabIndex, setTabIndex] = useState(() => {
+    const tab = searchParams.get('tab');
+    return tab && tab.toLowerCase() === 'topup' ? 1 : 0;
+  });
 
   const monthOptions = useMemo(() => {
     return Array.from({ length: 12 }, (_, index) => {
@@ -184,6 +190,12 @@ const Billing = ({ walletBalance = 50.00, onUpdateBalance = () => {} }) => {
     setDateFrom('');
     setDateTo('');
   };
+
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    const nextIndex = tab && tab.toLowerCase() === 'topup' ? 1 : 0;
+    setTabIndex(nextIndex);
+  }, [searchParams]);
 
   const handleSort = (field) => {
     if (sortField === field) {
@@ -284,10 +296,20 @@ const Billing = ({ walletBalance = 50.00, onUpdateBalance = () => {} }) => {
 
   const handleResultsPerPageChange = (e) => {
     setResultsPerPage(Number(e.target.value));
-    setCurrentPage(1); // Reset to first page when changing results per page
+    setCurrentPage(1);
   };
 
-  // Reset to first page when filters change
+  const handleTabChange = (index) => {
+    setTabIndex(index);
+    const nextParams = new URLSearchParams(searchParams);
+    if (index === 1) {
+      nextParams.set('tab', 'topup');
+    } else {
+      nextParams.delete('tab');
+    }
+    setSearchParams(nextParams, { replace: true });
+  };
+
   useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery, selectedStatus, dateFrom, dateTo, sortField, sortDirection]);
@@ -306,10 +328,10 @@ const Billing = ({ walletBalance = 50.00, onUpdateBalance = () => {} }) => {
 
 
   return (
-    <Box maxW="full" p={6} pl={8}>
+    <Box w="full" p={6} >
       <VStack spacing={6} align="stretch">
         {/* Tab Navigation */}
-        <Tabs variant="soft-rounded" colorScheme="blue" defaultIndex={0}>
+        <Tabs variant="soft-rounded" colorScheme="blue" index={tabIndex} onChange={handleTabChange}>
           <TabList mb="1em" bg={useColorModeValue('gray.50', 'gray.900')} p={2} borderRadius="lg">
             <HStack spacing={4}>
             <Tab fontWeight="semibold" fontSize="md">
@@ -412,6 +434,7 @@ const Billing = ({ walletBalance = 50.00, onUpdateBalance = () => {} }) => {
                 rightIcon={<FaFilter />}
                 size="sm"
                 variant="outline"
+                borderRadius={"full"}
                 colorScheme="blue"
                 onClick={() => setShowFilters(!showFilters)}
               >
@@ -560,6 +583,7 @@ const Billing = ({ walletBalance = 50.00, onUpdateBalance = () => {} }) => {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   bg="white"
+                  borderRadius={"full"}
                 />
               </InputGroup>
               <Text fontSize="sm" color="gray.600">

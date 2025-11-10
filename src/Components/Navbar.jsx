@@ -6,7 +6,6 @@ import {
   Avatar, 
   HStack, 
   IconButton,
-  Tooltip,
   Image,
   Menu,
   MenuButton,
@@ -22,7 +21,7 @@ import { FaFileExcel, FaShoppingCart, FaUser, FaCog, FaKey, FaSignOutAlt, FaWall
 import { useNavigate } from 'react-router-dom';
 import ChangePasswordModal from '../Modals/ChangePasswordModal';
 
-function Navbar({ cartCount = 0, walletBalance = 0, onLogout = () => {} }) {
+function Navbar({ cartCount = 0, walletBalance = 0, profilePicture = null, onLogout = () => {}, userRole = 'Client' }) {
   const navigate = useNavigate();
   const { isOpen, onOpen, onClose } = useDisclosure();
 
@@ -45,18 +44,29 @@ function Navbar({ cartCount = 0, walletBalance = 0, onLogout = () => {} }) {
   const handleRatesClick = () => {
     navigate('/rates');
   };
+
+  const handleWalletClick = () => {
+    navigate('/billing-invoices?tab=topup');
+  };
+
   return (
     <Box
-      bgGradient="linear(to-r,whiteAlpha.50, gray.300)"
+      bgGradient="linear(to-r,whiteAlpha.200,gray.100, gray.200,gray.300)"
+      backdropFilter="blur(20px)"
+      borderBottom="1px solid"
+      borderColor="rgba(148, 163, 184, 0.1)"
+      boxShadow="0 4px 20px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.1)"
       px={4}
       py={1}
-      boxShadow="lg"
       position="fixed"
       top={0}
       left={0}
       right={0}
       zIndex={1000}
       height="60px"
+      sx={{
+        WebkitBackdropFilter: "blur(20px)", // Safari support
+      }}
     >
       <Flex justify="space-between" align="center" height="100%">
         {/* Logo */}
@@ -86,62 +96,65 @@ function Navbar({ cartCount = 0, walletBalance = 0, onLogout = () => {} }) {
               onClick={handleRatesClick}
             />
           
-          {/* Cart Icon */}
-            <Box position="relative" display="inline-block">
-              <IconButton
-                icon={<FaShoppingCart />}
-                variant="ghost"
-                color="#1a3a52"
-                _hover={{ 
-                  bg: 'rgba(26, 58, 82, 0.1)',
-                    borderRadius:'full',
-                  transform: 'scale(1.1)'
-                }}
-                size="lg"
-                transition="all 0.2s ease"
-                onClick={handleCartClick}
-              />
-              {cartCount > 0 && (
-                <Badge
-                  position="absolute"
-                  top="-3px"
-                  right="-2px"
-                  borderRadius="full"
-                  bg="red.500"
-                  color="white"
-                  fontSize="11px"
-                  fontWeight="bold"
-                  minW="20px"
-                  h="20px"
-                  display="flex"
-                  alignItems="center"
-                  justifyContent="center"
-                  boxShadow="0 2px 4px rgba(0,0,0,0.2)"
-                >
-                  {cartCount}
-                </Badge>
-              )}
-            </Box>
+          {/* Cart and Wallet - Only for Clients */}
+          {userRole === 'Client' && (
+            <>
+              {/* Cart Icon */}
+              <Box position="relative" display="inline-block">
+                <IconButton
+                  icon={<FaShoppingCart />}
+                  variant="ghost"
+                  color="#1a3a52"
+                  _hover={{
+                    bg: 'rgba(26, 58, 82, 0.1)',
+                      borderRadius:'full',
+                    transform: 'scale(1.1)'
+                  }}
+                  size="lg"
+                  transition="all 0.2s ease"
+                  onClick={handleCartClick}
+                />
+                {cartCount > 0 && (
+                  <Badge
+                    position="absolute"
+                    top="-3px"
+                    right="-2px"
+                    borderRadius="full"
+                    bg="red.500"
+                    color="white"
+                    fontSize="11px"
+                    fontWeight="bold"
+                    minW="20px"
+                    h="20px"
+                    display="flex"
+                    alignItems="center"
+                    justifyContent="center"
+                    boxShadow="0 2px 4px rgba(0,0,0,0.2)"
+                  >
+                    {cartCount}
+                  </Badge>
+                )}
+              </Box>
 
-          {/* Wallet Balance */}
-            <Tooltip label="Wallet Balance" placement="bottom">
-              <Box 
-                display="flex" 
-                alignItems="center" 
+              {/* Wallet Balance */}
+              <Box
+                display="flex"
+                alignItems="center"
                 gap={2}
                 px={3}
                 py={2}
-                bg="rgba(26, 58, 82, 0.05)"
                 borderRadius="full"
-                border="1px solid"
-                borderColor="rgba(26, 58, 82, 0.1)"
+                bg="rgba(26, 58, 82, 0.1)"
+                cursor="pointer"
+                onClick={handleWalletClick}
               >
                 <FaWallet color="#1a3a52" size={16} />
                 <Text fontWeight="bold" fontSize="16px" color="green.600">
                   ${walletBalance.toFixed(2)}
                 </Text>
               </Box>
-            </Tooltip>
+            </>
+          )}
           
           {/* Profile with Chakra Menu */}
           <Menu>
@@ -149,13 +162,13 @@ function Navbar({ cartCount = 0, walletBalance = 0, onLogout = () => {} }) {
                 as={IconButton}
                 icon={
                   <HStack spacing={2}>
-                    <Avatar 
-                      size="xs" 
+                    <Avatar
+                      size="sm"
+                      src={profilePicture}
                       name="Sarah Wilson"
-                      bgGradient="linear(135deg, #667eea 0%, #764ba2 100%)"
+                      bg={profilePicture ? "transparent" : "linear(135deg, #667eea 0%, #764ba2 100%)"}
+                      bgGradient={profilePicture ? "none" : "linear(135deg, #667eea 0%, #764ba2 100%)"}
                       color="white"
-                      border="2px solid"
-                      borderColor="rgba(26, 58, 82, 0.2)"
                       fontWeight="600"
                       width="30px"
                       height="30px"

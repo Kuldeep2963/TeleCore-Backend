@@ -6,8 +6,11 @@ import {
   HStack,
   Select,
   Button,
-  Text
+  Text,
+  Spacer
 } from '@chakra-ui/react';
+import { FaSearch } from 'react-icons/fa';
+import { FiXCircle } from 'react-icons/fi';
 
 const Rates = () => {
   const [country, setCountry] = useState('');
@@ -43,7 +46,7 @@ const Rates = () => {
   return (
     <Box
       flex={1}
-      p={6}
+      p={8}
       bg="#f8f9fa"
       height="calc(100vh - 76px)"
       overflowY="auto"
@@ -67,10 +70,10 @@ const Rates = () => {
           p={5}
         >
           <VStack align="stretch" spacing={4}>
-            <Text fontSize="md" color="gray.600" fontWeight="semibold">
-              Filter Rates
-            </Text>
+            
             <HStack spacing={4} align="center">
+              <VStack flex={3} align={"start"} spacing={1}>
+              <Text fontWeight={"bold"}>Country</Text>
               <Select
                 value={country}
                 onChange={(e) => setCountry(e.target.value)}
@@ -81,6 +84,9 @@ const Rates = () => {
                   </option>
                 ))}
               </Select>
+              </VStack>
+              <VStack flex={3} spacing={1} align={"start"}>
+                <Text fontWeight={"bold"}>Product Type</Text>
               <Select
                 value={productType}
                 onChange={(e) => setProductType(e.target.value)}
@@ -91,15 +97,21 @@ const Rates = () => {
                   </option>
                 ))}
               </Select>
-              <HStack spacing={3}>
+              </VStack>
+              <Spacer/>
+              <HStack flex={1} spacing={5} align={"center"}>
                 <Button
+                  borderRadius={"full"}
+                  leftIcon={<FaSearch/>}
                   colorScheme="blue"
                   onClick={handleSearch}
                 >
                   Search
                 </Button>
                 <Button
+                  borderRadius={"full"}
                   variant="outline"
+                  leftIcon={<FiXCircle />}
                   onClick={handleClear}
                 >
                   Clear

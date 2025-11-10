@@ -144,7 +144,7 @@ const PlaceOrder = ({ cartItems = [], formData = {}, onPlaceOrder = () => {}, on
                         <Td>{item.id}</Td>
                         <Td>{item.productType}</Td>
                         <Td textAlign="center">
-                          <Badge borderRadius={"15px"} colorScheme="blue" fontSize="md" px={3} py={1}>
+                          <Badge borderRadius={"15px"} colorScheme="blue" fontSize="sm" px={3} py={1}>
                             {item.countryName}
                           </Badge>
                         </Td>
@@ -159,7 +159,7 @@ const PlaceOrder = ({ cartItems = [], formData = {}, onPlaceOrder = () => {}, on
                             <Button
                               leftIcon={<FaEdit />}
                               colorScheme="blue"
-                              variant="outline"
+                              variant="ghost"
                               size="sm"
                               onClick={() => handleEdit(item.itemId)}
                             >
@@ -168,7 +168,7 @@ const PlaceOrder = ({ cartItems = [], formData = {}, onPlaceOrder = () => {}, on
                             <Button
                               leftIcon={<FaTrash />}
                               colorScheme="red"
-                              variant="outline"
+                              variant="ghost"
                               size="sm"
                               onClick={() => handleDelete(item.itemId)}
                             >

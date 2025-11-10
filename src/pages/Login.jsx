@@ -13,7 +13,11 @@ import {
   InputGroup,
   InputRightElement,
   IconButton,
-  Image
+  Image,
+  Select,
+  RadioGroup,
+  Radio,
+  HStack
 } from '@chakra-ui/react';
 import { ViewIcon, ViewOffIcon } from '@chakra-ui/icons';
 import { useNavigate } from 'react-router-dom';
@@ -23,7 +27,8 @@ const Login = ({ onLogin = () => ({ success: false }), sampleCredentials }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     email: sampleCredentials?.email || '',
-    password: ''
+    password: '',
+    role: 'Client'
   });
   const [errorMessage, setErrorMessage] = useState('');
 
@@ -43,7 +48,11 @@ const Login = ({ onLogin = () => ({ success: false }), sampleCredentials }) => {
 
   const handleLogin = () => {
     setErrorMessage('');
-    const result = onLogin({ email: formData.email, password: formData.password });
+    const result = onLogin({
+      email: formData.email,
+      password: formData.password,
+      role: formData.role
+    });
 
     if (result?.success) {
       navigate('/dashboard', { replace: true });
@@ -63,7 +72,8 @@ const Login = ({ onLogin = () => ({ success: false }), sampleCredentials }) => {
     }
     setFormData({
       email: sampleCredentials.email || '',
-      password: sampleCredentials.password || ''
+      password: sampleCredentials.password || '',
+      role: 'Client'
     });
     setShowPassword(false);
     setErrorMessage('');
@@ -174,6 +184,24 @@ const Login = ({ onLogin = () => ({ success: false }), sampleCredentials }) => {
                 </InputGroup>
               </FormControl>
 
+              {/* Role Selection */}
+              <FormControl isRequired>
+                
+                <RadioGroup
+                  value={formData.role}
+                  onChange={(value) => handleInputChange('role', value)}
+                >
+                  <HStack spacing={6}>
+                    <Radio value="Client" colorScheme="blue">
+                      Client
+                    </Radio>
+                    <Radio value="Internal" colorScheme="green">
+                      Internal
+                    </Radio>
+                  </HStack>
+                </RadioGroup>
+              </FormControl>
+
               {errorMessage && (
                 <Text color="red.500" fontSize="sm" fontWeight="semibold">
                   {errorMessage}
@@ -228,7 +256,7 @@ const Login = ({ onLogin = () => ({ success: false }), sampleCredentials }) => {
                   >
                     Autofill
                   </Button>
-                  <Box>
+                  {/* <Box>
                     <Text fontSize="sm" color={hintText} fontWeight="semibold">
                       Sample Credentials
                     </Text>
@@ -236,7 +264,7 @@ const Login = ({ onLogin = () => ({ success: false }), sampleCredentials }) => {
                       <Text color={hintText}>Email: {sampleCredentials.email}</Text>
                       <Text color={hintText}>Password: {sampleCredentials.password}</Text>
                     </VStack>
-                  </Box>
+                  </Box> */}
                 </Box>
               )}
             </VStack>
