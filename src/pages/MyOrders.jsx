@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -24,139 +24,95 @@ import {
   Icon,
   Flex,
   Badge,
+  Spinner,
+  Center,
+  useToast
 } from '@chakra-ui/react';
 import { FiSearch, FiXCircle,FiCheck, FiClock, FiX, FiDollarSign,FiPackage } from 'react-icons/fi';
 import { FaEye } from 'react-icons/fa';
-function MyOrders() {
+import api from '../services/api';
+import { transform } from 'framer-motion';
+function MyOrders({ userId, userRole }) {
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
   const [resultsPerPage, setResultsPerPage] = useState(20);
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [countries, setCountries] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [filters, setFilters] = useState({
+    country: '',
+    productType: '',
+    startDate: '',
+    endDate: '',
+    status: ''
+  });
+  const toast = useToast();
 
-  // Sample orders data
-  const [orders, setOrders] = useState([
-    {
-      id: 1,
-      orderNo: 'ORD-001',
-      country: 'United States (+1)',
-      productType: 'DID',
-      serviceName: 'Voice',
-      areaCode: 'Toll Free (800)',
-      quantity: 5,
-      orderStatus: 'In Progress',
-      orderDate: '2025-01-15',
-      disconnectionStatus: null,
-      pricing: {
-        nrc: '$24.00',
-        mrc: '$24.00',
-        ppm: '$0.0380'
-      },
-      desiredPricing: {
-        nrc: '$18.00',
-        mrc: '$20.00',
-        ppm: '$0.0300'
+  useEffect(() => {
+    fetchOrders();
+    fetchCountriesAndProducts();
+  }, []);
+
+  const fetchCountriesAndProducts = async () => {
+    try {
+      // Fetch countries
+      const countriesResponse = await api.countries.getAll();
+      if (countriesResponse.success) {
+        setCountries(countriesResponse.data);
       }
-    },
-    {
-      id: 2,
-      orderNo: 'ORD-002',
-      country: 'United Kingdom (+44)',
-      productType: 'Freephone',
-      serviceName: 'SMS',
-      areaCode: 'London (020)',
-      quantity: 3,
-      orderStatus: 'Confirmed',
-      orderDate: '2025-01-10',
-      disconnectionStatus: null,
-      pricing: {
-        nrc: '$30.00',
-        mrc: '$28.00',
-        ppmFix: '$0.0400',
-        ppmMobile: '$0.0550',
-        ppmPayphone: '$0.0650'
-      },
-      desiredPricing: {
-        nrc: '$27.00',
-        mrc: '$25.00',
-        ppmFix: '$0.0350',
-        ppmMobile: '$0.0500',
-        ppmPayphone: '$0.0580'
+
+      // Fetch products
+      const productsResponse = await api.products.getAll();
+      if (productsResponse.success) {
+        setProducts(productsResponse.data);
       }
-    },
-    {
-      id: 3,
-      orderNo: 'ORD-003',
-      country: 'Canada (+1)',
-      productType: 'DID',
-      serviceName: 'Voice & SMS',
-      areaCode: 'Toronto (416)',
-      quantity: 2,
-      orderStatus: 'Amount Paid',
-      orderDate: '2025-01-20',
-      disconnectionStatus: null,
-      pricing: {
-        nrc: '$26.00',
-        mrc: '$26.00',
-        ppm: '$0.0400'
-      },
-      desiredPricing: {
-        nrc: '$24.00',
-        mrc: '$24.00',
-        ppm: '$0.0350'
-      }
-    },
-    {
-      id: 4,
-      orderNo: 'ORD-004',
-      country: 'Australia (+61)',
-      productType: 'Virtual Number',
-      serviceName: 'Voice',
-      areaCode: 'Sydney (02)',
-      quantity: 4,
-      orderStatus: 'Delivered',
-      orderDate: '2025-01-08',
-      disconnectionStatus: null,
-      pricing: {
-        nrc: '$32.00',
-        mrc: '$30.00',
-        ppm: '$0.0450'
-      },
-      desiredPricing: {
-        nrc: '$30.00',
-        mrc: '$28.00',
-        ppm: '$0.0400'
-      }
-    },
-    {
-      id: 5,
-      orderNo: 'ORD-005',
-      country: 'Germany (+49)',
-      productType: 'Mobile',
-      serviceName: 'Voice',
-      areaCode: 'Berlin (030)',
-      quantity: 1,
-      orderStatus: 'Cancelled',
-      orderDate: '2025-01-05',
-      disconnectionStatus: null,
-      pricing: {
-        nrc: '$36.00',
-        mrc: '$34.00',
-        Incomingppm: '$0.0250',
-        Outgoingppmfix: '$0.0370',
-        Outgoingppmmobile: '$0.0470',
-        incmongsms: '$0.0130',
-        outgoingsms: '$0.0180'
-      },
-      desiredPricing: {
-        nrc: '$33.00',
-        mrc: '$31.00',
-        Incomingppm: '$0.0220',
-        Outgoingppmfix: '$0.0340',
-        Outgoingppmmobile: '$0.0430',
-        incmongsms: '$0.0100',
-        outgoingsms: '$0.0150'
-      }
+    } catch (error) {
+      console.error('Error fetching countries and products:', error);
     }
-  ]);
+  };
+
+  const fetchOrders = async (searchFilters = {}) => {
+    try {
+      setLoading(true);
+      const params = {};
+      if (userId && userRole === 'Client') {
+        params.user_id = userId;
+        params.role = userRole;
+      }
+
+      // Add search filters
+      if (searchFilters.country) params.country = searchFilters.country;
+      if (searchFilters.productType) params.product_type = searchFilters.productType;
+      if (searchFilters.startDate) params.start_date = searchFilters.startDate;
+      if (searchFilters.endDate) params.end_date = searchFilters.endDate;
+      if (searchFilters.status) params.status = searchFilters.status;
+
+      const response = await api.orders.getAll(params);
+      if (response.success) {
+        setOrders(response.data);
+      } else {
+        toast({
+          title: 'Error',
+          description: 'Failed to load orders',
+          status: 'error',
+          duration: 3000,
+          isClosable: true,
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching orders:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load orders',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    } finally {
+      setLoading(false);
+    }
+  }
 
   const updateOrderDisconnectionStatus = (orderId, status) => {
     setOrders(prevOrders => prevOrders.map(order => (
@@ -166,7 +122,6 @@ function MyOrders() {
 
   const countryRef = useRef(null);
   const productTypeRef = useRef(null);
-  const serviceNameRef = useRef(null);
   const startDateRef = useRef(null);
   const endDateRef = useRef(null);
   const statusRef = useRef(null);
@@ -182,23 +137,47 @@ function MyOrders() {
     }
   };
 
+  const handleSearch = () => {
+    setCurrentPage(1); // Reset to first page when searching
+    fetchOrders(filters); // Apply current filters
+  };
+
   const handleClear = () => {
+    const clearedFilters = {
+      country: '',
+      productType: '',
+      startDate: '',
+      endDate: '',
+      status: ''
+    };
+    setFilters(clearedFilters);
+
     if (countryRef.current) countryRef.current.value = '';
     if (productTypeRef.current) productTypeRef.current.value = '';
-    if (serviceNameRef.current) serviceNameRef.current.value = '';
     if (startDateRef.current) startDateRef.current.value = '';
     if (endDateRef.current) endDateRef.current.value = '';
     if (statusRef.current) statusRef.current.value = '';
-    
+
+    setCurrentPage(1);
     countryRef.current?.focus();
   };
 
+  // Filter orders based on current filters
+  const filteredOrders = orders.filter(order => {
+    if (filters.country && order.country !== filters.country) return false;
+    if (filters.productType && order.productType !== filters.productType) return false;
+    if (filters.startDate && new Date(order.orderDate) < new Date(filters.startDate)) return false;
+    if (filters.endDate && new Date(order.orderDate) > new Date(filters.endDate)) return false;
+    if (filters.status && order.orderStatus.toLowerCase() !== filters.status.toLowerCase()) return false;
+    return true;
+  });
+
   // Pagination calculations
-  const totalResults = orders.length;
+  const totalResults = filteredOrders.length;
   const totalPages = Math.ceil(totalResults / resultsPerPage);
   const startIndex = (currentPage - 1) * resultsPerPage;
   const endIndex = Math.min(startIndex + resultsPerPage, totalResults);
-  const currentOrders = orders.slice(startIndex, endIndex);
+  const currentOrders = filteredOrders.slice(startIndex, endIndex);
 
   const handlePageChange = (newPage) => {
     setCurrentPage(newPage);
@@ -211,6 +190,39 @@ function MyOrders() {
 
   const handleViewOrder = (order) => {
     navigate('/order-number-view', { state: { orderData: order } });
+  };
+
+  const handlePayOrder = async (orderId) => {
+    try {
+      const response = await api.orders.updateStatus(orderId, 'Amount Paid');
+      if (response.success) {
+        // Update the local state to reflect the new status
+        setOrders(prevOrders =>
+          prevOrders.map(order =>
+            order.id === orderId
+              ? { ...order, orderStatus: 'Amount Paid' }
+              : order
+          )
+        );
+
+        toast({
+          title: 'Payment successful',
+          description: 'Order status updated to Amount Paid',
+          status: 'success',
+          duration: 3000,
+          isClosable: true,
+        });
+      }
+    } catch (error) {
+      console.error('Error updating order status:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to process payment',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    }
   };
 
   const getStatusColor = (status) => {
@@ -233,7 +245,14 @@ function MyOrders() {
         default: return FiPackage;
       }
     };
-  
+
+  if (loading) {
+    return (
+      <Center flex={1} minH="calc(100vh - 76px)">
+        <Spinner size="lg" color="blue.500" />
+      </Center>
+    );
+  }
 
   return (
     <Box
@@ -250,23 +269,26 @@ function MyOrders() {
 
         <Card bg="white" borderRadius="12px" boxShadow="sm" border="1px solid" borderColor="gray.200">
           <CardBody p={6}>
-            <Grid templateColumns={{ base: "1fr", md: "repeat(3, 1fr)" }} gap={4} alignItems="end" w="full">
+            <Grid templateColumns={{ base: "1fr", md: "repeat(5, 1fr)" }} gap={4} alignItems="end" w="full">
               <FormControl>
                 <FormLabel color="#1a3a52" fontWeight="medium" fontSize="sm">
                   Country
                 </FormLabel>
-                <Select 
+                <Select
                   ref={countryRef}
-                  placeholder="Select country" 
+                  placeholder="Select country"
+                  value={filters.country}
+                  onChange={(e) => setFilters({...filters, country: e.target.value})}
                   bg="white"
                   borderColor="gray.300"
                   _hover={{ borderColor: "blue.400" }}
-                  onKeyDown={(e) => handleKeyDown(e, productTypeRef)}
+                  onKeyDown={(e) => handleKeyDown(e, startDateRef)}
                 >
-                  <option value="us">United States</option>
-                  <option value="uk">United Kingdom</option>
-                  <option value="ca">Canada</option>
-                  <option value="au">Australia</option>
+                  {countries.map(country => (
+                    <option key={country.countryname} value={country.countryname}>
+                      {country.countryname} ({country.phonecode})
+                    </option>
+                  ))}
                 </Select>
               </FormControl>
 
@@ -274,47 +296,35 @@ function MyOrders() {
                 <FormLabel color="#1a3a52" fontWeight="medium" fontSize="sm">
                   Product Type
                 </FormLabel>
-                <Select 
+                <Select
                   ref={productTypeRef}
-                  placeholder="Select product type" 
-                  bg="white"
-                  borderColor="gray.300"
-                  _hover={{ borderColor: "blue.400" }}
-                  onKeyDown={(e) => handleKeyDown(e, serviceNameRef)}
-                >
-                  <option value="did">DID</option>
-                  <option value="freephone">Freephone</option>
-                  <option value="universal">Universal Freephone</option>
-                  <option value="mobile">Mobile</option>
-                </Select>
-              </FormControl>
-
-              <FormControl>
-                <FormLabel color="#1a3a52" fontWeight="medium" fontSize="sm">
-                  Service Name
-                </FormLabel>
-                <Select 
-                  ref={serviceNameRef}
-                  placeholder="Select service name" 
+                  placeholder="Select product type"
+                  value={filters.productType}
+                  onChange={(e) => setFilters({...filters, productType: e.target.value})}
                   bg="white"
                   borderColor="gray.300"
                   _hover={{ borderColor: "blue.400" }}
                   onKeyDown={(e) => handleKeyDown(e, startDateRef)}
                 >
-                  <option value="voice">Voice</option>
-                  <option value="sms">SMS</option>
-                  <option value="both">Voice & SMS</option>
-                  <option value="virtual">Virtual Number</option>
+                  {products.map(product => (
+                    <option key={product.code} value={product.code}>
+                      {product.name}
+                    </option>
+                  ))}
                 </Select>
               </FormControl>
+
+
 
               <FormControl>
                 <FormLabel color="#1a3a52" fontWeight="medium" fontSize="sm">
                   Start Date
                 </FormLabel>
-                <Input 
+                <Input
                   ref={startDateRef}
-                  type="date" 
+                  type="date"
+                  value={filters.startDate}
+                  onChange={(e) => setFilters({...filters, startDate: e.target.value})}
                   bg="white"
                   borderColor="gray.300"
                   _hover={{ borderColor: "blue.400" }}
@@ -326,9 +336,11 @@ function MyOrders() {
                 <FormLabel color="#1a3a52" fontWeight="medium" fontSize="sm">
                   End Date
                 </FormLabel>
-                <Input 
+                <Input
                   ref={endDateRef}
-                  type="date" 
+                  type="date"
+                  value={filters.endDate}
+                  onChange={(e) => setFilters({...filters, endDate: e.target.value})}
                   bg="white"
                   borderColor="gray.300"
                   _hover={{ borderColor: "blue.400" }}
@@ -343,6 +355,8 @@ function MyOrders() {
                 <Select
                   ref={statusRef}
                   placeholder="Select status"
+                  value={filters.status}
+                  onChange={(e) => setFilters({...filters, status: e.target.value})}
                   bg="white"
                   borderColor="gray.300"
                   _hover={{ borderColor: "blue.400" }}
@@ -356,7 +370,7 @@ function MyOrders() {
                 </Select>
               </FormControl>
 
-              <GridItem colSpan={{ base: 1, md: 6 }} display="flex" justifyContent="center" alignItems="center" gap={3}>
+              <GridItem colSpan={{ base: 1, md: 5 }} display="flex" justifyContent="center" alignItems="center" gap={3}>
                 <Button
                   // variant={"ghost"}
                   colorScheme="blue"
@@ -369,6 +383,7 @@ function MyOrders() {
                   }}
                   transition="all 0.2s ease"
                   leftIcon={<FiSearch />}
+                  onClick={handleSearch}
                 >
                   Search
                 </Button>
@@ -402,7 +417,7 @@ function MyOrders() {
           border="1px solid"
           borderColor="gray.200"
         >
-          <Table variant="simple">
+          <Table variant="simple" h={"400px"}>
             <Thead>
               <Tr
                 sx={{
@@ -418,15 +433,14 @@ function MyOrders() {
                   }
                 }}
               >
-                {/* <Th width="3%">No.</Th> */}
                 <Th w="5%">Order</Th>
-                <Th w={"5%"}>Country</Th>
-                <Th w={"15%"}>Product Type</Th>
-                <Th w={"15%"}>Service Name</Th>
-                <Th w={"15%"}>Area Code(Prefix)</Th>
-                <Th w={"5%"}>Quantity</Th>
-                <Th w={"10%"}>Order Status</Th>
-                <Th w={"20%"}>Order Date</Th>
+                <Th >Country</Th>
+                <Th >Product Type</Th>
+                <Th>Amount</Th>
+                <Th >Area Code(Prefix)</Th>
+                <Th >Quantity</Th>
+                <Th >Order Status</Th>
+                <Th>Order Date</Th>
                 <Th width="5%">Action</Th>
               </Tr>
             </Thead>
@@ -435,12 +449,12 @@ function MyOrders() {
                 currentOrders.map((order) => (
                   <Tr key={order.id} _hover={{ bg: 'gray.50' }}>
                     {/* <Td textAlign="center">{order.id}</Td> */}
-                    <Td textAlign="center">{order.orderNo}</Td>
-                    <Td textAlign="center">{order.country}</Td>
-                    <Td textAlign="center">{order.productType}</Td>
-                    <Td textAlign="center">{order.serviceName}</Td>
+                    <Td fontWeight={"medium"} color={"blue.600"} textAlign="center">#{order.orderNo}</Td>
+                    <Td fontWeight={"semibold"} textAlign="center">{order.country}</Td>
+                    <Td textAlign="center"><Badge size={"lg"} bg={"blue.100"}>{order.productType}</Badge></Td>
+                    <Td fontWeight={"bold"} color={"green"} textAlign="center">${order.totalAmount}</Td>
                     <Td textAlign="center">{order.areaCode}</Td>
-                    <Td textAlign="center">{order.quantity}</Td>
+                    <Td fontWeight={"bold"} textAlign="center">{order.quantity}</Td>
                     <Td textAlign="center">
                       
                       <Badge borderRadius={"full"} colorScheme={getStatusColor(order.orderStatus)}>
@@ -453,7 +467,6 @@ function MyOrders() {
                     <Td w={"15%"} textAlign="center">{order.orderDate}</Td>
                     <Td textAlign="center">
                       <HStack spacing={2} justify="center">
-                        
                         <Button
                           size="sm"
                           colorScheme="blue"
@@ -464,13 +477,28 @@ function MyOrders() {
                         >
                           View
                         </Button>
+                        {order.orderStatus === 'Confirmed' && (
+                          <Button
+                            size="sm"
+                            colorScheme="green"
+                            variant="ghost"
+                            fontWeight="bold"
+                            bg='green.100'
+                            borderRadius='full'
+                            _hover={bg=>{return {'bg':'green.200'}}}
+                            leftIcon={<FiDollarSign />}
+                            onClick={() => handlePayOrder(order.id)}
+                          >
+                            Pay
+                          </Button>
+                        )}
                       </HStack>
                     </Td>
                   </Tr>
                 ))
               ) : (
                 <Tr>
-                  <Td 
+                  <Td
                     colSpan={10}
                     textAlign="center"
                     color="gray.400"

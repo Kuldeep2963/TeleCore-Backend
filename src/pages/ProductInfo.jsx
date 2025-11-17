@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -18,60 +18,113 @@ import {
   Button,
   useColorModeValue,
   SimpleGrid,
-  Flex
+  Flex,
+  Spinner,
+  Center
 } from '@chakra-ui/react';
 import { DownloadIcon, SearchIcon,ViewIcon } from '@chakra-ui/icons';
 import { FiXCircle } from 'react-icons/fi';
+import api from '../services/api';
+
 function Products() {
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
   const [resultsPerPage, setResultsPerPage] = useState(20);
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [countries, setCountries] = useState([]);
+  const [productTypes, setProductTypes] = useState([]);
+  const [filters, setFilters] = useState({
+    country: '',
+    productType: ''
+  });
 
-  const products = [
-    {
-      id: 1,
-      country: 'Martinique (+596)',
-      region: 'North America',
-      productType: 'DID',
-      areaCode: 'National (596)',
-      edt: '8-10 Days',
-      inventoryCount: 0
-    },
-    {
-      id: 2,
-      country: 'Macau (+853)',
-      region: 'Asia',
-      productType: 'Two Way Voice',
-      areaCode: 'Mobile (6)',
-      edt: '15 Days',
-      inventoryCount: 0
-    },
-    {
-      id: 3,
-      country: 'Antigua & Barbuda (+1)',
-      region: 'North America',
-      productType: 'Two Way Voice',
-      areaCode: 'Mobile (268)',
-      edt: '120 Days',
-      inventoryCount: 0
-    },
-    {
-      id: 4,
-      country: 'Turkey (+90)',
-      region: 'Asia',
-      productType: 'Two Way SMS',
-      areaCode: 'FTEU Shortcode',
-      edt: '35-40 Days',
-      inventoryCount: 0
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+
+      // Fetch countries
+      const countriesResponse = await api.countries.getAll();
+      if (countriesResponse.success) {
+        setCountries(countriesResponse.data);
+      }
+
+      // Fetch products
+      const productsResponse = await api.products.getAll();
+      if (productsResponse.success) {
+        setProductTypes(productsResponse.data);
+      }
+
+      // Fetch pricing data to create product info
+      const pricingResponse = await api.pricing.getAll();
+      if (pricingResponse.success) {
+        // Transform pricing data into product info format
+        const productInfo = transformPricingToProductInfo(pricingResponse.data, countriesResponse.data, productsResponse.data);
+        setProducts(productInfo);
+      }
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
+
+  const transformPricingToProductInfo = (pricingData, countriesData, productsData) => {
+    const productInfo = [];
+
+    pricingData.forEach((pricing, index) => {
+      const country = countriesData.find(c => c.id === pricing.country_id);
+      const product = productsData.find(p => p.id === pricing.product_id);
+
+      if (country && product) {
+        productInfo.push({
+          id: index + 1,
+          country: `${country.countryname} (${country.phonecode})`,
+          region: getRegionFromCountry(country.countryname),
+          productType: product.name,
+          areaCode: 'Available', // This would need area code data
+          edt: pricing.estimated_lead_time || '15 Days',
+          inventoryCount: 0, // This would need inventory data
+          countryId: country.id,
+          productId: product.id,
+          pricing: pricing
+        });
+      }
+    });
+
+    return productInfo;
+  };
+
+  const getRegionFromCountry = (countryName) => {
+    // Simple region mapping - this could be enhanced
+    const regionMap = {
+      'United States': 'North America',
+      'Canada': 'North America',
+      'United Kingdom': 'Europe',
+      'Australia': 'Oceania',
+      'Myanmar': 'Asia',
+      'Singapore': 'Asia'
+    };
+    return regionMap[countryName] || 'Unknown';
+  };
+
+  // Filter products based on current filters
+  const filteredProducts = products.filter(product => {
+    if (filters.country && !product.country.toLowerCase().includes(filters.country.toLowerCase())) return false;
+    if (filters.productType && product.productType !== filters.productType) return false;
+    return true;
+  });
 
   // Pagination calculations
-  const totalResults = products.length;
+  const totalResults = filteredProducts.length;
   const totalPages = Math.ceil(totalResults / resultsPerPage);
   const startIndex = (currentPage - 1) * resultsPerPage;
   const endIndex = Math.min(startIndex + resultsPerPage, totalResults);
-  const currentProducts = products.slice(startIndex, endIndex);
+  const currentProducts = filteredProducts.slice(startIndex, endIndex);
 
   const handlePageChange = (newPage) => {
     setCurrentPage(newPage);
@@ -98,11 +151,16 @@ function Products() {
   };
 
   const handleSearch = () => {
-    console.log('Search products');
+    // Filter products based on current filters
+    setCurrentPage(1);
   };
 
   const handleClear = () => {
-    console.log('Clear filters');
+    setFilters({
+      country: '',
+      productType: ''
+    });
+    setCurrentPage(1);
   };
 
   const handleViewProduct = (product) => {
@@ -123,6 +181,14 @@ function Products() {
     navigate('/order-number-view', { state: { orderData } });
   };
 
+  if (loading) {
+    return (
+      <Center flex={1} minH="calc(100vh - 76px)">
+        <Spinner size="lg" color="blue.500" />
+      </Center>
+    );
+  }
+
   return (
     <Box
       flex={1}
@@ -132,7 +198,7 @@ function Products() {
       height="calc(100vh - 76px)"
       overflowY="auto"
     >
-      <Container maxW="container.xl" p={0}>
+      <Box w={"full"} p={0}>
         <VStack align="flex-start" spacing={2} mb={6}>
           <Heading as="h1" color={headingColor} fontSize="3xl" fontWeight="bold">
             Products
@@ -156,15 +222,18 @@ function Products() {
                 </Text>
                 <Select
                   placeholder="Select Country"
+                  value={filters.country}
+                  onChange={(e) => setFilters({...filters, country: e.target.value})}
                   bg={inputBg}
                   color={textColor}
                   borderColor={borderColor}
                   focusBorderColor="blue.400"
                 >
-                  <option value="martinique">Martinique (+596)</option>
-                  <option value="macau">Macau (+853)</option>
-                  <option value="antigua">Antigua & Barbuda (+1)</option>
-                  <option value="turkey">Turkey (+90)</option>
+                  {countries.map(country => (
+                    <option key={country.countryname} value={country.countryname}>
+                      {country.countryname} ({country.phonecode})
+                    </option>
+                  ))}
                 </Select>
               </Box>
               <Box>
@@ -173,15 +242,18 @@ function Products() {
                 </Text>
                 <Select
                   placeholder="Select Product Type"
+                  value={filters.productType}
+                  onChange={(e) => setFilters({...filters, productType: e.target.value})}
                   bg={inputBg}
                   color={textColor}
                   borderColor={borderColor}
                   focusBorderColor="blue.400"
                 >
-                  <option value="did">DID</option>
-                  <option value="two-way-voice">Two Way Voice</option>
-                  <option value="two-way-sms">Two Way SMS</option>
-                  <option value="mobile">Mobile</option>
+                  {productTypes.map(product => (
+                    <option key={product.code} value={product.name}>
+                      {product.name}
+                    </option>
+                  ))}
                 </Select>
               </Box>
 
@@ -259,7 +331,7 @@ function Products() {
                     _hover={{ bg: rowHoverBg }}
                     transition="background-color 0.2s"
                   >
-                    <Td color={textColor} fontWeight="medium">{product.id}</Td>
+                    <Td color={"blue.600"} fontWeight="medium" >{product.id}</Td>
                     <Td color={textColor}>{product.country}</Td>
                     <Td color={textColor}>{product.region}</Td>
                     <Td color={"Gray.700"}><Badge colorScheme='teal'>{product.productType}</Badge></Td>
@@ -369,7 +441,7 @@ function Products() {
             </Flex>
           </Box>
         )}
-      </Container>
+      </Box>
     </Box>
   );
 }

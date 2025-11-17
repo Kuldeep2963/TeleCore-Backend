@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -21,7 +21,9 @@ import {
   InputGroup,
   InputLeftElement,
   Select,
-  useToast
+  useToast,
+  Spinner,
+  Center
 } from '@chakra-ui/react';
 import {
   FiPackage,
@@ -32,170 +34,93 @@ import {
   FiClock,
   FiDollarSign,
 } from 'react-icons/fi';
+import api from '../services/api';
+import { transform } from 'framer-motion';
 
 const Orders = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('All');
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const toast = useToast();
   const navigate = useNavigate();
 
-  // Sample orders data
-  const [orders, setOrders] = useState([
-    {
-      id: '#ORD-001',
-      customer: 'John Smith',
-      customerEmail: 'john.smith@email.com',
-      service: 'DID Numbers',
-      quantity: 5,
-      totalAmount: 250.00,
-      status: 'In Progress',
-      orderDate: '2024-11-01',
-      completedDate: null,
-      vendor: 'Telecom Solutions Inc.',
-      pricing: {
-        nrc: '$24.00',
-        mrc: '$24.00',
-        ppm: '$0.0380'
-      },
-      desiredPricing: {
-        nrc: '$19.00',
-        mrc: '$21.00',
-        ppm: '$0.0310'
+  useEffect(() => {
+    fetchOrders();
+  }, []);
+
+  const fetchOrders = async () => {
+    try {
+      setLoading(true);
+      const response = await api.orders.getAll();
+      if (response.success) {
+        setOrders(response.data);
+      } else {
+        toast({
+          title: 'Error',
+          description: 'Failed to load orders',
+          status: 'error',
+          duration: 3000,
+          isClosable: true,
+        });
       }
-    },
-    {
-      id: '#ORD-002',
-      customer: 'Sarah Johnson',
-      customerEmail: 'sarah.j@email.com',
-      service: 'Two Way SMS',
-      quantity: 3,
-      totalAmount: 180.00,
-      status: 'Confirmed',
-      orderDate: '2024-10-30',
-      completedDate: null,
-      vendor: 'Global Voice Networks',
-      pricing: {
-        nrc: '$28.00',
-        mrc: '$26.00',
-        arc: '$0.0180',
-        mo: '$0.0140',
-        mt: '$0.0200'
-      },
-      desiredPricing: {
-        nrc: '$26.00',
-        mrc: '$24.00',
-        arc: '$0.0150',
-        mo: '$0.0120',
-        mt: '$0.0170'
-      }
-    },
-    {
-      id: '#ORD-003',
-      customer: 'Mike Chen',
-      customerEmail: 'mike.chen@email.com',
-      service: 'Mobile Numbers',
-      quantity: 2,
-      totalAmount: 120.00,
-      status: 'Amount Paid',
-      orderDate: '2024-10-28',
-      completedDate: null,
-      vendor: 'Asia Telecom Ltd.',
-      pricing: {
-        nrc: '$34.00',
-        mrc: '$32.00',
-        Incomingppm: '$0.0240',
-        Outgoingppmfix: '$0.0360',
-        Outgoingppmmobile: '$0.0460',
-        incmongsms: '$0.0120',
-        outgoingsms: '$0.0170'
-      },
-      desiredPricing: {
-        nrc: '$31.00',
-        mrc: '$29.00',
-        Incomingppm: '$0.0210',
-        Outgoingppmfix: '$0.0330',
-        Outgoingppmmobile: '$0.0430',
-        incmongsms: '$0.0100',
-        outgoingsms: '$0.0150'
-      }
-    },
-    {
-      id: '#ORD-004',
-      customer: 'Emma Davis',
-      customerEmail: 'emma.davis@email.com',
-      service: 'Freephone',
-      quantity: 1,
-      totalAmount: 75.00,
-      status: 'Delivered',
-      orderDate: '2024-10-25',
-      completedDate: '2024-10-26',
-      vendor: 'Telecom Solutions Inc.',
-      pricing: {
-        nrc: '$29.00',
-        mrc: '$27.00',
-        ppmFix: '$0.0410',
-        ppmMobile: '$0.0560',
-        ppmPayphone: '$0.0660'
-      },
-      desiredPricing: {
-        nrc: '$27.00',
-        mrc: '$25.00',
-        ppmFix: '$0.0370',
-        ppmMobile: '$0.0520',
-        ppmPayphone: '$0.0600'
-      }
-    },
-    {
-      id: '#ORD-005',
-      customer: 'Alex Turner',
-      customerEmail: 'alex.turner@email.com',
-      service: 'Virtual Number',
-      quantity: 4,
-      totalAmount: 200.00,
-      status: 'Cancelled',
-      orderDate: '2024-10-20',
-      completedDate: null,
-      vendor: 'Global Voice Networks',
-      pricing: {
-        nrc: '$31.00',
-        mrc: '$29.00',
-        ppm: '$0.0420'
-      },
-      desiredPricing: {
-        nrc: '$28.00',
-        mrc: '$26.00',
-        ppm: '$0.0380'
-      }
+    } catch (error) {
+      console.error('Error fetching orders:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load orders',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    } finally {
+      setLoading(false);
     }
-  ]);
+  }
+
+
 
   const filteredOrders = orders.filter(order => {
-    const matchesSearch = order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         order.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         order.service.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = filterStatus === 'All' || order.status === filterStatus;
+    const matchesSearch = (String(order.id) || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (order.companyName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (order.serviceName || '').toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = filterStatus === 'All' || order.orderStatus === filterStatus;
     return matchesSearch && matchesStatus;
   });
 
-  const handleStatusUpdate = (orderId, newStatus) => {
-    setOrders(orders.map(order =>
-      order.id === orderId
-        ? { ...order, status: newStatus, completedDate: newStatus === 'Delivered' ? new Date().toISOString().split('T')[0] : null }
-        : order
-    ));
+  const handleStatusUpdate = async (orderId, newStatus) => {
+    try {
+      const response = await api.orders.updateStatus(orderId, newStatus);
+      if (response.success) {
+        setOrders(orders.map(order =>
+          order.id === orderId
+            ? { ...order, orderStatus: newStatus, completedDate: newStatus === 'Delivered' ? new Date().toISOString().split('T')[0] : null }
+            : order
+        ));
 
-    toast({
-      title: 'Order status updated',
-      description: `Order ${orderId} status changed to ${newStatus}`,
-      status: 'success',
-      duration: 3000,
-      isClosable: true,
-    });
+        toast({
+          title: 'Order status updated',
+          description: `Order ${orderId} status changed to ${newStatus}`,
+          status: 'success',
+          duration: 3000,
+          isClosable: true,
+        });
+      }
+    } catch (error) {
+      console.error('Error updating order status:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to update order status',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    }
   };
 
-  const getStatusColor = (status) => {
-    switch (status?.toLowerCase()) {
+  const getStatusColor = (orderStatus) => {
+    switch (orderStatus?.toLowerCase()) {
       case 'delivered': return 'green';
       case 'confirmed': return 'blue';
       case 'cancelled': return 'red';
@@ -205,8 +130,8 @@ const Orders = () => {
     }
   };
 
-  const getStatusIcon = (status) => {
-    switch (status?.toLowerCase()) {
+  const getStatusIcon = (orderStatus) => {
+    switch (orderStatus?.toLowerCase()) {
       case 'delivered': return FiCheck;
       case 'confirmed': return FiClock;
       case 'cancelled': return FiX;
@@ -219,14 +144,14 @@ const Orders = () => {
   const handleViewOrder = (order) => {
     // Transform order data to match OrderNumberView expected format
     const transformedOrder = {
-      orderNo: order.id.replace('#', ''), // e.g., 'ORD-001'
-      serviceName: order.service, // e.g., 'DID Numbers'
-      country: 'United States (+1)', // Default since not available in admin orders
-      productType: order.service.split(' ')[0], // e.g., 'DID' from 'DID Numbers'
+      orderNo: String(order.id), // e.g., 'ORD-001'
+      serviceName: order.serviceName || 'N/A', // e.g., 'DID Numbers'
+      country: order.country || 'United States (+1)', // Use actual country from API
+      productType: (order.serviceName || '').split(' ')[0], // e.g., 'DID' from 'DID Numbers'
       areaCode: 'Toll Free (800)', // Default
       quantity: order.quantity,
-      orderStatus: order.status,
-      orderDate: order.orderDate,
+      orderStatus: order.orderStatus,
+      orderDate: order.created_at,
       pricing: order.pricing,
       desiredPricing: order.desiredPricing
     };
@@ -240,9 +165,17 @@ const Orders = () => {
     }).format(amount);
   };
 
-  const totalRevenue = orders.reduce((sum, order) => sum + order.totalAmount, 0);
-  const deliveredOrders = orders.filter(order => order.status === 'Delivered').length;
-  const confirmedOrders = orders.filter(order => order.status === 'Confirmed').length;
+  if (loading) {
+    return (
+      <Center flex={1} minH="calc(100vh - 76px)">
+        <Spinner size="lg" color="blue.500" />
+      </Center>
+    );
+  }
+
+  const totalRevenue = orders.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
+  const deliveredOrders = orders.filter(order => order.orderStatus === 'Delivered').length;
+  const confirmedOrders = orders.filter(order => order.orderStatus === 'Confirmed').length;
 
   return (
     <Box
@@ -431,67 +364,93 @@ const Orders = () => {
             <Table variant="simple">
               <Thead bg="gray.200">
                 <Tr>
-                  <Th color={"gray.700"} textAlign="center">Order ID</Th>
-                  <Th color={"gray.700"} textAlign="center">Customer</Th>
-                  <Th color={"gray.700"} textAlign="center">Service</Th>
+                  <Th color={"gray.700"} >Order ID</Th>
+                  <Th color={"gray.700"} >Customer</Th>
+                  <Th color={"gray.700"} >Product Type</Th>
                   <Th color={"gray.700"} textAlign="center">Quantity</Th>
-                  <Th color={"gray.700"} textAlign="center">Amount</Th>
+                  <Th color={"gray.700"} >Amount</Th>
                   <Th color={"gray.700"} textAlign="center">Status</Th>
-                  <Th w={"11%"} color={"gray.700"} textAlign="center">Order Date</Th>
-                  <Th color={"gray.700"} textAlign="center">Vendor</Th>
-                  <Th color={"gray.700"} textAlign="center">Actions</Th>
+                  <Th w={"11%"} color={"gray.700"} >Order Date</Th>
+                  <Th color={"gray.700"} >Vendor</Th>
+                  <Th color={"gray.700"}>Actions</Th>
                 </Tr>
               </Thead>
               <Tbody>
                 {filteredOrders.map((order) => (
-                  <Tr key={order.id} _hover={{ bg: 'gray.50' }}>
+                  <Tr key={order.ordernumber} _hover={{ bg: 'gray.50' }}>
                     <Td>
                       <Text fontWeight="medium" color="blue.600">
-                        {order.id}
+                        #{order.orderNo}
                       </Text>
                     </Td>
                     <Td>
                       <VStack align="start" spacing={0}>
-                        <Text fontWeight="medium">{order.customer}</Text>
-                        <Text fontSize="sm" color="gray.500">{order.customerEmail}</Text>
+                        <Text fontWeight="medium">{order.companyName || 'N/A'}</Text>
                       </VStack>
                     </Td>
                     <Td>
-                      <Text>{order.service}</Text>
+                      <Badge bg={'blue.100'}>
+                      <Text>{order.serviceName || 'N/A'}</Text>
+                      </Badge>
                     </Td>
                     <Td>
-                      <Text textAlign={"center"} fontWeight="medium">{order.quantity}</Text>
+                      <Text textAlign={"center"} fontWeight="medium">{order.quantity || 0}</Text>
                     </Td>
                     <Td>
-                      <Text color={"green"} fontWeight="bold">{formatCurrency(order.totalAmount)}</Text>
+                      <Text color={"green"} fontWeight="bold">{formatCurrency(order.totalAmount || 0)}</Text>
                     </Td>
                     <Td textAlign="center">
-                      <Badge colorScheme={getStatusColor(order.status)} borderRadius={"full"}>
+                      <Badge colorScheme={getStatusColor(order.orderStatus)} borderRadius={"full"}>
                         <HStack spacing={1}>
-                          <Icon as={getStatusIcon(order.status)} boxSize={3} />
-                          <Text>{order.status}</Text>
+                          <Icon as={getStatusIcon(order.orderStatus)} boxSize={3} />
+                          <Text>{order.orderStatus || 'Pending'}</Text>
                         </HStack>
                       </Badge>
                     </Td>
                     <Td>
-                      <Text fontSize="sm">{new Date(order.orderDate).toLocaleDateString()}</Text>
+                      <Text fontSize="sm">{order.created_at ? new Date(order.created_at).toLocaleDateString() : 'N/A'}</Text>
                     </Td>
                     <Td>
-                      <Text fontSize="sm">{order.vendor}</Text>
+                      <Text fontSize="sm">{order.vendorName || 'N/A'}</Text>
                     </Td>
                     <Td>
                       <HStack spacing={2}>
                         <Button size="sm" variant="ghost" colorScheme="blue" onClick={() => handleViewOrder(order)}>
                           <Icon as={FiEye} boxSize={4} />
                         </Button>
-                        {(order.status === 'Confirmed'||order.status ==='in progress') && (
+                        {order.orderStatus === 'In Progress' && (
+                          <HStack>
+                            <Button
+                              size="sm"
+                              colorScheme="green"
+                              variant="ghost"
+                              onClick={() => handleStatusUpdate(order.id, 'Confirmed')}
+                            >
+                              Confirm
+                            </Button>
+                            <Button
+                              size="sm"
+                              colorScheme="red"
+                              variant="ghost"
+                              onClick={() => handleStatusUpdate(order.id, 'Cancelled')}
+                            >
+                              Reject
+                            </Button>
+                          </HStack>
+                        )}
+                        {order.orderStatus === 'Amount Paid' && (
                           <Button
                             size="sm"
+                            colorScheme="blue"
+                            fontWeight={"bold"}
                             variant="ghost"
-                            colorScheme="green"
+                            bg='blue.100'
+                            borderRadius='full'
+                            _hover={bg=>{return {'bg' : 'blue.200'}}}
+                            leftIcon={<FiPackage />}
                             onClick={() => handleStatusUpdate(order.id, 'Delivered')}
                           >
-                            <Icon as={FiCheck} boxSize={4} />
+                            Deliver
                           </Button>
                         )}
                       </HStack>

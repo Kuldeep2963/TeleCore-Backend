@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import api from '../../services/api';
 import {
   Box,
   Grid,
@@ -24,97 +25,156 @@ import {
   FiUsers,
   FiGlobe as FiWorld,
   FiBarChart2,
-  FiCheck
+  FiCheck,
+  FiRefreshCw
 } from 'react-icons/fi';
 import { LuHeading6 } from 'react-icons/lu';
 import GlobalCoverage from './GlobalCoverage';
 
-function Dashboard() {
+function Dashboard({ userId, userRole }) {
   const navigate = useNavigate();
+  const [stats, setStats] = useState({
+    activeNumbers: 0,
+    totalOrders: 0,
+    countries: 0,
+    totalSpent: 0
+  });
+  const [loading, setLoading] = useState(true);
+  const [services, setServices] = useState([]);
 
+  useEffect(() => {
+    fetchStats();
+    fetchProducts();
 
+    // Set up auto-refresh every 30 seconds for real-time updates
+    const interval = setInterval(fetchStats, 30000);
 
-  const stats = [
-    { 
-      label: 'Active Numbers', 
-      value: '24', 
+    return () => clearInterval(interval);
+  }, [userId, userRole]);
+
+  const fetchProducts = async () => {
+    try {
+      const productsResponse = await api.products.getAll();
+      if (productsResponse.success) {
+        // Map products to services format
+        const mappedServices = productsResponse.data.map((product, index) => ({
+          id: product.id || index + 1,
+          title: product.name || product.title,
+          name: product.name || product.title,
+          description: product.description || 'Service description',
+          icon: getServiceIcon(product.name || product.title),
+          gradient: getServiceGradient(index),
+          iconColor: getServiceIconColor(index)
+        }));
+        setServices(mappedServices);
+      }
+    } catch (error) {
+      console.error('Error fetching products:', error);
+      // Fallback to empty array
+      setServices([]);
+    }
+  };
+
+  const fetchStats = async () => {
+    try {
+      setLoading(true);
+
+      // Calculate stats from individual API calls for accurate data
+      const [ordersResponse, numbersResponse, countriesResponse] = await Promise.all([
+        api.orders.getAll({ user_id: userId }),
+        api.numbers.getAll(),
+        api.countries.getAll()
+      ]);
+
+      const totalOrders = ordersResponse.success ? ordersResponse.data.length : 0;
+      // Active numbers are those not disconnected (disconnection_status is not 'Completed')
+      const activeNumbers = numbersResponse.success
+        ? numbersResponse.data.filter(num => num.disconnection_status !== 'Completed').length
+        : 0;
+      const countries = countriesResponse.success ? countriesResponse.data.length : 0;
+
+      // Calculate total spent from orders
+      const totalSpent = ordersResponse.success
+        ? ordersResponse.data.reduce((sum, order) => sum + (order.totalAmount || 0), 0)
+        : 0;
+
+      setStats({
+        activeNumbers,
+        totalOrders,
+        countries,
+        totalSpent
+      });
+
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+      // Set to 0 on error
+      setStats({
+        activeNumbers: 0,
+        totalOrders: 0,
+        countries: 0,
+        totalSpent: 0
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Helper functions for service mapping
+  const getServiceIcon = (productName) => {
+    const iconMap = {
+      'DID': FiPhone,
+      'Freephone': FiPhoneCall,
+      'Universal Freephone': FiGlobe,
+      'Two Way Voice': FiPhoneCall,
+      'Two Way SMS': FiMessageSquare,
+      'Mobile': FiSmartphone
+    };
+    return iconMap[productName] || FiPhone;
+  };
+
+  const getServiceGradient = (index) => {
+    const gradients = [
+      'linear(135deg, #3182CE 0%, #2C5282 100%)',
+      'linear(135deg, #D69E2E 0%, #B7791F 100%)',
+      'linear(135deg, #2D3748 0%, #1A202C 100%)',
+      'linear(135deg, #38A169 0%, #22543D 100%)',
+      'linear(135deg, #ED8936 0%, #C05621 100%)',
+      'linear(135deg, #9F7AEA 0%, #6B46C1 100%)'
+    ];
+    return gradients[index % gradients.length];
+  };
+
+  const getServiceIconColor = (index) => {
+    const colors = ['blue.500', 'orange.500', 'purple.500', 'green.500', 'red.500', 'teal.500'];
+    return colors[index % colors.length];
+  };
+
+  const statsData = [
+    {
+      label: 'Active Numbers',
+      value: stats.activeNumbers.toString(),
       change: '+12%',
       icon: FiUsers,
       color: 'blue'
     },
-    { 
-      label: 'Total Orders', 
-      value: '156', 
+    {
+      label: 'Total Orders',
+      value: stats.totalOrders.toString(),
       change: '+8%',
       icon: FiBarChart2,
       color: 'green'
     },
-    { 
-      label: 'Countries', 
-      value: '18', 
+    {
+      label: 'Countries',
+      value: stats.countries.toString(),
       change: '+2',
       icon: FiWorld,
       color: 'purple'
     },
-    
+
   ];
 
-  const services = [
-    {
-      id: 1,
-      title: 'DID',
-      name: 'DID',
-      description: 'In-country numbers for global coverage.',
-      icon: FiPhone,
-      gradient: 'linear(135deg, #3182CE 0%, #2C5282 100%)',
-      iconColor: 'blue.500'
-    },
-    {
-      id: 2,
-      title: 'Freephone',
-      name: 'Freephone',
-      description: 'Local toll-free numbers for easy customer access.',
-      icon: FiPhoneCall,
-      gradient: 'linear(135deg, #D69E2E 0%, #B7791F 100%)',
-      iconColor: 'orange.500'
-    },
-    {
-      id: 3,
-      title: 'Universal Freephone',
-      name: 'Universal Freephone',
-      description: 'One toll-free number for multiple countries.',
-      icon: FiGlobe,
-      gradient: 'linear(135deg, #2D3748 0%, #1A202C 100%)',
-      iconColor: 'purple.500'
-    },
-    {
-      id: 4,
-      title: 'Two Way Voice',
-      name: 'Two Way Voice',
-      description: 'Seamless, reliable two-way calling.',
-      icon: FiPhoneCall,
-      gradient: 'linear(135deg, #38A169 0%, #22543D 100%)',
-      iconColor: 'green.500'
-    },
-    {
-      id: 5,
-      title: 'Two Way SMS',
-      name: 'Two Way SMS',
-      description: 'Effective two-way sms communication.',
-      icon: FiMessageSquare,
-      gradient: 'linear(135deg, #ED8936 0%, #C05621 100%)',
-      iconColor: 'red.500'
-    },
-    {
-      id: 6,
-      title: 'Mobile',
-      name: 'Mobile',
-      description: 'All-in-one voice and sms numbers.',
-      icon: FiSmartphone,
-      gradient: 'linear(135deg, #9F7AEA 0%, #6B46C1 100%)',
-      iconColor: 'teal.500'
-    }
-  ];
+
 
 
 
@@ -133,19 +193,32 @@ function Dashboard() {
         {/* Header Section */}
         <Box w="full">
           <VStack align="start" spacing={5}>
-          <Heading
-            color="gray.800"
-            fontSize={{ base: "2xl", md: "3xl" }}
-            fontWeight="bold"
-            letterSpacing="-0.5px"
-            textAlign="left"
-          >
-            Welcome Back!
-          </Heading>
+          <HStack justify="space-between" align="center" w="full">
+            <Heading
+              color="gray.800"
+              fontSize={{ base: "2xl", md: "3xl" }}
+              fontWeight="bold"
+              letterSpacing="-0.5px"
+              textAlign="left"
+            >
+              Welcome Back!
+            </Heading>
+            <Button
+              leftIcon={<FiRefreshCw />}
+              variant="outline"
+              size="sm"
+              colorScheme="blue"
+              onClick={fetchStats}
+              isLoading={loading}
+              loadingText="Refreshing..."
+            >
+              Refresh Stats
+            </Button>
+          </HStack>
           
         {/* Statistics Cards */}
         <SimpleGrid columns={{ base: 2, md: 3 }} spacing={5} w="full">
-          {stats.map((stat, index) => (
+          {statsData.map((stat, index) => (
             <Box
               key={index}
               bg="white"
@@ -221,11 +294,12 @@ function Dashboard() {
             </Badge>
           </HStack>
 
-          <Grid
-            templateColumns={{ base: "1fr", md: "repeat(1, 1fr)", lg: "repeat(3, 1fr)" }}
-            gap={6}
-          >
-            {services.map(service => (
+          {services.length > 0 ? (
+            <Grid
+              templateColumns={{ base: "1fr", md: "repeat(1, 1fr)", lg: "repeat(3, 1fr)" }}
+              gap={6}
+            >
+              {services.map(service => (
               <Box
                 key={service.id}
                 bg="white"
@@ -314,8 +388,13 @@ function Dashboard() {
                   </Button>
                 </Box>
               </Box>
-            ))}
-          </Grid>
+              ))}
+            </Grid>
+          ) : (
+            <Box textAlign="center" py={8}>
+              <Text color="gray.500">Loading services...</Text>
+            </Box>
+          )}
         </Box>
 
         <GlobalCoverage />

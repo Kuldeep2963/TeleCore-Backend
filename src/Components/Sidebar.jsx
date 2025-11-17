@@ -23,7 +23,7 @@ import {
   FiCreditCard,
   FiUsers
 } from 'react-icons/fi';
-import { label } from 'framer-motion/client';
+
 
 // NavItem component with active state
 const NavItem = ({ to, children, icon, onClick, isActive, hasSubItems, isExpanded, onToggle }) => {

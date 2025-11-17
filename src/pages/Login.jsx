@@ -15,20 +15,17 @@ import {
   IconButton,
   Image,
   Select,
-  RadioGroup,
-  Radio,
   HStack
 } from '@chakra-ui/react';
 import { ViewIcon, ViewOffIcon } from '@chakra-ui/icons';
 import { useNavigate } from 'react-router-dom';
 
-const Login = ({ onLogin = () => ({ success: false }), sampleCredentials }) => {
+const Login = ({ onLogin = () => ({ success: false }), clientCredentials, internalCredentials }) => {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
-    email: sampleCredentials?.email || '',
-    password: '',
-    role: 'Client'
+    email: '',
+    password: ''
   });
   const [errorMessage, setErrorMessage] = useState('');
 
@@ -46,12 +43,11 @@ const Login = ({ onLogin = () => ({ success: false }), sampleCredentials }) => {
     }));
   };
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     setErrorMessage('');
-    const result = onLogin({
+    const result = await onLogin({
       email: formData.email,
-      password: formData.password,
-      role: formData.role
+      password: formData.password
     });
 
     if (result?.success) {
@@ -66,14 +62,25 @@ const Login = ({ onLogin = () => ({ success: false }), sampleCredentials }) => {
     console.log('Forgot password clicked');
   };
 
-  const handleFillSampleCredentials = () => {
-    if (!sampleCredentials) {
+  const handleFillClientCredentials = () => {
+    if (!clientCredentials) {
       return;
     }
     setFormData({
-      email: sampleCredentials.email || '',
-      password: sampleCredentials.password || '',
-      role: 'Client'
+      email: clientCredentials.email || '',
+      password: clientCredentials.password || ''
+    });
+    setShowPassword(false);
+    setErrorMessage('');
+  };
+
+  const handleFillInternalCredentials = () => {
+    if (!internalCredentials) {
+      return;
+    }
+    setFormData({
+      email: internalCredentials.email || '',
+      password: internalCredentials.password || ''
     });
     setShowPassword(false);
     setErrorMessage('');
@@ -184,24 +191,6 @@ const Login = ({ onLogin = () => ({ success: false }), sampleCredentials }) => {
                 </InputGroup>
               </FormControl>
 
-              {/* Role Selection */}
-              <FormControl isRequired>
-                
-                <RadioGroup
-                  value={formData.role}
-                  onChange={(value) => handleInputChange('role', value)}
-                >
-                  <HStack spacing={6}>
-                    <Radio value="Client" colorScheme="blue">
-                      Client
-                    </Radio>
-                    <Radio value="Internal" colorScheme="green">
-                      Internal
-                    </Radio>
-                  </HStack>
-                </RadioGroup>
-              </FormControl>
-
               {errorMessage && (
                 <Text color="red.500" fontSize="sm" fontWeight="semibold">
                   {errorMessage}
@@ -236,37 +225,26 @@ const Login = ({ onLogin = () => ({ success: false }), sampleCredentials }) => {
                 Forgot password?
               </Button>
 
-              {sampleCredentials && (
-                <Box
-                  mt={2}
-                  px={4}
-                  py={3}
-                  borderRadius="lg"
-                  border="1px solid"
-                  borderColor={hintBorder}
-                  bg={hintBg}
-                  display="flex"
-                  alignItems="flex-start"
-                  gap={3}
-                >
+              
+              <HStack spacing={3} justify={"center"}>
                   <Button
                     size="sm"
                     colorScheme="blue"
-                    onClick={handleFillSampleCredentials}
+                    variant="outline"
+                    onClick={handleFillClientCredentials}
                   >
-                    Autofill
+                    Client Login
                   </Button>
-                  {/* <Box>
-                    <Text fontSize="sm" color={hintText} fontWeight="semibold">
-                      Sample Credentials
-                    </Text>
-                    <VStack align="start" spacing={1} mt={2} fontSize="sm">
-                      <Text color={hintText}>Email: {sampleCredentials.email}</Text>
-                      <Text color={hintText}>Password: {sampleCredentials.password}</Text>
-                    </VStack>
-                  </Box> */}
-                </Box>
-              )}
+                  <Button
+                    size="sm"
+                    colorScheme="green"
+                    variant="outline"
+                    onClick={handleFillInternalCredentials}
+                  >
+                    Internal Login
+                  </Button>
+                </HStack>
+              
             </VStack>
           </Box>
         </VStack>

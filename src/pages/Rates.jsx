@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Heading,
@@ -7,32 +7,55 @@ import {
   Select,
   Button,
   Text,
-  Spacer
+  Spacer,
+  Spinner,
+  Center
 } from '@chakra-ui/react';
 import { FaSearch } from 'react-icons/fa';
 import { FiXCircle } from 'react-icons/fi';
+import api from '../services/api';
 
 const Rates = () => {
   const [country, setCountry] = useState('');
   const [productType, setProductType] = useState('');
+  const [countries, setCountries] = useState([]);
+  const [productTypes, setProductTypes] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const countries = [
-    { value: '', label: 'Select Country' },
-    { value: 'us', label: 'United States (+1)' },
-    { value: 'uk', label: 'United Kingdom (+44)' },
-    { value: 'ca', label: 'Canada (+1)' },
-    { value: 'au', label: 'Australia (+61)' }
-  ];
+  useEffect(() => {
+    fetchData();
+  }, []);
 
-  const productTypes = [
-    { value: '', label: 'Select Product Type' },
-    { value: 'did', label: 'DID' },
-    { value: 'universal-freephone', label: 'Universal Freephone' },
-    { value: 'two-way-sms', label: ' Two Way SMS' },
-    { value: 'two-way-voice', label: 'Two Way Voice' },
-    { value: 'mobile', label: 'Mobile'}
+  const fetchData = async () => {
+    try {
+      setLoading(true);
 
-  ];
+      // Fetch countries from API
+      const countriesResponse = await api.countries.getAll();
+      if (countriesResponse.success) {
+        const countriesData = countriesResponse.data.map(country => ({
+          value: country.code,
+          label: `${country.name} (${country.phone_code})`
+        }));
+        setCountries([{ value: '', label: 'Select Country' }, ...countriesData]);
+      }
+
+      // Fetch products from API
+      const productsResponse = await api.products.getAll();
+      if (productsResponse.success) {
+        const productsData = productsResponse.data.map(product => ({
+          value: product.code,
+          label: product.name
+        }));
+        setProductTypes([{ value: '', label: 'Select Product Type' }, ...productsData]);
+      }
+
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSearch = () => {
     console.log('Searching rates', { country, productType });
@@ -42,6 +65,14 @@ const Rates = () => {
     setCountry('');
     setProductType('');
   };
+
+  if (loading) {
+    return (
+      <Center flex={1} minH="calc(100vh - 76px)">
+        <Spinner size="lg" color="blue.500" />
+      </Center>
+    );
+  }
 
   return (
     <Box

@@ -82,15 +82,15 @@ function NumberPricingModal({ isOpen, onClose, selectedNumber }) {
                   <Grid templateColumns="repeat(4, 1fr)" gap={4}>
                     <VStack spacing={1} align="start">
                       <Text fontSize="sm" color="gray.600" fontWeight="medium">Country</Text>
-                      <Text fontSize="md" color="gray.800" fontWeight="semibold">{selectedNumber.country}</Text>
+                      <Text fontSize="md" color="gray.800" fontWeight="semibold">{selectedNumber.country_name}</Text>
                     </VStack>
                     <VStack spacing={1} align="start">
                       <Text fontSize="sm" color="gray.600" fontWeight="medium">Product Type</Text>
-                      <Text fontSize="md" color="gray.800" fontWeight="semibold">{selectedNumber.productType}</Text>
+                      <Text fontSize="md" color="gray.800" fontWeight="semibold">{selectedNumber.product_name}</Text>
                     </VStack>
                     <VStack spacing={1} align="start">
                       <Text fontSize="sm" color="gray.600" fontWeight="medium">Area Code</Text>
-                      <Text fontSize="md" color="gray.800" fontWeight="semibold">{selectedNumber.areaCode}</Text>
+                      <Text fontSize="md" color="gray.800" fontWeight="semibold">+{selectedNumber.area_code}</Text>
                     </VStack>
                     <VStack spacing={1} align="start">
                       <Text fontSize="sm" color="gray.600" fontWeight="medium">Number</Text>

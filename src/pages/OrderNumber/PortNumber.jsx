@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Box,
   Container,
@@ -16,8 +16,10 @@ import {
   RadioGroup,
   useColorModeValue
 } from '@chakra-ui/react';
+import api from '../../services/api';
 
 function PortNumber() {
+  const [countries, setCountries] = useState(null);
   const [formData, setFormData] = useState({
     country: '',
     productType: '',
@@ -29,11 +31,70 @@ function PortNumber() {
 
   const borderColor = useColorModeValue('gray.200', 'gray.700');
 
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        console.log('Fetching countries with product types from API...');
+
+        // Fetch countries (assuming countries table contains product type relationships)
+        const countriesResponse = await api.countries.getAll();
+        console.log('Countries API response:', countriesResponse);
+        if (countriesResponse.success) {
+          console.log('Countries data:', countriesResponse.data);
+          setCountries(countriesResponse.data);
+        } else {
+          console.error('Countries API returned unsuccessful:', countriesResponse);
+          setCountries([]);
+        }
+      } catch (error) {
+        console.error('Error fetching countries:', error);
+        setCountries([]);
+      }
+    };
+
+    fetchData();
+  }, []);
+
   const handleInputChange = (field, value) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    setFormData(prev => {
+      const newData = { ...prev, [field]: value };
+
+      // Clear product type when country changes
+      if (field === 'country' && prev.country !== value) {
+        newData.productType = '';
+      }
+
+      return newData;
+    });
+  };
+
+  // Map product names to product objects
+  const mapProductNameToObject = (productName) => {
+    const productMappings = {
+      'DID': { id: 1, code: 'did', name: 'DID' },
+      'Freephone': { id: 2, code: 'freephone', name: 'Freephone' },
+      'Universal Freephone': { id: 3, code: 'universal-freephone', name: 'Universal Freephone' },
+      'Two Way Voice': { id: 4, code: 'two-way-voice', name: 'Two Way Voice' },
+      'Two Way SMS': { id: 5, code: 'two-way-sms', name: 'Two Way SMS' },
+      'Mobile': { id: 6, code: 'mobile', name: 'Mobile' }
+    };
+    return productMappings[productName] || { id: 0, code: productName.toLowerCase().replace(/\s+/g, '-'), name: productName };
+  };
+
+  // Get available products for the selected country
+  const getAvailableProducts = () => {
+    if (!formData.country || !countries || countries.length === 0) {
+      return [];
+    }
+
+    // Find the selected country and return its available products
+    const selectedCountry = countries.find(country => country.countryname === formData.country);
+    if (!selectedCountry || !selectedCountry.availableproducts) {
+      return [];
+    }
+
+    // Map product names to product objects
+    return selectedCountry.availableproducts.map(productName => mapProductNameToObject(productName));
   };
 
   const handleFileUpload = (field, event) => {
@@ -93,19 +154,25 @@ function PortNumber() {
                 <FormLabel fontWeight="semibold" color="gray.700" mb={4}>
                   Country *
                 </FormLabel>
-                <Select 
+                <Select
                   value={formData.country}
                   onChange={(e) => handleInputChange('country', e.target.value)}
                   bg="white"
                   borderColor="gray.300"
                   size="md"
+                  isDisabled={!countries || countries.length === 0}
                 >
-                  <option value="">Select country</option>
-                  <option value="us">United States</option>
-                  <option value="uk">United Kingdom</option>
-                  <option value="ca">Canada</option>
-                  <option value="au">Australia</option>
-                  <option value="hk">Hong Kong</option>
+                  {countries && countries.length > 0 ? (
+                    countries.map(country => (
+                      <option key={country.countryname} value={country.countryname}>
+                        {country.countryname} ({country.phonecode})
+                      </option>
+                    ))
+                  ) : (
+                    <option value="" disabled>
+                      {countries === null ? 'Loading countries...' : 'No countries available'}
+                    </option>
+                  )}
                 </Select>
               </FormControl>
 
@@ -114,20 +181,22 @@ function PortNumber() {
                 <FormLabel fontWeight="semibold" color="gray.700" mb={4}>
                   Product Type *
                 </FormLabel>
-                <Select 
+                <Select
                   value={formData.productType}
                   onChange={(e) => handleInputChange('productType', e.target.value)}
                   bg="white"
                   borderColor="gray.300"
                   size="md"
+                  disabled={!formData.country}
                 >
-                  <option value="">Select product type</option>
-                  <option value="did">DID</option>
-                  <option value="toll-free"> Freephone</option>
-                  <option value="local">Universal Freephone</option>
-                  <option value="local">Two way voice</option>
-                  <option value="local">Two way SMS</option>
-                  <option value="mobile">Mobile</option>
+                  <option value="">
+                    {formData.country ? 'Select product type' : 'Select country first'}
+                  </option>
+                  {getAvailableProducts().map(product => (
+                    <option key={product.code} value={product.code}>
+                      {product.name}
+                    </option>
+                  ))}
                 </Select>
               </FormControl>
              </HStack>

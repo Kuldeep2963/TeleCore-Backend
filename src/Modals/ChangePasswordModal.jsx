@@ -23,6 +23,7 @@ import {
   HStack
 } from '@chakra-ui/react';
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
+import api from '../services/api';
 
 function ChangePasswordModal({ isOpen, onClose }) {
   const [oldPassword, setOldPassword] = useState('');
@@ -69,29 +70,42 @@ function ChangePasswordModal({ isOpen, onClose }) {
 
     setLoading(true);
     try {
-      // Simulate API call - replace with actual backend call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      toast({
-        title: 'Success',
-        description: 'Password changed successfully!',
-        status: 'success',
-        duration: 3,
-        isClosable: true,
+      const response = await api.auth.changePassword({
+        oldPassword,
+        newPassword
       });
 
-      // Reset form and close modal
-      setOldPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
-      setErrors({});
-      onClose();
+      if (response.success) {
+        toast({
+          title: 'Success',
+          description: 'Password changed successfully!',
+          status: 'success',
+          duration: 3000,
+          isClosable: true,
+        });
+
+        // Reset form and close modal
+        setOldPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+        setErrors({});
+        onClose();
+      } else {
+        toast({
+          title: 'Error',
+          description: response.message || 'Failed to change password. Please try again.',
+          status: 'error',
+          duration: 3000,
+          isClosable: true,
+        });
+      }
     } catch (error) {
+      console.error('Change password error:', error);
       toast({
         title: 'Error',
-        description: 'Failed to change password. Please try again.',
+        description: error.message || 'Failed to change password. Please try again.',
         status: 'error',
-        duration: 3,
+        duration: 3000,
         isClosable: true,
       });
     } finally {

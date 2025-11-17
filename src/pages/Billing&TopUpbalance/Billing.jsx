@@ -1,100 +1,61 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import {Box, Container, VStack, HStack, Text, Table, Thead, Tbody, Tr, Th, Td, IconButton, Badge, Button, Card, CardBody, Heading, Flex, Select,Icon,Input, InputGroup, InputLeftElement, Grid, GridItem, Divider, useColorModeValue, Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalCloseButton, useDisclosure, Tabs, TabList, TabPanels, Tab, TabPanel, Collapse, Wrap, WrapItem
+import {Box, Container, VStack, HStack, Text, Table, Thead, Tbody, Tr, Th, Td, IconButton, Badge, Button, Card, CardBody, Heading, Flex, Select,Icon,Input, InputGroup, InputLeftElement, Grid, GridItem, Divider, useColorModeValue, Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalCloseButton, useDisclosure, Tabs, TabList, TabPanels, Tab, TabPanel, Collapse, Wrap, WrapItem, Spinner, Center, useToast
 } from '@chakra-ui/react';
 import { FaSearch, FaDownload, FaEye, FaPrint, FaFileInvoice, FaCreditCard, FaWallet, FaChevronDown, FaChevronUp, FaFilter, FaCalendarAlt, FaTimes } from 'react-icons/fa';
 import TopUp from './TopUp';
+import api from '../../services/api';
 
 const Billing = ({ walletBalance = 50.00, onUpdateBalance = () => {} }) => {
-  const [invoices, setInvoices] = useState([
-    {
-      id: 'INV-001',
-      date: '2025-01-15',
-      dueDate: '2025-02-15',
-      payDate: '2025-02-10',
-      service: 'DID Numbers',
-      amount: 29.97,
-      status: 'Paid',
-      period: 'Jan-2025',
-      fromDate: '2025-01-15',
-      toDate: '2025-02-15'
-    },
-    {
-      id: 'INV-002',
-      date: '2024-12-15',
-      dueDate: '2025-01-15',
-      payDate: '2025-01-10',
-      service: 'Freephone Numbers',
-      amount: 14.99,
-      status: 'Paid',
-      period: 'Dec-2024',
-      fromDate: '2024-12-15',
-      toDate: '2025-01-15'
-    },
-    {
-      id: 'INV-003',
-      date: '2025-02-15',
-      dueDate: '2025-03-15',
-      payDate: null,
-      service: 'Universal Freephone',
-      amount: 23.97,
-      status: 'Pending',
-      period: 'Feb-2025',
-      fromDate: '2025-02-15',
-      toDate: '2025-03-15'
-    },
-    {
-      id: 'INV-004',
-      date: '2025-01-20',
-      dueDate: '2025-02-20',
-      payDate: '2025-02-18',
-      service: 'Two Way Voice',
-      amount: 35.50,
-      status: 'Paid',
-      period: 'Jan-2025',
-      fromDate: '2025-01-20',
-      toDate: '2025-02-20'
-    },
-    {
-      id: 'INV-005',
-      date: '2025-01-25',
-      dueDate: '2025-02-25',
-      payDate: null,
-      service: 'Two Way SMS',
-      amount: 19.99,
-      status: 'Pending',
-      period: 'Jan-2025',
-      fromDate: '2025-01-25',
-      toDate: '2025-02-25'
-    }
-  ]);
+  const [invoices, setInvoices] = useState([]);
+  const [activeServices, setActiveServices] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const toast = useToast();
 
-  const [activeServices, setActiveServices] = useState([
-    {
-      id: 1,
-      name: 'DID Numbers',
-      price: 9.99,
-      quantity: 3,
-      nextBilling: '2025-03-15',
-      status: 'Active',
-      fromDate: '2025-01-15',
-      toDate: '2025-02-15',
-      totalCost: 29.97,
-      invoiceId: 'INV-001'
-    },
-    {
-      id: 2,
-      name: 'Freephone Numbers',
-      price: 14.99,
-      quantity: 1,
-      nextBilling: '2025-03-15',
-      status: 'Active',
-      fromDate: '2024-12-15',
-      toDate: '2025-01-15',
-      totalCost: 14.99,
-      invoiceId: 'INV-002'
+  useEffect(() => {
+    fetchBillingData();
+  }, []);
+
+  const fetchBillingData = async () => {
+    try {
+      setLoading(true);
+
+      // Fetch invoices
+      const invoicesResponse = await api.invoices.getAll();
+      if (invoicesResponse.success) {
+        // Transform invoices data to match expected format
+        const transformedInvoices = invoicesResponse.data.map(invoice => ({
+          id: invoice.invoice_number,
+          date: new Date(invoice.invoice_date).toISOString().split('T')[0],
+          dueDate: new Date(invoice.due_date).toISOString().split('T')[0],
+          payDate: invoice.paid_date ? new Date(invoice.paid_date).toISOString().split('T')[0] : null,
+          service: 'Service', // This would need to be derived from order data
+          amount: parseFloat(invoice.amount),
+          status: invoice.status,
+          period: invoice.period || 'N/A',
+          fromDate: invoice.from_date ? new Date(invoice.from_date).toISOString().split('T')[0] : null,
+          toDate: invoice.to_date ? new Date(invoice.to_date).toISOString().split('T')[0] : null
+        }));
+        setInvoices(transformedInvoices);
+      }
+
+      // For active services, we'll derive from orders that are active
+      // For now, set empty array - this might need a specific API endpoint
+      setActiveServices([]);
+
+    } catch (error) {
+      console.error('Error fetching billing data:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load billing data',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    } finally {
+      setLoading(false);
     }
-  ]);
+  };
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
@@ -327,6 +288,14 @@ const Billing = ({ walletBalance = 50.00, onUpdateBalance = () => {} }) => {
 
 
 
+  if (loading) {
+    return (
+      <Center flex={1} minH="calc(100vh - 76px)">
+        <Spinner size="lg" color="blue.500" />
+      </Center>
+    );
+  }
+
   return (
     <Box w="full" p={6} >
       <VStack spacing={6} align="stretch">
@@ -548,7 +517,6 @@ const Billing = ({ walletBalance = 50.00, onUpdateBalance = () => {} }) => {
                           onChange={(e) => setSelectedStatus(e.target.value)}
                           bg="white"
                         >
-                          <option value="">All Status</option>
                           <option value="paid">Paid</option>
                           <option value="pending">Pending</option>
                           <option value="overdue">Overdue</option>

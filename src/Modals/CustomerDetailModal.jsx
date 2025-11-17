@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import api from '../services/api';
 import {
   Modal,
   ModalOverlay,
@@ -44,60 +45,49 @@ import {
 } from 'react-icons/fi';
 
 const CustomerDetailModal = ({ isOpen, onClose, customer }) => {
+  const [customerProducts, setCustomerProducts] = useState([]);
+  const [customerOrders, setCustomerOrders] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (isOpen && customer) {
+      fetchCustomerData();
+    }
+  }, [isOpen, customer]);
+
+  const fetchCustomerData = async () => {
+    if (!customer) return;
+
+    try {
+      setLoading(true);
+
+      // Fetch orders for this customer
+      const ordersResponse = await api.orders.getAll({ customer_id: customer.id });
+      if (ordersResponse.success) {
+        setCustomerOrders(ordersResponse.data.map(order => ({
+          id: `#${order.orderNo}`,
+          service: order.productType,
+          quantity: order.quantity,
+          totalAmount: order.totalAmount,
+          status: order.orderStatus,
+          orderDate: order.orderDate,
+          vendor: order.vendorName
+        })));
+      }
+
+      // Fetch numbers for this customer
+      // Assuming we can get numbers by customer
+      // For now, we'll use a placeholder or extend API
+      setCustomerProducts([]); // TODO: Implement numbers API
+
+    } catch (error) {
+      console.error('Error fetching customer data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (!customer) return null;
-
-  // Sample products owned by this customer
-  const customerProducts = [
-    {
-      id: 1,
-      name: 'DID Number - +1-555-0123',
-      type: 'DID Numbers',
-      vendor: 'Telecom Solutions Inc.',
-      purchaseDate: '2024-10-15',
-      expiryDate: '2025-10-15',
-      status: 'Active'
-    },
-    {
-      id: 2,
-      name: 'Two Way SMS Package',
-      type: 'Messaging',
-      vendor: 'Global Voice Networks',
-      purchaseDate: '2024-09-20',
-      expiryDate: '2025-09-20',
-      status: 'Active'
-    }
-  ];
-
-  // Sample orders by this customer
-  const customerOrders = [
-    {
-      id: '#ORD-001',
-      service: 'DID Numbers',
-      quantity: 5,
-      totalAmount: 250.00,
-      status: 'Delivered',
-      orderDate: '2024-11-01',
-      vendor: 'Telecom Solutions Inc.'
-    },
-    {
-      id: '#ORD-002',
-      service: 'Two Way SMS',
-      quantity: 3,
-      totalAmount: 180.00,
-      status: 'Delivered',
-      orderDate: '2024-10-30',
-      vendor: 'Global Voice Networks'
-    },
-    {
-      id: '#ORD-003',
-      service: 'Mobile Numbers',
-      quantity: 2,
-      totalAmount: 120.00,
-      status: 'Delivered',
-      orderDate: '2024-10-15',
-      vendor: 'Asia Telecom Ltd.'
-    }
-  ];
 
   const getStatusColor = (status) => {
     switch (status?.toLowerCase()) {

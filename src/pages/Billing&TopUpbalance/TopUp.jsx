@@ -66,7 +66,7 @@ const TopUp = ({ walletBalance = 50.00, onUpdateBalance = () => {} }) => {
               <Box p={4} bg={useColorModeValue('blue.50', 'blue.900')} borderRadius="md" border="1px solid" borderColor="blue.200">
                 <Text fontSize="sm" color="gray.600" mb={1}>Current Balance</Text>
                 <Text fontSize="3xl" fontWeight="bold" color="blue.600">
-                  ${walletBalance.toFixed(2)}
+                  ${walletBalance}
                 </Text>
               </Box>
 

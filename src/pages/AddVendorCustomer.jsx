@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import {
   Box,
@@ -40,11 +40,44 @@ import {
   FiPackage,
   FiShoppingCart
 } from 'react-icons/fi';
+import api from '../services/api';
 
 const AddVendorCustomer = () => {
   const location = useLocation();
   const toast = useToast();
   const [activeTab, setActiveTab] = useState(location.state?.activeTab || 0);
+  const [stats, setStats] = useState({
+    totalVendors: 0,
+    totalCustomers: 0,
+    activeProducts: 0,
+    totalOrders: 0
+  });
+  const [statsLoading, setStatsLoading] = useState(true);
+
+  // Fetch stats on component mount
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await api.stats.getDashboardStats();
+        if (response.success) {
+          setStats(response.data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch stats:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to load dashboard statistics',
+          status: 'error',
+          duration: 3000,
+          isClosable: true,
+        });
+      } finally {
+        setStatsLoading(false);
+      }
+    };
+
+    fetchStats();
+  }, [toast]);
 
   // Vendor form state
   const [vendorForm, setVendorForm] = useState({
@@ -221,7 +254,7 @@ const AddVendorCustomer = () => {
                 </Box>
                 <Box>
                   <Text fontSize="2xl" fontWeight="bold" color="gray.800">
-                    12
+                    {statsLoading ? '...' : stats.totalVendors}
                   </Text>
                   <Text color="gray.500" fontSize="sm">
                     Total Vendors
@@ -244,7 +277,7 @@ const AddVendorCustomer = () => {
                 </Box>
                 <Box>
                   <Text fontSize="2xl" fontWeight="bold" color="gray.800">
-                    145
+                    {statsLoading ? '...' : stats.totalCustomers}
                   </Text>
                   <Text color="gray.500" fontSize="sm">
                     Total Customers
@@ -267,7 +300,7 @@ const AddVendorCustomer = () => {
                 </Box>
                 <Box>
                   <Text fontSize="2xl" fontWeight="bold" color="gray.800">
-                    89
+                    {statsLoading ? '...' : stats.activeProducts}
                   </Text>
                   <Text color="gray.500" fontSize="sm">
                     Active Products
@@ -290,7 +323,7 @@ const AddVendorCustomer = () => {
                 </Box>
                 <Box>
                   <Text fontSize="2xl" fontWeight="bold" color="gray.800">
-                    234
+                    {statsLoading ? '...' : stats.totalOrders}
                   </Text>
                   <Text color="gray.500" fontSize="sm">
                     Total Orders

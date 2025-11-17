@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Box,
   Container,
@@ -17,21 +17,50 @@ import {
 } from '@chakra-ui/react';
 import { EditIcon } from '@chakra-ui/icons';
 import { FaCamera } from 'react-icons/fa';
+import api from '../services/api';
 
-function Profile({ profilePicture, onProfilePictureUpdate }) {
+function Profile({ profilePicture, onProfilePictureUpdate, userId, userProfile, userRole }) {
+  const [customerData, setCustomerData] = useState(null);
+  const [loading, setLoading] = useState(false);
   const borderColor = useColorModeValue('gray.200', 'gray.700');
   const toast = useToast();
   const fileInputRef = useRef(null);
 
+  // Fetch customer data for client users
+  useEffect(() => {
+    const fetchCustomerData = async () => {
+      if (userRole === 'Client' && userId) {
+        setLoading(true);
+        try {
+          // Find customer by user_id
+          const customersResponse = await api.customers.getAll();
+          if (customersResponse.success) {
+            const customer = customersResponse.data.find(c => c.user_id === userId);
+            if (customer) {
+              setCustomerData(customer);
+            }
+          }
+        } catch (error) {
+          console.error('Failed to fetch customer data:', error);
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchCustomerData();
+  }, [userRole, userId]);
+
+  // Use real user data from props, with customer data for additional fields
   const userData = {
-    firstName: 'Meenu',
-    lastName: 'Vashishtha',
-    email: 'meenu.vashishtha@paitelecomm.cc',
-    phone: '917838666761',
-    address: 'Flat 1512, 15/F, Lucky Center, No. 165-171 Wan Chai Road, Wan Chai, Hong Kong'
+    firstName: userProfile.firstName || 'N/A',
+    lastName: userProfile.lastName || 'N/A',
+    email: userProfile.email || 'N/A',
+    phone: customerData?.phone || 'Not available',
+    address: customerData?.location || 'Not available'
   };
 
-  const handleProfilePictureChange = (event) => {
+  const handleProfilePictureChange = async (event) => {
     const file = event.target.files[0];
     if (file) {
       // Validate file type
@@ -59,15 +88,46 @@ function Profile({ profilePicture, onProfilePictureUpdate }) {
       }
 
       const reader = new FileReader();
-      reader.onload = (e) => {
-        onProfilePictureUpdate(e.target.result);
-        toast({
-          title: 'Profile picture updated',
-          description: 'Your profile picture has been successfully updated.',
-          status: 'success',
-          duration: 3000,
-          isClosable: true,
-        });
+      reader.onload = async (e) => {
+        const imageDataUrl = e.target.result;
+
+        try {
+          // Update local state immediately for UI feedback
+          onProfilePictureUpdate(imageDataUrl);
+
+          // Save to backend
+          if (userId) {
+            const response = await api.users.updateProfilePicture(userId, imageDataUrl);
+            if (response.success) {
+              toast({
+                title: 'Profile picture updated',
+                description: 'Your profile picture has been successfully saved.',
+                status: 'success',
+                duration: 3000,
+                isClosable: true,
+              });
+            } else {
+              throw new Error(response.message || 'Failed to save profile picture');
+            }
+          } else {
+            toast({
+              title: 'Error',
+              description: 'User ID not available. Please try logging in again.',
+              status: 'error',
+              duration: 3000,
+              isClosable: true,
+            });
+          }
+        } catch (error) {
+          console.error('Failed to update profile picture:', error);
+          toast({
+            title: 'Update failed',
+            description: 'Failed to save profile picture. Please try again.',
+            status: 'error',
+            duration: 3000,
+            isClosable: true,
+          });
+        }
       };
       reader.readAsDataURL(file);
     }

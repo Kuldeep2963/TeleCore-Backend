@@ -1,5 +1,5 @@
-import React from 'react';
-import { 
+import React, { useState } from 'react';
+import {
   Box, 
   Flex, 
   Text, 
@@ -21,7 +21,7 @@ import { FaFileExcel, FaShoppingCart, FaUser, FaCog, FaKey, FaSignOutAlt, FaWall
 import { useNavigate } from 'react-router-dom';
 import ChangePasswordModal from '../Modals/ChangePasswordModal';
 
-function Navbar({ cartCount = 0, walletBalance = 0, profilePicture = null, onLogout = () => {}, userRole = 'Client' }) {
+function Navbar({ cartCount = 0, walletBalance = 0, profilePicture = null, onLogout = () => {}, userRole = 'Client', userProfile = {} }) {
   const navigate = useNavigate();
   const { isOpen, onOpen, onClose } = useDisclosure();
 
@@ -149,8 +149,8 @@ function Navbar({ cartCount = 0, walletBalance = 0, profilePicture = null, onLog
                 onClick={handleWalletClick}
               >
                 <FaWallet color="#1a3a52" size={16} />
-                <Text fontWeight="bold" fontSize="16px" color="green.600">
-                  ${walletBalance.toFixed(2)}
+                <Text fontWeight="bold" fontSize="18px" color="green.500">
+                  ${walletBalance}
                 </Text>
               </Box>
             </>
@@ -165,7 +165,7 @@ function Navbar({ cartCount = 0, walletBalance = 0, profilePicture = null, onLog
                     <Avatar
                       size="sm"
                       src={profilePicture}
-                      name="Sarah Wilson"
+                      name={`${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim() || 'User'}
                       bg={profilePicture ? "transparent" : "linear(135deg, #667eea 0%, #764ba2 100%)"}
                       bgGradient={profilePicture ? "none" : "linear(135deg, #667eea 0%, #764ba2 100%)"}
                       color="white"
@@ -175,7 +175,7 @@ function Navbar({ cartCount = 0, walletBalance = 0, profilePicture = null, onLog
                       fontSize="10px"
                     />
                     <Text fontWeight="500" fontSize="14px" color="#1a3a52">
-                      Sarah Wilson
+                      {`${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim() || 'User'}
                     </Text>
                   </HStack>
                 }
@@ -208,10 +208,10 @@ function Navbar({ cartCount = 0, walletBalance = 0, profilePicture = null, onLog
                 align="stretch"
               >
                 <Text fontWeight="600" fontSize="14px" color="#1a3a52">
-                  Sarah Wilson
+                  {`${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim() || 'User'}
                 </Text>
                 <Text fontSize="12px" color="gray.600">
-                  sarah.wilson@example.com
+                  {userProfile.email || ''}
                 </Text>
               </VStack>
 

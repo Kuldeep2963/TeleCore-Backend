@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Heading,
@@ -31,7 +31,9 @@ import {
   FormControl,
   FormLabel,
   Textarea,
-  useDisclosure
+  useDisclosure,
+  Spinner,
+  Center
 } from '@chakra-ui/react';
 import {
   FiPlus,
@@ -43,75 +45,84 @@ import {
   FiClock,
   FiFileText
 } from 'react-icons/fi';
+import api from '../services/api';
 
 const Invoices = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('All');
   const toast = useToast();
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const [invoices, setInvoices] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Sample invoice data
-  const [invoices, setInvoices] = useState([
-    {
-      id: 'INV-001',
-      customer: 'John Smith',
-      customerEmail: 'john.smith@email.com',
-      amount: 250.00,
-      status: 'Paid',
-      issueDate: '2024-11-01',
-      dueDate: '2024-11-15',
-      description: 'DID Numbers - 5 numbers'
-    },
-    {
-      id: 'INV-002',
-      customer: 'Sarah Johnson',
-      customerEmail: 'sarah.j@email.com',
-      amount: 180.00,
-      status: 'Pending',
-      issueDate: '2024-10-30',
-      dueDate: '2024-11-13',
-      description: 'Two Way SMS service'
-    },
-    {
-      id: 'INV-003',
-      customer: 'Mike Chen',
-      customerEmail: 'mike.chen@email.com',
-      amount: 120.00,
-      status: 'Overdue',
-      issueDate: '2024-10-28',
-      dueDate: '2024-11-11',
-      description: 'Mobile Numbers - 2 numbers'
-    },
-    {
-      id: 'INV-004',
-      customer: 'Emma Davis',
-      customerEmail: 'emma.davis@email.com',
-      amount: 75.00,
-      status: 'Paid',
-      issueDate: '2024-10-25',
-      dueDate: '2024-11-08',
-      description: 'Freephone service'
+  useEffect(() => {
+    fetchInvoices();
+  }, []);
+
+  const fetchInvoices = async () => {
+    try {
+      setLoading(true);
+      const response = await api.invoices.getAll();
+      if (response.success) {
+        setInvoices(response.data);
+      } else {
+        toast({
+          title: 'Error',
+          description: 'Failed to load invoices',
+          status: 'error',
+          duration: 3000,
+          isClosable: true,
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching invoices:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load invoices',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    } finally {
+      setLoading(false);
     }
-  ]);
+  }
 
+
+
+  const [customers, setCustomers] = useState([]);
   const [newInvoice, setNewInvoice] = useState({
-    customer: '',
-    customerEmail: '',
+    customer_id: '',
     amount: '',
-    dueDate: '',
-    description: ''
+    due_date: '',
+    notes: ''
   });
 
+  useEffect(() => {
+    fetchCustomers();
+  }, []);
+
+  const fetchCustomers = async () => {
+    try {
+      const response = await api.customers.getAll();
+      if (response.success) {
+        setCustomers(response.data);
+      }
+    } catch (error) {
+      console.error('Error fetching customers:', error);
+    }
+  };
+
   const filteredInvoices = invoices.filter(invoice => {
-    const matchesSearch = invoice.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         invoice.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         invoice.customerEmail.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = (invoice.invoice_number || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (invoice.customer_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (invoice.customer_email || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = filterStatus === 'All' || invoice.status === filterStatus;
     return matchesSearch && matchesStatus;
   });
 
-  const handleCreateInvoice = () => {
-    if (!newInvoice.customer || !newInvoice.amount || !newInvoice.dueDate) {
+  const handleCreateInvoice = async () => {
+    if (!newInvoice.customer_id || !newInvoice.amount || !newInvoice.due_date) {
       toast({
         title: 'Missing information',
         description: 'Please fill in all required fields.',
@@ -122,47 +133,72 @@ const Invoices = () => {
       return;
     }
 
-    const invoice = {
-      id: `INV-${String(invoices.length + 1).padStart(3, '0')}`,
-      ...newInvoice,
-      amount: parseFloat(newInvoice.amount),
-      status: 'Pending',
-      issueDate: new Date().toISOString().split('T')[0]
-    };
+    try {
+      const response = await api.invoices.create({
+        customer_id: parseInt(newInvoice.customer_id),
+        amount: parseFloat(newInvoice.amount),
+        due_date: newInvoice.due_date,
+        notes: newInvoice.notes || null
+      });
 
-    setInvoices([invoice, ...invoices]);
-    setNewInvoice({
-      customer: '',
-      customerEmail: '',
-      amount: '',
-      dueDate: '',
-      description: ''
-    });
-    onClose();
+      if (response.success) {
+        setNewInvoice({
+          customer_id: '',
+          amount: '',
+          due_date: '',
+          notes: ''
+        });
+        onClose();
+        await fetchInvoices();
 
-    toast({
-      title: 'Invoice created',
-      description: 'The invoice has been created successfully.',
-      status: 'success',
-      duration: 3000,
-      isClosable: true,
-    });
+        toast({
+          title: 'Invoice created',
+          description: 'The invoice has been created successfully.',
+          status: 'success',
+          duration: 3000,
+          isClosable: true,
+        });
+      }
+    } catch (error) {
+      console.error('Error creating invoice:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to create invoice',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    }
   };
 
-  const handleStatusUpdate = (invoiceId, newStatus) => {
-    setInvoices(invoices.map(invoice =>
-      invoice.id === invoiceId
-        ? { ...invoice, status: newStatus }
-        : invoice
-    ));
+  const handleStatusUpdate = async (invoiceId, newStatus) => {
+    try {
+      const response = await api.invoices.updateStatus(invoiceId, newStatus);
+      if (response.success) {
+        setInvoices(invoices.map(invoice =>
+          invoice.id === invoiceId
+            ? { ...invoice, status: newStatus }
+            : invoice
+        ));
 
-    toast({
-      title: 'Invoice status updated',
-      description: `Invoice ${invoiceId} status changed to ${newStatus}`,
-      status: 'success',
-      duration: 3000,
-      isClosable: true,
-    });
+        toast({
+          title: 'Invoice status updated',
+          description: `Invoice ${invoiceId} status changed to ${newStatus}`,
+          status: 'success',
+          duration: 3000,
+          isClosable: true,
+        });
+      }
+    } catch (error) {
+      console.error('Error updating invoice status:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to update invoice status',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    }
   };
 
   const getStatusColor = (status) => {
@@ -190,7 +226,15 @@ const Invoices = () => {
     }).format(amount);
   };
 
-  const totalRevenue = invoices.reduce((sum, invoice) => sum + invoice.amount, 0);
+  if (loading) {
+    return (
+      <Center flex={1} minH="calc(100vh - 76px)">
+        <Spinner size="lg" color="blue.500" />
+      </Center>
+    );
+  }
+
+  const totalRevenue = invoices.reduce((sum, invoice) => sum + (invoice.amount || 0), 0);
   const paidInvoices = invoices.filter(invoice => invoice.status === 'Paid').length;
   const pendingInvoices = invoices.filter(invoice => invoice.status === 'Pending').length;
   const overdueInvoices = invoices.filter(invoice => invoice.status === 'Overdue').length;
@@ -400,31 +444,30 @@ const Invoices = () => {
                   <Tr key={invoice.id} _hover={{ bg: 'gray.50' }}>
                     <Td>
                       <Text fontWeight="medium" color="blue.600">
-                        {invoice.id}
+                        {invoice.invoice_number || `#${invoice.id}`}
                       </Text>
                     </Td>
                     <Td>
                       <VStack align="start" spacing={0}>
-                        <Text fontWeight="medium">{invoice.customer}</Text>
-                        <Text fontSize="sm" color="gray.500">{invoice.customerEmail}</Text>
+                        <Text fontWeight="medium">{invoice.customer_name || 'N/A'}</Text>
                       </VStack>
                     </Td>
                     <Td>
-                      <Text fontWeight="medium">{formatCurrency(invoice.amount)}</Text>
+                      <Text fontWeight="medium">{formatCurrency(invoice.amount || 0)}</Text>
                     </Td>
                     <Td textAlign="center">
-                      <Badge colorScheme={getStatusColor(invoice.status)} borderRadius={"full"}>
+                      <Badge colorScheme={getStatusColor(invoice.status || 'Pending')} borderRadius={"full"}>
                         <HStack spacing={1}>
-                          <Icon as={getStatusIcon(invoice.status)} boxSize={3} />
-                          <Text>{invoice.status}</Text>
+                          <Icon as={getStatusIcon(invoice.status || 'Pending')} boxSize={3} />
+                          <Text>{invoice.status || 'Pending'}</Text>
                         </HStack>
                       </Badge>
                     </Td>
                     <Td>
-                      <Text fontSize="sm">{new Date(invoice.issueDate).toLocaleDateString()}</Text>
+                      <Text fontSize="sm">{invoice.created_at ? new Date(invoice.created_at).toLocaleDateString() : 'N/A'}</Text>
                     </Td>
                     <Td>
-                      <Text fontSize="sm">{new Date(invoice.dueDate).toLocaleDateString()}</Text>
+                      <Text fontSize="sm">{invoice.due_date ? new Date(invoice.due_date).toLocaleDateString() : 'N/A'}</Text>
                     </Td>
                     <Td>
                       <HStack spacing={2}>
@@ -460,22 +503,18 @@ const Invoices = () => {
           <ModalBody>
             <VStack spacing={4}>
               <FormControl isRequired>
-                <FormLabel>Customer Name</FormLabel>
-                <Input
-                  placeholder="Enter customer name"
-                  value={newInvoice.customer}
-                  onChange={(e) => setNewInvoice({...newInvoice, customer: e.target.value})}
-                />
-              </FormControl>
-
-              <FormControl isRequired>
-                <FormLabel>Customer Email</FormLabel>
-                <Input
-                  type="email"
-                  placeholder="Enter customer email"
-                  value={newInvoice.customerEmail}
-                  onChange={(e) => setNewInvoice({...newInvoice, customerEmail: e.target.value})}
-                />
+                <FormLabel>Customer</FormLabel>
+                <Select
+                  placeholder="Select a customer"
+                  value={newInvoice.customer_id}
+                  onChange={(e) => setNewInvoice({...newInvoice, customer_id: e.target.value})}
+                >
+                  {customers.map((customer) => (
+                    <option key={customer.id} value={customer.id}>
+                      {customer.company_name}
+                    </option>
+                  ))}
+                </Select>
               </FormControl>
 
               <FormControl isRequired>
@@ -492,17 +531,17 @@ const Invoices = () => {
                 <FormLabel>Due Date</FormLabel>
                 <Input
                   type="date"
-                  value={newInvoice.dueDate}
-                  onChange={(e) => setNewInvoice({...newInvoice, dueDate: e.target.value})}
+                  value={newInvoice.due_date}
+                  onChange={(e) => setNewInvoice({...newInvoice, due_date: e.target.value})}
                 />
               </FormControl>
 
               <FormControl>
-                <FormLabel>Description</FormLabel>
+                <FormLabel>Notes</FormLabel>
                 <Textarea
-                  placeholder="Enter invoice description"
-                  value={newInvoice.description}
-                  onChange={(e) => setNewInvoice({...newInvoice, description: e.target.value})}
+                  placeholder="Enter invoice notes"
+                  value={newInvoice.notes}
+                  onChange={(e) => setNewInvoice({...newInvoice, notes: e.target.value})}
                 />
               </FormControl>
             </VStack>

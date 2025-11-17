@@ -24,10 +24,14 @@ import {
   TabList,
   Tab,
   TabPanels,
-  TabPanel
+  TabPanel,
+  Spinner,
+  Center,
+  useToast
 } from '@chakra-ui/react';
-import { FaInfoCircle, FaTrash } from 'react-icons/fa';
+import { FaInfoCircle, FaTrash, FaEye } from 'react-icons/fa';
 import DocumentRequiredModal from '../../../Modals/DocumentRequiredModal';
+import api from '../../../services/api';
 
 export const defaultPricingData = {
   nrc: '$24.00',
@@ -63,14 +67,122 @@ function NumberSelection({
   desiredPricingData,
   onDesiredPricingChange = () => {},
   orderStatus,
-  readOnly = false
+  readOnly = false,
+  userRole
 }) {
   const [documents, setDocuments] = useState([]);
   const [isDocumentsModalOpen, setIsDocumentsModalOpen] = useState(false);
   const [bargainData, setBargainData] = useState({});
+  const [fetchedPricingData, setFetchedPricingData] = useState(null);
+  const [loadingPricing, setLoadingPricing] = useState(false);
+  const [countries, setCountries] = useState([]);
   const fileInputRef = useRef(null);
+  const toast = useToast();
 
+  useEffect(() => {
+    fetchCountries();
+  }, []);
 
+  useEffect(() => {
+    fetchPricingData();
+  }, [formData.productType, formData.country, countries]);
+
+  const fetchCountries = async () => {
+    try {
+      console.log('Fetching countries from API...');
+      const response = await api.countries.getAll();
+      console.log('Countries API response:', response);
+      if (response.success) {
+        console.log('Countries data:', response.data);
+        setCountries(response.data);
+      } else {
+        console.error('Countries API returned unsuccessful:', response);
+        // Fallback to some test data if API fails
+        console.log('Using fallback country data');
+        setCountries([
+          { id: 1, code: 'us', name: 'United States', phone_code: '+1' },
+          { id: 2, code: 'uk', name: 'United Kingdom', phone_code: '+44' },
+          { id: 3, code: 'ca', name: 'Canada', phone_code: '+1' },
+          { id: 4, code: 'au', name: 'Australia', phone_code: '+61' }
+        ]);
+      }
+    } catch (error) {
+      console.error('Error fetching countries:', error);
+      // Fallback to some test data if API fails
+      console.log('Using fallback country data due to error');
+      setCountries([
+        { id: 1, code: 'us', name: 'United States', phone_code: '+1' },
+        { id: 2, code: 'uk', name: 'United Kingdom', phone_code: '+44' },
+        { id: 3, code: 'ca', name: 'Canada', phone_code: '+1' },
+        { id: 4, code: 'au', name: 'Australia', phone_code: '+61' }
+      ]);
+    }
+  };
+
+  const fetchPricingData = async () => {
+    if (!formData.productType || !formData.country) {
+      return;
+    }
+
+    try {
+      setLoadingPricing(true);
+
+      // Map product type to product ID (this would need proper mapping)
+      // For now, we'll use a simple mapping
+      const productTypeMap = {
+        'did': 1, // DID
+        'freephone': 2, // Freephone
+        'universal': 3, // Universal Freephone
+        'two-way-voice': 4, // Two Way Voice
+        'two-way-sms': 5, // Two Way SMS
+        'mobile': 6 // Mobile
+      };
+
+      // Build country code map dynamically from API data
+      const countryCodeMap = {};
+      countries.forEach((country, index) => {
+        countryCodeMap[country.code] = country.id || index + 1;
+      });
+
+      const productId = productTypeMap[formData.productType];
+      const countryId = countryCodeMap[formData.country];
+
+      if (productId && countryId) {
+        const response = await api.pricing.getByProduct(productId, countryId);
+        if (response.success) {
+          // Transform the pricing data to match the expected format
+          const pricing = response.data;
+          const transformedPricing = {
+            nrc: `$${pricing.nrc || 0}`,
+            mrc: `$${pricing.mrc || 0}`,
+            ppm: `$${pricing.ppm || 0}`,
+            ppmFix: `$${pricing.ppm_fix || 0}`,
+            ppmMobile: `$${pricing.ppm_mobile || 0}`,
+            ppmPayphone: `$${pricing.ppm_payphone || 0}`,
+            arc: `$${pricing.arc || 0}`,
+            mo: `$${pricing.mo || 0}`,
+            mt: `$${pricing.mt || 0}`,
+            Incomingppm: `$${pricing.incoming_ppm || 0}`,
+            Outgoingppmfix: `$${pricing.outgoing_ppm_fix || 0}`,
+            Outgoingppmmobile: `$${pricing.outgoing_ppm_mobile || 0}`,
+            incmongsms: `$${pricing.incoming_sms || 0}`,
+            outgoingsms: `$${pricing.outgoing_sms || 0}`,
+            billingPulse: pricing.billing_pulse || '60/60',
+            estimatedLeadTime: pricing.estimated_lead_time || '15 Days',
+            contractTerm: pricing.contract_term || '1 Month',
+            disconnectionNoticeTerm: pricing.disconnection_notice_term || '1 Month'
+          };
+          setFetchedPricingData(transformedPricing);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching pricing data:', error);
+      // Fall back to default pricing if API fails
+      setFetchedPricingData(null);
+    } finally {
+      setLoadingPricing(false);
+    }
+  };
 
   // Define pricing headings based on product type
   const pricingHeadings = {
@@ -86,8 +198,9 @@ function NumberSelection({
 
   const mergedPricingData = useMemo(() => ({
     ...defaultPricingData,
+    ...(fetchedPricingData || {}),
     ...(pricingDataProp || {})
-  }), [pricingDataProp]);
+  }), [fetchedPricingData, pricingDataProp]);
 
   const pricingData = mergedPricingData;
 
@@ -178,6 +291,13 @@ const desiredPricingHeading = ['confirmed', 'delivered', 'amount paid'].includes
     setDocuments((prev) => prev.filter((doc) => doc.id !== id));
   };
 
+  const handleViewDocument = (document) => {
+    if (document.file) {
+      const url = URL.createObjectURL(document.file);
+      window.open(url, '_blank');
+    }
+  };
+
   const serviceRestriction = coverageData.restrictions && coverageData.restrictions.toLowerCase() === 'none' ? 'No' : 'Yes';
   const portingAvailability = coverageData.portability && coverageData.portability.toLowerCase() === 'yes' ? 'Yes' : 'No';
 
@@ -190,6 +310,14 @@ const desiredPricingHeading = ['confirmed', 'delivered', 'amount paid'].includes
       onConfigure([]);
     }
   };
+
+  if (loadingPricing) {
+    return (
+      <Center py={8}>
+        <Spinner size="lg" color="blue.500" />
+      </Center>
+    );
+  }
 
   return (
     <VStack spacing={6} align="stretch">
@@ -358,14 +486,25 @@ const desiredPricingHeading = ['confirmed', 'delivered', 'amount paid'].includes
                     <Td textTransform="uppercase">{document.type}</Td>
                     <Td>{new Date(document.uploadedAt).toLocaleString()}</Td>
                     <Td>
-                      <IconButton
-                        aria-label="Delete document"
-                        icon={<FaTrash />}
-                        variant="ghost"
-                        colorScheme="red"
-                        size="sm"
-                        onClick={() => handleDeleteDocument(document.id)}
-                      />
+                      {userRole === 'Internal' ? (
+                        <IconButton
+                          aria-label="View document"
+                          icon={<FaEye />}
+                          variant="ghost"
+                          colorScheme="blue"
+                          size="sm"
+                          onClick={() => handleViewDocument(document)}
+                        />
+                      ) : (
+                        <IconButton
+                          aria-label="Delete document"
+                          icon={<FaTrash />}
+                          variant="ghost"
+                          colorScheme="red"
+                          size="sm"
+                          onClick={() => handleDeleteDocument(document.id)}
+                        />
+                      )}
                     </Td>
                   </Tr>
                 ))

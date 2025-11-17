@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -22,7 +22,9 @@ import {
   InputLeftElement,
   Select,
   useToast,
-  useDisclosure
+  useDisclosure,
+  Spinner,
+  Center
 } from '@chakra-ui/react';
 import {
   FiUsers,
@@ -36,6 +38,7 @@ import {
   FiEdit3
 } from 'react-icons/fi';
 import VendorDetailModal from '../Modals/VendorDetailModal';
+import api from '../services/api';
 
 const Vendors = () => {
   const navigate = useNavigate();
@@ -44,46 +47,41 @@ const Vendors = () => {
   const toast = useToast();
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [selectedVendor, setSelectedVendor] = useState(null);
+  const [vendors, setVendors] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Sample vendor data
-  const [vendors, setVendors] = useState([
-    {
-      id: 1,
-      name: 'Telecom Solutions Inc.',
-      email: 'contact@telecomsolutions.com',
-      phone: '+1-555-0123',
-      location: 'New York, USA',
-      status: 'Active',
-      products: 45,
-      orders: 128,
-      rating: 4.8,
-      joinDate: '2023-01-15'
-    },
-    {
-      id: 2,
-      name: 'Global Voice Networks',
-      email: 'info@globalvoice.com',
-      phone: '+44-20-7946-0123',
-      location: 'London, UK',
-      status: 'Active',
-      products: 32,
-      orders: 89,
-      rating: 4.6,
-      joinDate: '2023-03-22'
-    },
-    {
-      id: 3,
-      name: 'Asia Telecom Ltd.',
-      email: 'sales@asiatelecom.com',
-      phone: '+65-6789-0123',
-      location: 'Singapore',
-      status: 'Inactive',
-      products: 28,
-      orders: 67,
-      rating: 4.4,
-      joinDate: '2023-05-10'
+  useEffect(() => {
+    fetchVendors();
+  }, []);
+
+  const fetchVendors = async () => {
+    try {
+      setLoading(true);
+      const response = await api.vendors.getAll();
+      if (response.success) {
+        setVendors(response.data);
+      } else {
+        toast({
+          title: 'Error',
+          description: 'Failed to load vendors',
+          status: 'error',
+          duration: 3000,
+          isClosable: true,
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching vendors:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load vendors',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    } finally {
+      setLoading(false);
     }
-  ]);
+  }
 
   const filteredVendors = vendors.filter(vendor => {
     const matchesSearch = vendor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -92,15 +90,29 @@ const Vendors = () => {
     return matchesSearch && matchesStatus;
   });
 
-  const handleDeleteVendor = (vendorId) => {
-    setVendors(vendors.filter(vendor => vendor.id !== vendorId));
-    toast({
-      title: 'Vendor deleted',
-      description: 'The vendor has been successfully removed.',
-      status: 'success',
-      duration: 3000,
-      isClosable: true,
-    });
+  const handleDeleteVendor = async (vendorId) => {
+    try {
+      const response = await api.vendors.delete(vendorId);
+      if (response.success) {
+        setVendors(vendors.filter(vendor => vendor.id !== vendorId));
+        toast({
+          title: 'Vendor deleted',
+          description: 'The vendor has been successfully removed.',
+          status: 'success',
+          duration: 3000,
+          isClosable: true,
+        });
+      }
+    } catch (error) {
+      console.error('Error deleting vendor:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to delete vendor',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    }
   };
 
   const getStatusColor = (status) => {
@@ -111,6 +123,14 @@ const Vendors = () => {
     setSelectedVendor(vendor);
     onOpen();
   };
+
+  if (loading) {
+    return (
+      <Center flex={1} minH="calc(100vh - 76px)">
+        <Spinner size="lg" color="blue.500" />
+      </Center>
+    );
+  }
 
   return (
     <Box
@@ -198,10 +218,10 @@ const Vendors = () => {
                 </Box>
                 <Box>
                   <Text fontSize="2xl" fontWeight="bold" color="gray.800">
-                    {vendors.reduce((sum, vendor) => sum + vendor.products, 0)}
+                    {vendors.reduce((sum, vendor) => sum + (vendor.total_orders || 0), 0)}
                   </Text>
                   <Text color="gray.500" fontSize="sm">
-                    Total Products
+                    Total Orders
                   </Text>
                 </Box>
               </HStack>
@@ -254,7 +274,7 @@ const Vendors = () => {
                 </Box>
                 <Box>
                   <Text fontSize="2xl" fontWeight="bold" color="gray.800">
-                    {(vendors.reduce((sum, vendor) => sum + vendor.rating, 0) / vendors.length).toFixed(1)}
+                    {vendors.length > 0 ? (vendors.reduce((sum, vendor) => sum + (vendor.rating || 0), 0) / vendors.length).toFixed(1) : 'N/A'}
                   </Text>
                   <Text color="gray.500" fontSize="sm">
                     Avg Rating
@@ -321,7 +341,7 @@ const Vendors = () => {
                         <Box>
                           <Text fontWeight="medium">{vendor.name}</Text>
                           <Text fontSize="sm" color="gray.500">
-                            Joined {new Date(vendor.joinDate).toLocaleDateString()}
+                            Joined {new Date(vendor.join_date).toLocaleDateString()}
                           </Text>
                         </Box>
                       </HStack>
@@ -350,14 +370,14 @@ const Vendors = () => {
                       </Badge>
                     </Td>
                     <Td>
-                      <Text fontWeight="medium">{vendor.products}</Text>
+                      <Text fontWeight="medium">{vendor.total_orders || 0}</Text>
                     </Td>
                     <Td>
-                      <Text fontWeight="medium">{vendor.orders}</Text>
+                      <Text fontWeight="medium">{vendor.completed_orders || 0}</Text>
                     </Td>
                     <Td>
                       <HStack>
-                        <Text fontWeight="medium">{vendor.rating}</Text>
+                        <Text fontWeight="medium">{vendor.rating || 'N/A'}</Text>
                         <Text color="yellow.500">★</Text>
                       </HStack>
                     </Td>

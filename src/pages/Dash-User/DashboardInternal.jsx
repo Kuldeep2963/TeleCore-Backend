@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import api from '../../services/api';
 import {
   Box,
   Heading,
@@ -16,17 +17,81 @@ import {
   FiUsers,
   FiShoppingCart,
   FiTrendingUp,
-  FiArrowRight
+  FiArrowRight,
+  FiRefreshCw
 } from 'react-icons/fi';
 import GlobalCoverage from './GlobalCoverage';
 
-const DashboardInternal = () => {
+const DashboardInternal = ({ userId, userRole }) => {
   const navigate = useNavigate();
+  const [stats, setStats] = useState({
+    totalVendors: 0,
+    totalCustomers: 0,
+    totalOrders: 0,
+    confirmedOrders: 0,
+    totalRevenue: 0
+  });
+  const [loading, setLoading] = useState(true);
 
-  const stats = [
+  useEffect(() => {
+    fetchStats();
+
+    // Set up auto-refresh every 30 seconds for real-time updates
+    const interval = setInterval(fetchStats, 30000);
+
+    return () => clearInterval(interval);
+  }, [userId, userRole]);
+
+  const fetchStats = async () => {
+    try {
+      setLoading(true);
+
+      // Calculate stats from individual API calls for accurate data
+      const [ordersResponse, vendorsResponse, customersResponse] = await Promise.all([
+        api.orders.getAll(),
+        api.vendors.getAll(),
+        api.customers.getAll()
+      ]);
+
+      const totalOrders = ordersResponse.success ? ordersResponse.data.length : 0;
+      const confirmedOrders = ordersResponse.success
+        ? ordersResponse.data.filter(order => order.orderStatus === 'Confirmed').length
+        : 0;
+      const totalVendors = vendorsResponse.success ? vendorsResponse.data.length : 0;
+      const totalCustomers = customersResponse.success ? customersResponse.data.length : 0;
+
+      // Calculate total revenue from orders
+      const totalRevenue = ordersResponse.success
+        ? ordersResponse.data.reduce((sum, order) => sum + (order.totalAmount || 0), 0)
+        : 0;
+
+      setStats({
+        totalVendors,
+        totalCustomers,
+        totalOrders,
+        confirmedOrders,
+        totalRevenue
+      });
+
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+      // Set to 0 on error
+      setStats({
+        totalVendors: 0,
+        totalCustomers: 0,
+        totalOrders: 0,
+        confirmedOrders: 0,
+        totalRevenue: 0
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const statsData = [
     {
       label: 'Total Vendors',
-      value: '45',
+      value: stats.totalVendors.toString(),
       change: '+5%',
       icon: FiUsers,
       color: 'blue',
@@ -34,7 +99,7 @@ const DashboardInternal = () => {
     },
     {
       label: 'Total Customers',
-      value: '1,234',
+      value: stats.totalCustomers.toString(),
       change: '+12%',
       icon: FiShoppingCart,
       color: 'green',
@@ -42,12 +107,12 @@ const DashboardInternal = () => {
     },
     {
       label: 'Total Orders',
-      value: '89',
+      value: stats.totalOrders.toString(),
       change: '+8%',
       icon: FiTrendingUp,
       color: 'purple',
       route: '/orders',
-      confirmedCount: '23' // Confirmed orders count
+      confirmedCount: stats.confirmedOrders.toString()
     }
   ];
 
@@ -68,6 +133,7 @@ const DashboardInternal = () => {
         {/* Header Section */}
         <Box w="full">
           <VStack align="start" spacing={5}>
+          <HStack justify="space-between" align="center" w="full">
             <Heading
               color="gray.800"
               fontSize={{ base: "2xl", md: "3xl" }}
@@ -75,12 +141,24 @@ const DashboardInternal = () => {
               letterSpacing="-0.5px"
               textAlign="left"
             >
-             Dashboard 
+             Dashboard
             </Heading>
+            <Button
+              leftIcon={<FiRefreshCw />}
+              variant="outline"
+              size="sm"
+              colorScheme="blue"
+              onClick={fetchStats}
+              isLoading={loading}
+              loadingText="Refreshing..."
+            >
+              Refresh Stats
+            </Button>
+          </HStack>
 
             {/* Statistics Cards */}
             <SimpleGrid columns={{ base: 2, md: 3}} spacing={6} w="full">
-              {stats.map((stat, index) => (
+              {statsData.map((stat, index) => (
                 <Box
                   key={index}
                   bg="white"

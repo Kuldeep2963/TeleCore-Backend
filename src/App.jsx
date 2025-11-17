@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
@@ -23,40 +23,89 @@ import PlaceOrderPage from './pages/OrderNumber/AddNewNumber/PlaceOrderPage';
 import OrderNumberView from './pages/OrderNumberView';
 import Login from './pages/Login';
 import Rates from './pages/Rates';
+import DisconnectionModal from './Modals/DisconnectionModal';
+import api from './services/api';
 
 function App() {
   const [cartItems, setCartItems] = useState([]);
   const [walletBalance, setWalletBalance] = useState(50.00);
-  const [disconnectionRequests, setDisconnectionRequests] = useState([]);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [profilePicture, setProfilePicture] = useState(null);
-  const [userRole, setUserRole] = useState('Client'); // 'Client' or 'Internal'
+  const [userRole, setUserRole] = useState(null);
+  const [userId, setUserId] = useState(null); // 'Client' or 'Internal'
+  const [userProfile, setUserProfile] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    walletBalance: 0
+  });
+  const [isDisconnectionModalOpen, setIsDisconnectionModalOpen] = useState(false);
+  const [selectedNumberForDisconnection, setSelectedNumberForDisconnection] = useState(null);
+  const [numbersRefreshTrigger, setNumbersRefreshTrigger] = useState(0);
 
-  const updateOrderDisconnectionStatus = (orderId, status) => {
-    setDisconnectionRequests(prevRequests =>
-      prevRequests.map(request =>
-        request.orderId === orderId ? { ...request, status } : request
-      )
-    );
-  };
-
-  // Load authentication state from localStorage on component mount
+  // Load authentication state from sessionStorage on component mount
   useEffect(() => {
-    const savedAuth = localStorage.getItem('isAuthenticated');
-    const savedRole = localStorage.getItem('userRole');
+    const savedAuth = sessionStorage.getItem('isAuthenticated');
+    const savedRole = sessionStorage.getItem('userRole');
+    const savedUserId = sessionStorage.getItem('userId');
+    const savedToken = sessionStorage.getItem('authToken');
 
-    if (savedAuth === 'true') {
+    if (savedAuth === 'true' && savedToken) {
       setIsAuthenticated(true);
       if (savedRole) {
         setUserRole(savedRole);
       }
+      if (savedUserId) {
+        setUserId(savedUserId);
+      }
+
+      // Fetch profile data
+      const fetchProfile = async () => {
+        try {
+          const profileResponse = await api.auth.getProfile();
+          if (profileResponse.success) {
+            const profileData = profileResponse.data;
+            setUserProfile({
+              firstName: profileData.firstName || '',
+              lastName: profileData.lastName || '',
+              email: profileData.email || '',
+              walletBalance: profileData.walletBalance || 0
+            });
+            setWalletBalance(profileData.walletBalance || 0);
+            setProfilePicture(profileData.profilePicture || null);
+          } else {
+            // If profile fetch fails, clear authentication
+            console.warn('Profile fetch failed, clearing authentication');
+            setIsAuthenticated(false);
+            sessionStorage.removeItem('authToken');
+            sessionStorage.removeItem('isAuthenticated');
+            sessionStorage.removeItem('userRole');
+            sessionStorage.removeItem('userId');
+          }
+        } catch (profileError) {
+          console.error('Profile fetch error:', profileError);
+          // If profile fetch fails, clear authentication to prevent white page
+          setIsAuthenticated(false);
+          sessionStorage.removeItem('authToken');
+          sessionStorage.removeItem('isAuthenticated');
+          sessionStorage.removeItem('userRole');
+          sessionStorage.removeItem('userId');
+        }
+      };
+
+      fetchProfile();
     }
   }, []);
 
-  const sampleCredentials = useMemo(() => ({
+  const clientCredentials = {
     email: 'sarah@telecore.com',
     password: 'Sarah@123'
-  }), []);
+  };
+
+  const internalCredentials = {
+    email: 'internal@telecore.com',
+    password: 'Internal@123'
+  };
 
   const handleAddToCart = (item) => {
     if (!item) {
@@ -88,57 +137,82 @@ function App() {
     setProfilePicture(newPicture);
   };
 
-  const handleLogin = ({ email, password, role }) => {
-    const normalizedEmail = email.trim().toLowerCase();
-    const isValid =
-      normalizedEmail === sampleCredentials.email.toLowerCase() &&
-      password === sampleCredentials.password;
+  const handleLogin = async ({ email, password }) => {
+    try {
+      const response = await api.auth.login({ email, password });
 
-    if (isValid) {
-      setIsAuthenticated(true);
-      setUserRole(role || 'Client');
-      // Save authentication state to localStorage
-      localStorage.setItem('isAuthenticated', 'true');
-      localStorage.setItem('userRole', role || 'Client');
-      return { success: true };
+      if (response.success) {
+        const { token, user } = response.data;
+
+        // Store token and user info
+        sessionStorage.setItem('authToken', token);
+        sessionStorage.setItem('isAuthenticated', 'true');
+        sessionStorage.setItem('userRole', user.role);
+        sessionStorage.setItem('userId', user.id);
+
+        setIsAuthenticated(true);
+        setUserRole(user.role);
+        setUserId(user.id);
+
+        // Fetch full profile data
+        try {
+          const profileResponse = await api.auth.getProfile();
+          if (profileResponse.success) {
+            const profileData = profileResponse.data;
+            setUserProfile({
+              firstName: profileData.firstName || '',
+              lastName: profileData.lastName || '',
+              email: profileData.email || '',
+              walletBalance: profileData.walletBalance || 0
+            });
+            setWalletBalance(profileData.walletBalance || 0);
+            setProfilePicture(profileData.profilePicture || null);
+          }
+        } catch (profileError) {
+          console.error('Profile fetch error:', profileError);
+        }
+
+        return { success: true };
+      } else {
+        return { success: false, message: response.message || 'Login failed' };
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      return { success: false, message: error.message };
     }
-
-    return {
-      success: false,
-      message: 'Invalid email or password'
-    };
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await api.auth.logout();
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+
     setIsAuthenticated(false);
     setCartItems([]);
     setUserRole('Client');
-    // Clear authentication state from localStorage
-    localStorage.removeItem('isAuthenticated');
-    localStorage.removeItem('userRole');
+    setUserId(null);
+    // Clear authentication state from sessionStorage
+    sessionStorage.removeItem('authToken');
+    sessionStorage.removeItem('isAuthenticated');
+    sessionStorage.removeItem('userRole');
+    sessionStorage.removeItem('userId');
   };
 
-  const handleDisconnectionRequested = ({ number, linkedOrderId }) => {
-    if (!linkedOrderId) {
-      return;
-    }
+  const handleDisconnectionRequested = (number) => {
+    setSelectedNumberForDisconnection(number);
+    setIsDisconnectionModalOpen(true);
+  };
 
-    updateOrderDisconnectionStatus(linkedOrderId, 'Pending');
+  const handleDisconnectionSuccess = (numberId) => {
+    // Trigger refresh of numbers list
+    setNumbersRefreshTrigger(prev => prev + 1);
+  };
 
-    const requestPayload = {
-      phoneNumber: number,
-      orderId: linkedOrderId,
-      status: 'Pending',
-      requestedAt: new Date().toISOString()
-    };
-
-    setDisconnectionRequests(prev => [...prev, requestPayload]);
-
-    const existingRequests = JSON.parse(localStorage.getItem('disconnectionRequests') || '[]');
-    localStorage.setItem(
-      'disconnectionRequests',
-      JSON.stringify([...existingRequests, requestPayload])
-    );
+  const handleDisconnectionModalClose = () => {
+    setIsDisconnectionModalOpen(false);
+    setSelectedNumberForDisconnection(null);
   };
 
   return (
@@ -154,7 +228,7 @@ function App() {
           padding: 0,
           minHeight: '100vh'
         }}>
-          <Navbar cartCount={cartItems.length} walletBalance={walletBalance} profilePicture={profilePicture} onLogout={handleLogout} userRole={userRole} />
+          <Navbar cartCount={cartItems.length} walletBalance={userProfile.walletBalance} profilePicture={profilePicture} onLogout={handleLogout} userRole={userRole} userProfile={userProfile} />
           <div style={{
             display: 'flex',
             flex: 1,
@@ -169,8 +243,8 @@ function App() {
               overflow: 'hidden'
             }}>
               <Routes>
-                <Route path="/" element={userRole === 'Internal' ? <DashboardInternal /> : <Dashboard />} />
-                <Route path="/dashboard" element={userRole === 'Internal' ? <DashboardInternal /> : <Dashboard />} />
+                <Route path="/" element={userRole === 'Internal' ? <DashboardInternal userId={userId} userRole={userRole} /> : <Dashboard userId={userId} userRole={userRole} />} />
+                <Route path="/dashboard" element={userRole === 'Internal' ? <DashboardInternal userId={userId} userRole={userRole} /> : <Dashboard userId={userId} userRole={userRole} />} />
                 <Route path="/order-numbers/new" element={<NewNumber onAddToCart={handleAddToCart} />} />
                 <Route path="/order-numbers/vanity" element={<VanityNumber />} />
                 <Route path="/order-numbers/port" element={<PortNumber />} />
@@ -181,18 +255,19 @@ function App() {
                   element={
                     <MyNumbers
                       onRequestDisconnection={handleDisconnectionRequested}
+                      refreshTrigger={numbersRefreshTrigger}
                     />
                   }
                 />
-                <Route path="/my-orders" element={<MyOrders />} />
-                <Route path="/order-number-view" element={<OrderNumberView />} />
+                <Route path="/my-orders" element={<MyOrders userId={userId} userRole={userRole} />} />
+                <Route path="/order-number-view" element={<OrderNumberView userRole={userRole} />} />
                 <Route path="/product-info" element={<ProductInfo />} />
                 <Route path="/rates" element={<Rates />} />
-                <Route path="/my-profile" element={<Profile profilePicture={profilePicture} onProfilePictureUpdate={updateProfilePicture} />} />
+                <Route path="/my-profile" element={<Profile profilePicture={profilePicture} onProfilePictureUpdate={updateProfilePicture} userId={userId} userProfile={userProfile} userRole={userRole} />} />
                 <Route path="/billing-invoices" element={<Billing walletBalance={walletBalance} onUpdateBalance={updateWalletBalance} />} />
 
-                {/* Internal-only routes */}
-                {userRole === 'Internal' && (
+                {/* Internal and Admin routes */}
+                {(userRole === 'Internal' || userRole === 'Admin') && (
                   <>
                     <Route path="/vendors" element={<Vendors />} />
                     <Route path="/customers" element={<Customers />} />
@@ -202,13 +277,28 @@ function App() {
                     <Route path="/add-vendor-customer" element={<AddVendorCustomer />} />
                   </>
                 )}
+
+                {/* Admin-only routes */}
+                {userRole === 'Admin' && (
+                  <>
+                    {/* Admin can access all routes, additional admin-specific routes can be added here */}
+                  </>
+                )}
               </Routes>
             </div>
           </div>
+
+          {/* Disconnection Modal */}
+          <DisconnectionModal
+            isOpen={isDisconnectionModalOpen}
+            onClose={handleDisconnectionModalClose}
+            number={selectedNumberForDisconnection}
+            onSuccess={handleDisconnectionSuccess}
+          />
         </div>
       ) : (
         <Routes>
-          <Route path="*" element={<Login onLogin={handleLogin} sampleCredentials={sampleCredentials} />} />
+          <Route path="*" element={<Login onLogin={handleLogin} clientCredentials={clientCredentials} internalCredentials={internalCredentials} />} />
         </Routes>
       )}
     </Router>

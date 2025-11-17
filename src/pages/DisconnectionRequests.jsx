@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -25,7 +25,9 @@ import {
   Card,
   CardBody,
   Divider,
-  Tooltip
+  Tooltip,
+  Spinner,
+  Center
 } from '@chakra-ui/react';
 import {
   FiRefreshCw,
@@ -39,57 +41,60 @@ import {
   FiCalendar
 } from 'react-icons/fi';
 import { FaQuestion } from 'react-icons/fa';
+import api from '../services/api';
 
 const DisconnectionRequests = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('All');
+  const [requests, setRequests] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const toast = useToast();
   const navigate = useNavigate();
 
-  // Sample disconnection requests data
-  const [requests, setRequests] = useState([
-    {
-      id: '#DIS-001',
-      customer: 'John Smith',
-      customerEmail: 'john.smith@email.com',
-      phoneNumber: '+1 (555) 123-4567',
-      requestDate: '2024-01-15',
-      reason: 'Moving to new provider',
-      status: 'Pending',
-      productType: 'DID'
-    },
-    {
-      id: '#DIS-002',
-      customer: 'Sarah Johnson',
-      customerEmail: 'sarah.johnson@email.com',
-      phoneNumber: '+1 (555) 987-6543',
-      requestDate: '2024-01-14',
-      reason: 'Business closure',
-      status: 'Approved',
-      productType: 'Freephone'
-    },
-    {
-      id: '#DIS-003',
-      customer: 'Mike Davis',
-      customerEmail: 'mike.davis@email.com',
-      phoneNumber: '+44 20 1234 5678',
-      requestDate: '2024-01-13',
-      reason: 'Cost optimization',
-      status: 'Rejected',
-      productType: 'DID'
-    },
-    {
-      id: '#DIS-004',
-      customer: 'Emma Wilson',
-      customerEmail: 'emma.wilson@email.com',
-      phoneNumber: '+61 2 1234 5678',
-      requestDate: '2024-01-12',
-      reason: 'Temporary suspension',
-      status: 'Pending',
-      productType: 'Two Way Voice'
+  useEffect(() => {
+    fetchDisconnectionRequests();
+  }, []);
+
+  const fetchDisconnectionRequests = async () => {
+    try {
+      setLoading(true);
+      const response = await api.disconnectionRequests.getAll();
+      if (response.success) {
+        // Transform the data to match the expected format
+        const transformedRequests = response.data.map(request => ({
+          id: request.id,
+          customer: request.customer_name || 'N/A',
+          customerEmail: request.customer_email || 'N/A',
+          phoneNumber: request.number || 'N/A',
+          requestDate: new Date(request.requested_at).toISOString().split('T')[0],
+          reason: request.notes || 'No reason provided',
+          status: request.status,
+          productType: request.product_name || 'N/A'
+        }));
+        setRequests(transformedRequests);
+      } else {
+        toast({
+          title: 'Error',
+          description: 'Failed to load disconnection requests',
+          status: 'error',
+          duration: 3000,
+          isClosable: true,
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching disconnection requests:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load disconnection requests',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    } finally {
+      setLoading(false);
     }
-  ]);
+  };
 
   // Filter requests based on search term and status
   const filteredRequests = requests.filter(request => {
@@ -109,30 +114,58 @@ const DisconnectionRequests = () => {
     }
   };
 
-  const handleApprove = (id) => {
-    setRequests(prev => prev.map(req =>
-      req.id === id ? { ...req, status: 'Approved' } : req
-    ));
-    toast({
-      title: 'Request Approved',
-      description: `Disconnection request ${id} has been approved.`,
-      status: 'success',
-      duration: 3000,
-      isClosable: true,
-    });
+  const handleApprove = async (id) => {
+    try {
+      const response = await api.disconnectionRequests.updateStatus(id, 'Approved');
+      if (response.success) {
+        setRequests(prev => prev.map(req =>
+          req.id === id ? { ...req, status: 'Approved' } : req
+        ));
+        toast({
+          title: 'Request Approved',
+          description: `Disconnection request ${id} has been approved.`,
+          status: 'success',
+          duration: 3000,
+          isClosable: true,
+        });
+      }
+    } catch (error) {
+      console.error('Error approving request:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to approve disconnection request',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    }
   };
 
-  const handleReject = (id) => {
-    setRequests(prev => prev.map(req =>
-      req.id === id ? { ...req, status: 'Rejected' } : req
-    ));
-    toast({
-      title: 'Request Rejected',
-      description: `Disconnection request ${id} has been rejected.`,
-      status: 'error',
-      duration: 3000,
-      isClosable: true,
-    });
+  const handleReject = async (id) => {
+    try {
+      const response = await api.disconnectionRequests.updateStatus(id, 'Rejected');
+      if (response.success) {
+        setRequests(prev => prev.map(req =>
+          req.id === id ? { ...req, status: 'Rejected' } : req
+        ));
+        toast({
+          title: 'Request Rejected',
+          description: `Disconnection request ${id} has been rejected.`,
+          status: 'error',
+          duration: 3000,
+          isClosable: true,
+        });
+      }
+    } catch (error) {
+      console.error('Error rejecting request:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to reject disconnection request',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    }
   };
 
   const getStats = () => {
@@ -145,6 +178,14 @@ const DisconnectionRequests = () => {
   };
 
   const stats = getStats();
+
+  if (loading) {
+    return (
+      <Center flex={1} minH="calc(100vh - 76px)">
+        <Spinner size="lg" color="blue.500" />
+      </Center>
+    );
+  }
 
   return (
     <Box
@@ -270,7 +311,7 @@ const DisconnectionRequests = () => {
             <Table variant="simple">
               <Thead bg="gray.200">
                 <Tr>
-                  <Th color={"gray.700"} textAlign="center">Request ID</Th>
+                  <Th color={"gray.700"} textAlign="center">Request No.</Th>
                   <Th color={"gray.700"} textAlign="center">Customer</Th>
                   <Th w={"12%"} color={"gray.700"} textAlign="center">Phone Number</Th>
                   <Th color={"gray.700"} textAlign="center">Product Type</Th>
@@ -377,8 +418,8 @@ const DisconnectionRequests = () => {
 
             {filteredRequests.length === 0 && (
               <Box p={8} textAlign="center">
-                <Icon as={FiRefreshCw} boxSize={12} color="gray.400" mb={4} />
-                <Text fontSize="lg" color="gray.600">
+                <Icon as={FiRefreshCw} boxSize={8} color="gray.500" mb={4} />
+                <Text fontStyle='italic' fontSize="sm" color="gray.600">
                   No disconnection requests found matching your criteria.
                 </Text>
               </Box>

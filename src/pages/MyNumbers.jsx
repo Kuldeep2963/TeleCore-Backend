@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Box,
   Heading,
@@ -18,93 +18,66 @@ import {
   InputGroup,
   Input,
   Spacer,
-  InputRightElement
+  InputRightElement,
+  Spinner,
+  Center,
+  useToast,
+  Badge
 } from '@chakra-ui/react';
-import { FaFileExcel, FaEye, FaPlug, FaSearch, FaUnlink } from 'react-icons/fa';
+import { FaFileExcel, FaEye, FaSearch, FaUnlink } from 'react-icons/fa';
+import { FiRefreshCw } from 'react-icons/fi';
 import NumberPricingModal from '../Modals/NumberPricingModal';
+import api from '../services/api';
 
-function MyNumbers({ onRequestDisconnection }) {
+function MyNumbers({ onRequestDisconnection, refreshTrigger }) {
   const [currentPage, setCurrentPage] = useState(1);
   const [resultsPerPage, setResultsPerPage] = useState(20);
   const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
   const [selectedNumber, setSelectedNumber] = useState(null);
   const [disconnectRequests, setDisconnectRequests] = useState({});
   const [searchTerm, setSearchTerm] = useState('');
-  
-  const [numbers, setNumbers] = useState([
-    {
-      id: 1,
-      country: 'United States (+)',
-      productType: 'Freephone',
-      areaCode: 'Freephone (866)',
-      number: '18664970069',
-      linkedOrderId: 3,
-      disconnectionStatus: null
-    },
-    {
-      id: 2,
-      country: 'United States (+)',
-      productType: 'Freephone',
-      areaCode: 'Freephone (866)',
-      number: '18664970071',
-      linkedOrderId: 3,
-      disconnectionStatus: null
-    },
-    {
-      id: 3,
-      country: 'United States (+)',
-      productType: 'Freephone',
-      areaCode: 'Freephone (866)',
-      number: '18664970082',
-      linkedOrderId: 3,
-      disconnectionStatus: null
-    },
-    {
-      id: 4,
-      country: 'United States (+)',
-      productType: 'Freephone',
-      areaCode: 'Freephone (866)',
-      number: '18664970087',
-      linkedOrderId: 3,
-      disconnectionStatus: null
-    },
-    {
-      id: 5,
-      country: 'United States (+)',
-      productType: 'Freephone',
-      areaCode: 'Freephone (868)',
-      number: '18552942813',
-      linkedOrderId: 1,
-      disconnectionStatus: null
-    },
-    {
-      id: 6,
-      country: 'Myanmar (+95)',
-      productType: 'DID',
-      areaCode: 'Mobile (9)',
-      number: '959652005122',
-      linkedOrderId: 1,
-      disconnectionStatus: null
-    },
-    {
-      id: 7,
-      country: 'Myanmar (+95)',
-      productType: 'DID',
-      areaCode: 'Mobile (9)',
-      number: '959652005123',
-      linkedOrderId: 2,
-      disconnectionStatus: null
-    },
-    {
-      id: 8,
-      country: 'Myanmar (+95)',
-      productType: 'DID',
-      areaCode: 'Mobile (9)',
-      number: '959652005124',
-      linkedOrderId: 2,
-      disconnectionStatus: null
+  const [numbers, setNumbers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const toast = useToast();
+
+  useEffect(() => {
+    fetchNumbers();
+  }, []);
+
+  useEffect(() => {
+    if (refreshTrigger > 0) {
+      fetchNumbers();
     }
-  ]);
+  }, [refreshTrigger]);
+
+  const fetchNumbers = async () => {
+    try {
+      setLoading(true);
+      const response = await api.numbers.getAll();
+      if (response.success) {
+        setNumbers(response.data);
+      } else {
+        toast({
+          title: 'Error',
+          description: 'Failed to load numbers',
+          status: 'error',
+          duration: 3000,
+          isClosable: true,
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching numbers:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load numbers',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    } finally {
+      setLoading(false);
+    }
+  }
 
   // Filter numbers based on search term
   const filteredNumbers = useMemo(() => {
@@ -114,9 +87,9 @@ function MyNumbers({ onRequestDisconnection }) {
 
     const searchLower = searchTerm.toLowerCase();
     return numbers.filter(number =>
-      number.country.toLowerCase().includes(searchLower) ||
-      number.productType.toLowerCase().includes(searchLower) ||
-      number.areaCode.toLowerCase().includes(searchLower) ||
+      number.country_name.toLowerCase().includes(searchLower) ||
+      number.product_name.toLowerCase().includes(searchLower) ||
+      number.area_code.toLowerCase().includes(searchLower) ||
       number.number.toLowerCase().includes(searchLower)
     );
   }, [numbers, searchTerm]);
@@ -125,18 +98,6 @@ function MyNumbers({ onRequestDisconnection }) {
     if (!onRequestDisconnection) {
       return;
     }
-
-    setNumbers(prevNumbers => prevNumbers.map(item => (
-      item.id === number.id
-        ? { ...item, disconnectionStatus: 'Pending' }
-        : item
-    )));
-
-    setDisconnectRequests(prev => ({
-      ...prev,
-      [number.id]: 'Pending'
-    }));
-
     onRequestDisconnection(number);
   };
 
@@ -156,9 +117,9 @@ function MyNumbers({ onRequestDisconnection }) {
     const headers = ['S. No.', 'Country', 'Product Type', 'Area Code', 'Number'];
     const rows = filteredNumbers.map((num, index) => [
       index + 1,
-      num.country,
-      num.productType,
-      num.areaCode,
+      num.country_name,
+      num.product_name,
+      num.area_code,
       num.number
     ]);
     
@@ -202,6 +163,14 @@ function MyNumbers({ onRequestDisconnection }) {
   const clearSearch = () => {
     setSearchTerm('');
   };
+
+  if (loading) {
+    return (
+      <Center flex={1} minH="calc(100vh - 76px)">
+        <Spinner size="lg" color="blue.500" />
+      </Center>
+    );
+  }
 
   return (
     <Box
@@ -319,9 +288,11 @@ function MyNumbers({ onRequestDisconnection }) {
                 currentNumbers.map((number, index) => (
                   <Tr key={number.id} _hover={{ bg: 'gray.50' }}>
                     <Td textAlign="center">{startIndex + index + 1}</Td>
-                    <Td textAlign="center">{number.country}</Td>
-                    <Td textAlign="center">{number.productType}</Td>
-                    <Td textAlign="center">{number.areaCode}</Td>
+                    <Td textAlign="center"><Badge size="lg" bg="green.100">{number.country_name}</Badge></Td>
+                    
+                    <Td textAlign="center"><Badge size={"lg"} bg={"blue.100"}>{number.product_name}</Badge></Td>
+                    
+                    <Td fontWeight={"semibold"} textAlign="center">+{number.area_code}</Td>
                     <Td textAlign="center">{number.number}</Td>
                     <Td textAlign="center">
                       <HStack spacing={2} justify="center">
@@ -340,9 +311,12 @@ function MyNumbers({ onRequestDisconnection }) {
                           variant="ghost"
                           leftIcon={<Icon as={FaUnlink} />}
                           onClick={() => handleDisconnectClick(number)}
-                          isDisabled={number.disconnectionStatus === 'Pending'}
+                          isDisabled={number.disconnection_status === 'Pending' || number.disconnection_status === 'Approved' || number.disconnection_status === 'Completed'}
                         >
-                          {number.disconnectionStatus === 'Pending' ? 'Pending...' : 'Disconnect'}
+                          {number.disconnection_status === 'Pending' ? 'Pending...' :
+                           number.disconnection_status === 'Approved' ? 'Approved' :
+                           number.disconnection_status === 'Rejected' ? 'Rejected' :
+                           number.disconnection_status === 'Completed' ? 'Disconnected' : 'Disconnect'}
                         </Button>
                       </HStack>
                     </Td>
@@ -350,16 +324,22 @@ function MyNumbers({ onRequestDisconnection }) {
                 ))
               ) : (
                 <Tr>
-                  <Td 
-                    colSpan={6}
-                    textAlign="center"
-                    color="gray.400"
-                    py={8}
-                    fontSize="sm"
-                  >
-                    {searchTerm ? 'No numbers found matching your search' : 'No numbers purchased yet'}
-                  </Td>
-                </Tr>
+  <Td 
+    colSpan={6}
+    textAlign="center"
+    color="gray.600"
+    py={8}
+    fontStyle='italic'
+    fontSize="md"
+  >
+    <VStack spacing={3} justify="center">
+      <Icon as={FiRefreshCw} boxSize={8} color="gray.500" />
+      <Text>
+        {searchTerm ? 'No numbers found matching your search' : 'No numbers purchased yet'}
+      </Text>
+    </VStack>
+  </Td>
+</Tr>
               )}
             </Tbody>
           </Table>

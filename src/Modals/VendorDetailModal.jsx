@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import api from '../services/api';
 import {
   Modal,
   ModalOverlay,
@@ -45,6 +46,8 @@ const VendorDetailModal = ({ isOpen, onClose, vendor }) => {
   if (!vendor) return null;
 
   const [isDocumentsModalOpen, setIsDocumentsModalOpen] = useState(false);
+  const [vendorProducts, setVendorProducts] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   // Required documents for this vendor
   const requiredDocuments = [
@@ -55,41 +58,46 @@ const VendorDetailModal = ({ isOpen, onClose, vendor }) => {
     { name: 'Bank Details', required: true, description: 'Bank account details for payment processing' }
   ];
 
-  // Sample products offered by this vendor
-  const vendorProducts = [
-    {
-      id: 1,
-      name: 'DID Numbers',
-      category: 'Telecom',
-      price: '$2.50/month',
-      status: 'Active',
-      orders: 45
-    },
-    {
-      id: 2,
-      name: 'Two Way SMS',
-      category: 'Messaging',
-      price: '$0.15/message',
-      status: 'Active',
-      orders: 32
-    },
-    {
-      id: 3,
-      name: 'Mobile Numbers',
-      category: 'Telecom',
-      price: '$3.00/month',
-      status: 'Active',
-      orders: 28
-    },
-    {
-      id: 4,
-      name: 'Freephone',
-      category: 'Telecom',
-      price: '$4.50/month',
-      status: 'Active',
-      orders: 18
+  useEffect(() => {
+    if (vendor) {
+      fetchVendorData();
     }
-  ];
+  }, [vendor]);
+
+  const fetchVendorData = async () => {
+    if (!vendor) return;
+
+    try {
+      setLoading(true);
+
+      // Fetch orders for this vendor to get products
+      const ordersResponse = await api.orders.getAll({ vendor_id: vendor.id });
+      if (ordersResponse.success) {
+        // Group by product to get unique products with order counts
+        const productMap = {};
+        ordersResponse.data.forEach(order => {
+          const key = order.productType;
+          if (!productMap[key]) {
+            productMap[key] = {
+              id: order.id,
+              name: order.serviceName,
+              category: order.productType,
+              price: 'N/A', // Price not available
+              status: 'Active',
+              orders: 0
+            };
+          }
+          productMap[key].orders += 1;
+        });
+        setVendorProducts(Object.values(productMap));
+      }
+
+    } catch (error) {
+      console.error('Error fetching vendor data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getStatusColor = (status) => {
     return status === 'Active' ? 'green' : 'red';

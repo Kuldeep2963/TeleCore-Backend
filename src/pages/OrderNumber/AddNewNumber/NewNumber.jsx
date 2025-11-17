@@ -35,6 +35,7 @@ import AddCart from './AddCart';
 import PlaceOrder from './PlaceOrder';
 import Submitted from './Submitted';
 import { FaCheck } from 'react-icons/fa';
+import api from '../../../services/api';
 
 function NewNumbers({ onAddToCart = () => {} }) {
   const location = useLocation();
@@ -48,6 +49,9 @@ function NewNumbers({ onAddToCart = () => {} }) {
   const [selectedProductType, setSelectedProductType] = useState('');
   const [selectedNumbers, setSelectedNumbers] = useState([]);
   const [desiredPricingData, setDesiredPricingData] = useState(() => ({ ...defaultPricingData }));
+  const [countries, setCountries] = useState(null);
+  const [products, setProducts] = useState([]);
+  const [areaCodes, setAreaCodes] = useState([]);
   const [formData, setFormData] = useState({
     country: '',
     productType: '',
@@ -58,23 +62,43 @@ function NewNumbers({ onAddToCart = () => {} }) {
   // Removed showPlaceOrder logic since we now navigate to dedicated cart page
 
   useEffect(() => {
-    if (location.state?.productType) {
-      const productTypeMap = {
-        'DID': 'did',
-        'Freephone': 'freephone',
-        'Universal Freephone': 'universal',
-        'Two Way Voice': 'two-way-voice',
-        'Two Way SMS': 'two-way-sms',
-        'Mobile': 'mobile'
-      };
-      const mappedType = productTypeMap[location.state.productType];
-      if (mappedType) {
-        setSelectedProductType(mappedType);
-        setFormData(prev => ({ ...prev, productType: mappedType }));
-        if (productTypeRef.current) {
-          productTypeRef.current.value = mappedType;
+    // Fetch countries and products from API
+    const fetchData = async () => {
+      try {
+        console.log('Fetching countries and products from API...');
+
+        // Fetch countries
+        const countriesResponse = await api.countries.getAll();
+        console.log('Countries API response:', countriesResponse);
+        if (countriesResponse.success) {
+          console.log('Countries data:', countriesResponse.data);
+          setCountries(countriesResponse.data);
+        } else {
+          console.error('Countries API returned unsuccessful:', countriesResponse);
+          setCountries([]);
         }
+
+        // Fetch products
+        const productsResponse = await api.products.getAll();
+        if (productsResponse.success) {
+          setProducts(productsResponse.data);
+        } else {
+          setProducts([]);
+        }
+      } catch (error) {
+        console.error('Error fetching data:', error.message);
+        setCountries([]);
+        setProducts([]);
       }
+    };
+
+    fetchData();
+
+    if (location.state?.productType) {
+      // Product type will be set when countries are loaded
+      // For now, store it temporarily
+      setSelectedProductType(location.state.productType);
+      setFormData(prev => ({ ...prev, productType: location.state.productType }));
     }
 
     // Handle edit item from cart
@@ -128,27 +152,84 @@ function NewNumbers({ onAddToCart = () => {} }) {
   };
 
   const handleInputChange = (field, value) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    setFormData(prev => {
+      const newData = { ...prev, [field]: value };
 
-    if (field === 'productType') {
-      setDesiredPricingData(() => ({ ...defaultPricingData }));
+      // Clear product type and area code when country changes
+      if (field === 'country' && prev.country !== value) {
+        newData.productType = '';
+        newData.areaCode = '';
+        setDesiredPricingData(() => ({ ...defaultPricingData }));
+        setAreaCodes([]);
+      }
+
+      // Clear area code when product type changes
+      if (field === 'productType' && prev.productType !== value) {
+        newData.areaCode = '';
+        setDesiredPricingData(() => ({ ...defaultPricingData }));
+        fetchAreaCodes(newData.country, value);
+      }
+
+      return newData;
+    });
+  };
+
+  const fetchAreaCodes = async (countryName, productCode) => {
+    if (!countryName || !productCode || !countries || !products) return;
+
+    try {
+      // Find country and product IDs
+      const selectedCountry = countries.find(c => c.countryname === countryName);
+      const selectedProduct = products.find(p => p.code === productCode);
+
+      if (selectedCountry && selectedProduct) {
+        const response = await api.numbers.getAreaCodes(selectedCountry.id, selectedProduct.id);
+        if (response.success) {
+          setAreaCodes(response.data);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching area codes:', error);
+      setAreaCodes([]);
     }
+  };
+
+  // Map product names to product objects
+  const mapProductNameToObject = (productName) => {
+    const productMappings = {
+      'DID': { id: 1, code: 'did', name: 'DID' },
+      'Freephone': { id: 2, code: 'freephone', name: 'Freephone' },
+      'Universal Freephone': { id: 3, code: 'universal-freephone', name: 'Universal Freephone' },
+      'Two Way Voice': { id: 4, code: 'two-way-voice', name: 'Two Way Voice' },
+      'Two Way SMS': { id: 5, code: 'two-way-sms', name: 'Two Way SMS' },
+      'Mobile': { id: 6, code: 'mobile', name: 'Mobile' }
+    };
+    return productMappings[productName] || { id: 0, code: productName.toLowerCase().replace(/\s+/g, '-'), name: productName };
+  };
+
+  // Get available products for the selected country
+  const getAvailableProducts = () => {
+    if (!formData.country || !countries || countries.length === 0 || !products || products.length === 0) {
+      return [];
+    }
+
+    // Find the selected country and return its available products
+    const selectedCountry = countries.find(country => country.countryname === formData.country);
+    if (!selectedCountry || !selectedCountry.availableproducts) {
+      return [];
+    }
+
+    // Filter products that are available for this country
+    return products.filter(product => selectedCountry.availableproducts.includes(product.name));
   };
 
   // Utility function to generate mock phone numbers based on search criteria
   const generatePhoneNumbers = (country, areaCode, quantity, productType) => {
     const numbers = [];
-    const baseNumbers = {
-      us: '1',
-      uk: '44',
-      ca: '1',
-      au: '61'
-    };
-    
-    const prefix = baseNumbers[country] || '1';
+
+    // Find the country object to get the phone code
+    const countryObj = countries && countries.find(c => c.countryname === country);
+    const prefix = countryObj ? countryObj.phonecode : '1';
     const startNumber = parseInt(areaCode) || 555;
     
     for (let i = 0; i < parseInt(quantity); i++) {
@@ -174,19 +255,20 @@ function NewNumbers({ onAddToCart = () => {} }) {
       areaCode: '',
       quantity: ''
     });
-    
+
     setSelectedNumbers([]);
     setDesiredPricingData(() => ({ ...defaultPricingData }));
+    setAreaCodes([]);
 
     if (countryRef.current) countryRef.current.value = '';
     if (productTypeRef.current) productTypeRef.current.value = '';
     if (areaCodeRef.current) areaCodeRef.current.value = '';
     if (quantityRef.current) quantityRef.current.value = '';
-    
+
     setShowNumbers(false);
     setShowAddCart(false);
     setCurrentStep(1);
-    
+
     // Focus back to first field
     countryRef.current?.focus();
   };
@@ -289,8 +371,13 @@ function NewNumbers({ onAddToCart = () => {} }) {
                   w="32px"
                   h="32px"
                   borderRadius="full"
-                  bg={currentStep >= step.number ? 'blue.500' : 'gray.200'}
-                  color={currentStep >= step.number ? 'white' : 'gray.500'}
+                  bg={
+                    currentStep > step.number ? 'green.500' :
+                    currentStep === step.number ? 'blue.500' : 'gray.200'
+                  }
+                  color={
+                    currentStep >= step.number ? 'white' : 'gray.500'
+                  }
                   display="flex"
                   alignItems="center"
                   justifyContent="center"
@@ -299,17 +386,23 @@ function NewNumbers({ onAddToCart = () => {} }) {
                 >
                   {currentStep > step.number ? <Icon as={FaCheck} boxSize={3} /> : step.number}
                 </Box>
-                <Text 
-                  fontSize="sm" 
+                <Text
+                  fontSize="sm"
                   fontWeight="medium"
-                  color={currentStep >= step.number ? 'blue.600' : 'gray.500'}
+                  color={
+                    currentStep > step.number ? 'green.600' :
+                    currentStep === step.number ? 'blue.600' : 'gray.500'
+                  }
                 >
                   {step.name}
                 </Text>
                 {index < steps.length - 1 && (
-                  <Divider 
-                    flex={1} 
-                    borderColor={currentStep > step.number ? 'blue.500' : 'gray.200'} 
+                  <Divider
+                    flex={1}
+                    borderColor={
+                      currentStep > step.number ? 'green.500' :
+                      currentStep > step.number - 1 ? 'blue.500' : 'gray.200'
+                    }
                   />
                 )}
               </HStack>
@@ -346,20 +439,28 @@ function NewNumbers({ onAddToCart = () => {} }) {
                   <FormLabel color="#1a3a52" fontWeight="medium" fontSize="sm">
                     Country
                   </FormLabel>
-                  <Select 
+                  <Select
                     ref={countryRef}
-                    placeholder="Select country" 
+                    placeholder="Select country"
                     bg="white"
                     borderColor="gray.300"
                     _hover={{ borderColor: "blue.400" }}
                     value={formData.country}
                     onChange={(e) => handleInputChange('country', e.target.value)}
                     onKeyDown={(e) => handleKeyDown(e, productTypeRef)}
+                    // isDisabled={!countries || countries.length === 0}
                   >
-                    <option value="us">United States</option>
-                    <option value="uk">United Kingdom</option>
-                    <option value="ca">Canada</option>
-                    <option value="au">Australia</option>
+                    {countries && countries.length > 0 ? (
+                      countries.map(country => (
+                        <option key={country.countryname} value={country.countryname}>
+                          {country.countryname} ({country.phonecode})
+                        </option>
+                      ))
+                    ) : (
+                      <option value="" disabled>
+                        {countries === null ? 'Loading countries...' : 'No countries available'}
+                      </option>
+                    )}
                   </Select>
                 </FormControl>
 
@@ -368,22 +469,22 @@ function NewNumbers({ onAddToCart = () => {} }) {
                   <FormLabel color="#1a3a52" fontWeight="medium" fontSize="sm">
                     Product Type
                   </FormLabel>
-                  <Select 
+                  <Select
                     ref={productTypeRef}
-                    placeholder="Select product type" 
+                    placeholder="Select product type"
                     bg="white"
                     borderColor="gray.300"
                     _hover={{ borderColor: "blue.400" }}
                     value={formData.productType}
                     onChange={(e) => handleInputChange('productType', e.target.value)}
                     onKeyDown={(e) => handleKeyDown(e, areaCodeRef)}
+                    disabled={!formData.country}
                   >
-                    <option value="did">DID</option>
-                    <option value="freephone">Freephone</option>
-                    <option value="universal">Universal Freephone</option>
-                    <option value="two-way-voice">Two Way Voice</option>
-                    <option value="two-way-sms">Two Way SMS</option>
-                    <option value="mobile">Mobile</option>
+                    {getAvailableProducts().map(product => (
+                      <option key={product.code} value={product.code}>
+                        {product.name}
+                      </option>
+                    ))}
                   </Select>
                 </FormControl>
 
@@ -392,16 +493,23 @@ function NewNumbers({ onAddToCart = () => {} }) {
                   <FormLabel color="#1a3a52" fontWeight="medium" fontSize="sm">
                     Area Code (Prefix)
                   </FormLabel>
-                  <Input 
+                  <Select
                     ref={areaCodeRef}
-                    placeholder="Enter area code" 
+                    placeholder="Select area code"
                     bg="white"
                     borderColor="gray.300"
                     _hover={{ borderColor: "blue.400" }}
                     value={formData.areaCode}
                     onChange={(e) => handleInputChange('areaCode', e.target.value)}
                     onKeyDown={(e) => handleKeyDown(e, quantityRef)}
-                  />
+                    disabled={!formData.country || !formData.productType}
+                  >
+                    {areaCodes.map(areaCode => (
+                      <option key={areaCode} value={areaCode}>
+                        {areaCode}
+                      </option>
+                    ))}
+                  </Select>
                 </FormControl>
 
                 {/* Quantity */}

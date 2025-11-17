@@ -16,7 +16,7 @@ import {
 import { FaArrowLeft } from 'react-icons/fa';
 import NumberSelection, { defaultPricingData } from './OrderNumber/AddNewNumber/NumberSelection';
 
-function OrderNumberView() {
+function OrderNumberView({ userRole }) {
   const location = useLocation();
   const orderData = location.state?.orderData;
 
@@ -217,6 +217,7 @@ function OrderNumberView() {
           desiredPricingData={desiredPricingData}
           orderStatus={orderData.orderStatus}
           readOnly
+          userRole={userRole}
         />
       </VStack>
     </Box>

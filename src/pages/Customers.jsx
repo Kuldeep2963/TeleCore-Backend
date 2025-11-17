@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -22,7 +22,9 @@ import {
   InputLeftElement,
   Select,
   useToast,
-  useDisclosure
+  useDisclosure,
+  Spinner,
+  Center
 } from '@chakra-ui/react';
 import {
   FiUsers,
@@ -37,6 +39,7 @@ import {
   FiDollarSign
 } from 'react-icons/fi';
 import CustomerDetailModal from '../Modals/CustomerDetailModal';
+import api from '../services/api';
 
 const Customers = () => {
   const navigate = useNavigate();
@@ -45,75 +48,72 @@ const Customers = () => {
   const toast = useToast();
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [customers, setCustomers] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Sample customer data
-  const [customers, setCustomers] = useState([
-    {
-      id: 1,
-      name: 'John Smith',
-      email: 'john.smith@email.com',
-      phone: '+1-555-0123',
-      location: 'New York, USA',
-      status: 'Active',
-      orders: 12,
-      totalSpent: 2450.00,
-      lastOrder: '2024-11-01',
-      joinDate: '2023-06-15'
-    },
-    {
-      id: 2,
-      name: 'Sarah Johnson',
-      email: 'sarah.j@email.com',
-      phone: '+44-20-7946-0123',
-      location: 'London, UK',
-      status: 'Active',
-      orders: 8,
-      totalSpent: 1890.50,
-      lastOrder: '2024-10-28',
-      joinDate: '2023-08-22'
-    },
-    {
-      id: 3,
-      name: 'Mike Chen',
-      email: 'mike.chen@email.com',
-      phone: '+65-6789-0123',
-      location: 'Singapore',
-      status: 'Inactive',
-      orders: 3,
-      totalSpent: 450.75,
-      lastOrder: '2024-09-15',
-      joinDate: '2023-11-10'
-    },
-    {
-      id: 4,
-      name: 'Emma Davis',
-      email: 'emma.davis@email.com',
-      phone: '+61-2-1234-5678',
-      location: 'Sydney, Australia',
-      status: 'Active',
-      orders: 15,
-      totalSpent: 3200.25,
-      lastOrder: '2024-11-02',
-      joinDate: '2023-04-18'
+  useEffect(() => {
+    fetchCustomers();
+  }, []);
+
+  const fetchCustomers = async () => {
+    try {
+      setLoading(true);
+      const response = await api.customers.getAll();
+      if (response.success) {
+        setCustomers(response.data);
+      } else {
+        toast({
+          title: 'Error',
+          description: 'Failed to load customers',
+          status: 'error',
+          duration: 3000,
+          isClosable: true,
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching customers:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load customers',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    } finally {
+      setLoading(false);
     }
-  ]);
+  }
 
   const filteredCustomers = customers.filter(customer => {
-    const matchesSearch = customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         customer.email.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = (customer.company_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (customer.email || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = filterStatus === 'All' || customer.status === filterStatus;
     return matchesSearch && matchesStatus;
   });
 
-  const handleDeleteCustomer = (customerId) => {
-    setCustomers(customers.filter(customer => customer.id !== customerId));
-    toast({
-      title: 'Customer deleted',
-      description: 'The customer has been successfully removed.',
-      status: 'success',
-      duration: 3000,
-      isClosable: true,
-    });
+  const handleDeleteCustomer = async (customerId) => {
+    try {
+      const response = await api.customers.delete(customerId);
+      if (response.success) {
+        setCustomers(customers.filter(customer => customer.id !== customerId));
+        toast({
+          title: 'Customer deleted',
+          description: 'The customer has been successfully removed.',
+          status: 'success',
+          duration: 3000,
+          isClosable: true,
+        });
+      }
+    } catch (error) {
+      console.error('Error deleting customer:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to delete customer',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    }
   };
 
   const getStatusColor = (status) => {
@@ -131,6 +131,14 @@ const Customers = () => {
       currency: 'USD'
     }).format(amount);
   };
+
+  if (loading) {
+    return (
+      <Center flex={1} minH="calc(100vh - 76px)">
+        <Spinner size="lg" color="blue.500" />
+      </Center>
+    );
+  }
 
   return (
     <Box
@@ -218,7 +226,7 @@ const Customers = () => {
                 </Box>
                 <Box>
                   <Text fontSize="2xl" fontWeight="bold" color="gray.800">
-                    {customers.reduce((sum, customer) => sum + customer.orders, 0)}
+                    {customers.reduce((sum, customer) => sum + (customer.total_orders || 0), 0)}
                   </Text>
                   <Text color="gray.500" fontSize="sm">
                     Total Orders
@@ -274,7 +282,7 @@ const Customers = () => {
                 </Box>
                 <Box>
                   <Text fontSize="2xl" fontWeight="bold" color="gray.800">
-                    {formatCurrency(customers.reduce((sum, customer) => sum + customer.totalSpent, 0))}
+                    {formatCurrency(customers.reduce((sum, customer) => sum + (parseFloat(customer.total_spent) || 0), 0))}
                   </Text>
                   <Text color="gray.500" fontSize="sm">
                     Total Spents
@@ -322,14 +330,14 @@ const Customers = () => {
             <Table variant="simple">
               <Thead bg="gray.200">
                 <Tr>
-                  <Th color={"gray.700"} textAlign="center">Customer</Th>
-                  <Th color={"gray.700"} textAlign="center">Contact</Th>
-                  <Th color={"gray.700"} textAlign="center">Location</Th>
-                  <Th color={"gray.700"} textAlign="center">Status</Th>
-                  <Th color={"gray.700"} textAlign="center">Orders</Th>
-                  <Th color={"gray.700"} textAlign="center">Total Spent</Th>
-                  <Th color={"gray.700"} textAlign="center">Last Order</Th>
-                  <Th color={"gray.700"} textAlign="center">Actions</Th>
+                  <Th color={"gray.700"} >Customer</Th>
+                  <Th color={"gray.700"} >Contact</Th>
+                  <Th color={"gray.700"} >Location</Th>
+                  <Th color={"gray.700"} >Status</Th>
+                  <Th color={"gray.700"} >Orders</Th>
+                  <Th color={"gray.700"} >Total Spent</Th>
+                  <Th color={"gray.700"} >Last Order</Th>
+                  <Th color={"gray.700"}>Actions</Th>
                 </Tr>
               </Thead>
               <Tbody>
@@ -337,11 +345,11 @@ const Customers = () => {
                   <Tr key={customer.id} _hover={{ bg: 'gray.50' }}>
                     <Td>
                       <HStack spacing={3}>
-                        <Avatar size="sm" name={customer.name} />
+                        <Avatar size="sm" name={customer.company_name} />
                         <Box>
-                          <Text fontWeight="medium">{customer.name}</Text>
+                          <Text fontWeight="medium">{customer.company_name}</Text>
                           <Text fontSize="sm" color="gray.500">
-                            Joined {new Date(customer.joinDate).toLocaleDateString()}
+                            Joined {new Date(customer.join_date).toLocaleDateString()}
                           </Text>
                         </Box>
                       </HStack>
@@ -370,13 +378,13 @@ const Customers = () => {
                       </Badge>
                     </Td>
                     <Td>
-                      <Text fontWeight="medium">{customer.orders}</Text>
+                      <Text fontWeight="medium">{customer.total_orders || 0}</Text>
                     </Td>
                     <Td>
-                      <Text fontWeight="medium">{formatCurrency(customer.totalSpent)}</Text>
+                      <Text fontWeight="medium">{formatCurrency(parseFloat(customer.total_spent) || 0)}</Text>
                     </Td>
                     <Td>
-                      <Text fontSize="sm">{new Date(customer.lastOrder).toLocaleDateString()}</Text>
+                      <Text fontSize="sm">{customer.last_order_date ? new Date(customer.last_order_date).toLocaleDateString() : 'N/A'}</Text>
                     </Td>
                     <Td>
                       <HStack spacing={0}>
