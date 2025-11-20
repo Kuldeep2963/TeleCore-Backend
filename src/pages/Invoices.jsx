@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box,
+  Divider,
+  Flex,
   Heading,
   Text,
   Button,
@@ -45,6 +47,7 @@ import {
   FiClock,
   FiFileText
 } from 'react-icons/fi';
+import { FaEdit } from 'react-icons/fa';
 import api from '../services/api';
 
 const Invoices = () => {
@@ -97,6 +100,8 @@ const Invoices = () => {
     due_date: '',
     notes: ''
   });
+  const [editingUsage, setEditingUsage] = useState(null);
+  const [newUsageAmount, setNewUsageAmount] = useState('');
 
   useEffect(() => {
     fetchCustomers();
@@ -171,34 +176,91 @@ const Invoices = () => {
     }
   };
 
-  const handleStatusUpdate = async (invoiceId, newStatus) => {
+  // const handleStatusUpdate = async (invoiceId, newStatus) => {
+  //   try {
+  //     const response = await api.invoices.updateStatus(invoiceId, newStatus);
+  //     if (response.success) {
+  //       setInvoices(invoices.map(invoice =>
+  //         invoice.id === invoiceId
+  //           ? { ...invoice, status: newStatus }
+  //           : invoice
+  //       ));
+
+  //       toast({
+  //         title: 'Invoice status updated',
+  //         description: `Invoice ${invoiceId} status changed to ${newStatus}`,
+  //         status: 'success',
+  //         duration: 3000,
+  //         isClosable: true,
+  //       });
+  //     }
+  //   } catch (error) {
+  //     console.error('Error updating invoice status:', error);
+  //     toast({
+  //       title: 'Error',
+  //       description: 'Failed to update invoice status',
+  //       status: 'error',
+  //       duration: 3000,
+  //       isClosable: true,
+  //     });
+  //   }
+  // };
+
+  const handleEditUsageAmount = (invoice) => {
+    setEditingUsage(invoice);
+    setNewUsageAmount(invoice.usage_amount?.toString() || '0');
+  };
+
+  const handleSaveUsageAmount = async () => {
+    if (!editingUsage) return;
+
     try {
-      const response = await api.invoices.updateStatus(invoiceId, newStatus);
+      const updatedAmount = parseFloat(newUsageAmount) || 0;
+
+      // Make API call to update usage amount
+      const response = await api.invoices.updateUsage(editingUsage.id, { usage_amount: updatedAmount });
+
       if (response.success) {
-        setInvoices(invoices.map(invoice =>
-          invoice.id === invoiceId
-            ? { ...invoice, status: newStatus }
+        // Update local state with the response data
+        const updatedInvoices = invoices.map(invoice =>
+          invoice.id === editingUsage.id
+            ? {
+                ...invoice,
+                usage_amount: parseFloat(response.data.usage_amount),
+                amount: parseFloat(response.data.amount)
+              }
             : invoice
-        ));
+        );
+        setInvoices(updatedInvoices);
 
         toast({
-          title: 'Invoice status updated',
-          description: `Invoice ${invoiceId} status changed to ${newStatus}`,
-          status: 'success',
+          title: "Usage amount updated",
+          description: `Usage amount for invoice ${editingUsage.invoice_number || editingUsage.id} has been updated to $${updatedAmount.toFixed(2)}`,
+          status: "success",
           duration: 3000,
           isClosable: true,
         });
+
+        setEditingUsage(null);
+        setNewUsageAmount('');
+      } else {
+        throw new Error(response.message || 'Failed to update usage amount');
       }
     } catch (error) {
-      console.error('Error updating invoice status:', error);
+      console.error('Update usage amount error:', error);
       toast({
-        title: 'Error',
-        description: 'Failed to update invoice status',
-        status: 'error',
+        title: "Error",
+        description: error.message || "Failed to update usage amount",
+        status: "error",
         duration: 3000,
         isClosable: true,
       });
     }
+  };
+
+  const handleCancelEditUsage = () => {
+    setEditingUsage(null);
+    setNewUsageAmount('');
   };
 
   const getStatusColor = (status) => {
@@ -265,7 +327,7 @@ const Invoices = () => {
                 Create and manage customer invoices
               </Text>
             </Box>
-            <Button
+            {/* <Button
               leftIcon={<FiPlus />}
               colorScheme="blue"
               size="sm"
@@ -273,7 +335,7 @@ const Invoices = () => {
               borderRadius="full"
             >
               Create Invoice
-            </Button>
+            </Button> */}
           </HStack>
 
           {/* Stats Cards */}
@@ -432,11 +494,13 @@ const Invoices = () => {
                 <Tr>
                   <Th color={"gray.700"} >Invoice ID</Th>
                   <Th color={"gray.700"} >Customer</Th>
+                  <Th w='12%' color={"gray.700"} >MRC Amount</Th>
+                  <Th w='12%' color={"gray.700"} >Usage Amount</Th>
                   <Th color={"gray.700"} >Amount</Th>
                   <Th color={"gray.700"} textAlign={"center"}>Status</Th>
                   <Th color={"gray.700"} >Issue Date</Th>
                   <Th color={"gray.700"} >Due Date</Th>
-                  <Th color={"gray.700"} >Actions</Th>
+                  <Th color={"gray.700"} textAlign={'center'} >Actions</Th>
                 </Tr>
               </Thead>
               <Tbody>
@@ -453,7 +517,13 @@ const Invoices = () => {
                       </VStack>
                     </Td>
                     <Td>
-                      <Text fontWeight="medium">{formatCurrency(invoice.amount || 0)}</Text>
+                      <Text color='blue.700' fontWeight="semibold">{formatCurrency(invoice.mrc_amount || 0)}</Text>
+                    </Td>
+                    <Td>
+                      <Text color='purple' fontWeight="semibold">{formatCurrency(invoice.usage_amount || 0)}</Text>
+                    </Td>
+                    <Td>
+                      <Text color='green' fontWeight="bold">{formatCurrency(invoice.amount || 0)}</Text>
                     </Td>
                     <Td textAlign="center">
                       <Badge colorScheme={getStatusColor(invoice.status || 'Pending')} borderRadius={"full"}>
@@ -471,10 +541,15 @@ const Invoices = () => {
                     </Td>
                     <Td>
                       <HStack spacing={2}>
-                        <Button size="sm" variant="ghost" colorScheme="blue">
-                          <Icon as={FiEdit} boxSize={4} />
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          colorScheme="orange"
+                          onClick={() => handleEditUsageAmount(invoice)}
+                        >
+                          <Icon as={FaEdit} boxSize={4} />
                         </Button>
-                        {invoice.status === 'Pending' && (
+                        {/* {invoice.status === 'Pending' && (
                           <Button
                             size="sm"
                             variant="ghost"
@@ -483,7 +558,7 @@ const Invoices = () => {
                           >
                             <Icon as={FiCheckCircle} boxSize={4} />
                           </Button>
-                        )}
+                        )} */}
                       </HStack>
                     </Td>
                   </Tr>
@@ -495,7 +570,7 @@ const Invoices = () => {
       </VStack>
 
       {/* Create Invoice Modal */}
-      <Modal isOpen={isOpen} onClose={onClose} size="lg">
+      {/* <Modal isOpen={isOpen} onClose={onClose} size="lg">
         <ModalOverlay />
         <ModalContent>
           <ModalHeader>Create New Invoice</ModalHeader>
@@ -555,6 +630,71 @@ const Invoices = () => {
               Create Invoice
             </Button>
           </ModalFooter>
+        </ModalContent>
+      </Modal> */}
+
+      {/* Edit Usage Amount Modal */}
+      <Modal isOpen={!!editingUsage} onClose={handleCancelEditUsage} size="md">
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Edit Usage Amount - {editingUsage?.invoice_number || editingUsage?.id}</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody pb={6}>
+            {editingUsage && (
+              <VStack spacing={4} align="stretch">
+                <Box>
+                  <HStack spacing={6}>
+                  <Text fontWeight="semibold" color="gray.600" mb={2}>Current MRC Amount:</Text>
+                  <Text mb={2} fontWeight='bold' fontSize="lg" color="blue.600">${(parseFloat(editingUsage.mrc_amount)).toFixed(2)}</Text>
+                  </HStack>
+                </Box>
+                <Box>
+                  <HStack spacing={6}>
+                  <Text fontWeight="semibold" color="gray.600" mb={2}>Current Usage Amount:</Text>
+                  <Text mb={2} fontWeight='bold' fontSize="lg" color="purple.600">${(parseFloat(editingUsage.usage_amount) || 0).toFixed(2)}</Text>
+                  </HStack>
+                </Box>
+                <Divider />
+                <Box>
+                  <Text fontWeight="semibold" color="gray.600" mb={2}>New Usage Amount:</Text>
+                  <InputGroup>
+                    <InputLeftElement pointerEvents="none" color="gray.300" fontSize="1.2em">
+                      $
+                    </InputLeftElement>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={newUsageAmount}
+                      onChange={(e) => setNewUsageAmount(e.target.value)}
+                      placeholder="0.00"
+                      size="lg"
+                    />
+                  </InputGroup>
+                </Box>
+                <Box>
+                  <HStack spacing={6}>
+                  <Text fontWeight="semibold" color="gray.600" m={2}>New Total Amount:</Text>
+                  <Text fontSize="xl" fontWeight="bold" m={2} color="green.600">
+                    ${(parseFloat(editingUsage.mrc_amount || 0) + parseFloat(newUsageAmount || 0)).toFixed(2)}
+                  </Text>
+                  </HStack>
+                </Box>
+                <Flex justify="flex-end" gap={3} mt={4}>
+                  <Button variant="outline" onClick={handleCancelEditUsage}>
+                    Cancel
+                  </Button>
+                  <Button
+                    colorScheme="blue"
+                    onClick={handleSaveUsageAmount}
+                    isDisabled={!newUsageAmount || parseFloat(newUsageAmount) < 0}
+                  >
+                    Save Changes
+                  </Button>
+                </Flex>
+              </VStack>
+            )}
+          </ModalBody>
         </ModalContent>
       </Modal>
     </Box>

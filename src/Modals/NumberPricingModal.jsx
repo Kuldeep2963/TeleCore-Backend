@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Modal,
   ModalOverlay,
@@ -6,6 +6,7 @@ import {
   ModalHeader,
   ModalBody,
   ModalCloseButton,
+  Badge,
   Card,
   CardBody,
   Heading,
@@ -19,53 +20,90 @@ import {
   Tr,
   Th,
   Td,
-  Divider
+  Divider,
+  Spinner,
+  Center
 } from '@chakra-ui/react';
+import api from '../services/api';
 
 function NumberPricingModal({ isOpen, onClose, selectedNumber }) {
-  // Pricing data based on product type
-  const getPricingData = (productType) => {
-    const pricingHeadings = {
-      did: { nrc: 'NRC', mrc: 'MRC', ppm: 'PPM' },
-      freephone: { nrc: 'NRC', mrc: 'MRC', ppmFix: 'PPM Fix', ppmMobile: 'PPM Mobile', ppmPayphone: 'PPM Payphone' },
-      universal: { nrc: 'NRC', mrc: 'MRC', ppmFix: 'PPM Fix', ppmMobile: 'PPM Mobile', ppmPayphone: 'PPM Payphone' },
-      'two-way-voice': { nrc: 'NRC', mrc: 'MRC', ppmIncoming: 'Incoming PPM', ppmOutgoingfix: 'Outgoing Fix PPM', ppmOutgoingmobile: 'Outgoing Mobile PPM' },
-      'two-way-sms': { nrc: 'NRC', mrc: 'MRC', arc: 'ARC', mo: 'MO', mt: 'MT' },
-      mobile: { nrc: 'NRC', mrc: 'MRC', Incomingppm: 'Incoming PPM', Outgoingppmfix: 'Outgoing Fix PPM', Outgoingppmmobile: 'Outgoing Mobile PPM', incmongsms: 'Incoming SMS', outgoingsms: 'Outgoing SMS' }
+  const [pricingData, setPricingData] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (isOpen && selectedNumber) {
+      fetchPricingData();
+    }
+  }, [isOpen, selectedNumber]);
+
+  const fetchPricingData = async () => {
+    if (!selectedNumber?.product_id || !selectedNumber?.country_id) {
+      setError('Missing product or country information');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await api.pricing.getByProduct(selectedNumber.product_id, selectedNumber.country_id);
+      
+      if (response.success && response.data) {
+        setPricingData(response.data);
+      } else {
+        setError('Pricing data not available');
+      }
+    } catch (err) {
+      console.error('Error fetching pricing data:', err);
+      setError('Failed to load pricing information');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatPrice = (price) => {
+    if (!price && price !== 0) return '-';
+    return typeof price === 'number' ? `$${price.toFixed(4)}` : price;
+  };
+
+  const getPricingFields = (productCode) => {
+    const fieldMaps = {
+      did: ['nrc', 'mrc', 'ppm'],
+      freephone: ['nrc', 'mrc', 'ppm_fix', 'ppm_mobile', 'ppm_payphone'],
+      universal: ['nrc', 'mrc', 'ppm_fix', 'ppm_mobile', 'ppm_payphone'],
+      'two-way-voice': ['nrc', 'mrc', 'incoming_ppm', 'outgoing_ppm_fix', 'outgoing_ppm_mobile'],
+      'two-way-sms': ['nrc', 'mrc', 'arc', 'mo', 'mt'],
+      mobile: ['nrc', 'mrc', 'incoming_ppm', 'outgoing_ppm_fix', 'outgoing_ppm_mobile', 'incoming_sms', 'outgoing_sms']
     };
 
-    const pricingData = {
-      nrc: '$24.00',
-      mrc: '$24.00',
-      ppm: '$0.0380',
-      ppmFix: '$0.0250',
-      ppmMobile: '$0.0350',
-      ppmPayphone: '$0.0450',
-      ppmIncoming: '$0.0200',
-      ppmOutgoingfix: '$0.0300',
-      ppmOutgoingmobile: '$0.0400',
-      arc: '$0.0150',
-      mo: '$0.0120',
-      mt: '$0.0180',
-      Incomingppm: '$0.0220',
-      Outgoingppmfix: '$0.0320',
-      Outgoingppmmobile: '$0.0420',
-      incmongsms: '$0.0100',
-      outgoingsms: '$0.0160',
-      billingPulse: '60/60',
-      estimatedLeadTime: '15 Days',
-      contractTerm: '1 Month',
-      disconnectionNoticeTerm: '1 Month'
+    const fieldLabels = {
+      nrc: 'NRC',
+      mrc: 'MRC',
+      ppm: 'PPM',
+      ppm_fix: 'PPM Fix',
+      ppm_mobile: 'PPM Mobile',
+      ppm_payphone: 'PPM Payphone',
+      incoming_ppm: 'Incoming PPM',
+      outgoing_ppm_fix: 'Outgoing Fix PPM',
+      outgoing_ppm_mobile: 'Outgoing Mobile PPM',
+      arc: 'ARC',
+      mo: 'MO',
+      mt: 'MT',
+      incoming_sms: 'Incoming SMS',
+      outgoing_sms: 'Outgoing SMS'
     };
+
+    const code = productCode?.toLowerCase() || 'did';
+    const fields = fieldMaps[code] || fieldMaps.did;
 
     return {
-      headings: pricingHeadings[productType?.toLowerCase()] || pricingHeadings.did,
-      data: pricingData
+      fields,
+      labels: fieldLabels
     };
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size={"5xl"} scrollBehavior="inside" isCentered isScrollable  >
+    <Modal isOpen={isOpen} onClose={onClose} size={"5xl"} scrollBehavior="inside" isCentered isScrollable>
       <ModalOverlay />
       <ModalContent>
         <ModalHeader>
@@ -75,7 +113,6 @@ function NumberPricingModal({ isOpen, onClose, selectedNumber }) {
         <ModalBody pb={6}>
           {selectedNumber && (
             <VStack spacing={4} align="stretch">
-              {/* Number Information */}
               <Card bg="white" borderRadius="12px" boxShadow="sm" border="1px solid" borderColor="gray.200">
                 <CardBody p={3}>
                   <Heading size="md" color="gray.800" mb={4}>Number Information</Heading>
@@ -90,7 +127,7 @@ function NumberPricingModal({ isOpen, onClose, selectedNumber }) {
                     </VStack>
                     <VStack spacing={1} align="start">
                       <Text fontSize="sm" color="gray.600" fontWeight="medium">Area Code</Text>
-                      <Text fontSize="md" color="gray.800" fontWeight="semibold">+{selectedNumber.area_code}</Text>
+                      <Text fontSize="md" color="gray.800" fontWeight="semibold">{selectedNumber.area_code}</Text>
                     </VStack>
                     <VStack spacing={1} align="start">
                       <Text fontSize="sm" color="gray.600" fontWeight="medium">Number</Text>
@@ -100,56 +137,60 @@ function NumberPricingModal({ isOpen, onClose, selectedNumber }) {
                 </CardBody>
               </Card>
 
-              {/* Pricing Card */}
               <Card bg="white" borderRadius="12px" boxShadow="sm" border="1px solid" borderColor="gray.200">
                 <CardBody>
                   <Heading size="md" color="gray.800" mb={4}>Pricing</Heading>
-                  {(() => {
-                    const pricingInfo = getPricingData(selectedNumber.productType);
-                    return (
-                      <>
-                        <Table variant="simple" mb={6}>
-                          <Thead bg="gray.200">
-                            <Tr>
-                              {Object.keys(pricingInfo.headings).map((key) => (
-                                <Th fontSize={"sm"} key={key} textAlign="center" color="gray.800" fontWeight="semibold">
-                                  {pricingInfo.headings[key]}
-                                </Th>
-                              ))}
-                            </Tr>
-                          </Thead>
-                          <Tbody>
-                            <Tr>
-                              {Object.keys(pricingInfo.headings).map((key) => (
-                                <Td key={key} textAlign="center" fontSize="lg" color="green" fontWeight="bold">
-                                  {pricingInfo.data[key]}
-                                </Td>
-                              ))}
-                            </Tr>
-                          </Tbody>
-                        </Table>
-                        <Divider mb={6} />
-                        <Grid px={2} templateColumns="repeat(4, 1fr)" gap={6}>
-                          <VStack spacing={1} align="start">
-                            <Text fontSize="sm" color="gray.600" fontWeight="medium">Billing Pulse</Text>
-                            <Text fontSize="md" color="gray.800" fontWeight="semibold">{pricingInfo.data.billingPulse}</Text>
-                          </VStack>
-                          <VStack spacing={1} align="start">
-                            <Text fontSize="sm" color="gray.600" fontWeight="medium">Estimated Lead Time</Text>
-                            <Text fontSize="md" color="gray.800" fontWeight="semibold">{pricingInfo.data.estimatedLeadTime}</Text>
-                          </VStack>
-                          <VStack spacing={1} align="start">
-                            <Text fontSize="sm" color="gray.600" fontWeight="medium">Contract Term</Text>
-                            <Text fontSize="md" color="green" fontWeight="bold">{pricingInfo.data.contractTerm}</Text>
-                          </VStack>
-                          <VStack spacing={1} align="start">
-                            <Text fontSize="sm" color="gray.600" fontWeight="medium">Disconnection Notice Term</Text>
-                            <Text fontSize="md" color="red.500" fontWeight="bold">{pricingInfo.data.disconnectionNoticeTerm}</Text>
-                          </VStack>
-                        </Grid>
-                      </>
-                    );
-                  })()}
+                  {loading ? (
+                    <Center py={8}>
+                      <Spinner size="lg" color="blue.500" />
+                    </Center>
+                  ) : error ? (
+                    <Text color="red.500" textAlign="center">{error}</Text>
+                  ) : pricingData ? (
+                    <>
+                      <Table variant="simple" mb={6}>
+                        <Thead bg="gray.200">
+                          <Tr>
+                            {getPricingFields(pricingData.product_code).fields.map((field) => (
+                              <Th fontSize={"sm"} key={field} textAlign="center" color="gray.800" fontWeight="semibold">
+                                {getPricingFields(pricingData.product_code).labels[field]}
+                              </Th>
+                            ))}
+                          </Tr>
+                        </Thead>
+                        <Tbody>
+                          <Tr>
+                            {getPricingFields(pricingData.product_code).fields.map((field) => (
+                              <Td key={field} textAlign="center" fontSize="lg" color="green" fontWeight="bold">
+                                {formatPrice(pricingData[field])}
+                              </Td>
+                            ))}
+                          </Tr>
+                        </Tbody>
+                      </Table>
+                      <Divider mb={6} />
+                      <Grid px={2} templateColumns="repeat(4, 1fr)" gap={6}>
+                        <VStack spacing={1} align="start">
+                          <Text fontSize="sm" color="gray.600" fontWeight="medium">Billing Pulse</Text>
+                          <Text fontSize="md" color="gray.800" fontWeight="semibold">{pricingData.billing_pulse || '-'}</Text>
+                        </VStack>
+                        <VStack spacing={1} align="start">
+                          <Text fontSize="sm" color="gray.600" fontWeight="medium">Estimated Lead Time</Text>
+                          <Text fontSize="md" color="gray.800" fontWeight="semibold">{pricingData.estimated_lead_time || '-'}</Text>
+                        </VStack>
+                        <VStack spacing={1} align="start">
+                          <Text fontSize="sm" color="gray.600" fontWeight="medium">Contract Term</Text>
+                          <Text fontSize="md" color="green" fontWeight="bold">{pricingData.contract_term || '-'}</Text>
+                        </VStack>
+                        <VStack spacing={1} align="start">
+                          <Text fontSize="sm" color="gray.600" fontWeight="medium">Disconnection Notice Term</Text>
+                          <Text fontSize="md" color="red.500" fontWeight="bold">{pricingData.disconnection_notice_term || '-'}</Text>
+                        </VStack>
+                      </Grid>
+                    </>
+                  ) : (
+                    <Text color="gray.600" textAlign="center">No pricing data available</Text>
+                  )}
                 </CardBody>
               </Card>
             </VStack>

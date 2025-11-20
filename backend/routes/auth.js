@@ -141,7 +141,7 @@ router.get('/profile', async (req, res) => {
           firstName: user.first_name,
           lastName: user.last_name,
           role: user.role,
-          walletBalance: user.wallet_balance,
+          walletBalance: parseFloat(user.wallet_balance) || 0,
           profilePicture: user.profile_picture_url
         }
       });
@@ -171,13 +171,6 @@ router.put('/change-password', async (req, res) => {
       return res.status(400).json({
         success: false,
         message: 'Old password and new password are required'
-      });
-    }
-
-    if (newPassword.length < 8) {
-      return res.status(400).json({
-        success: false,
-        message: 'New password must be at least 8 characters long'
       });
     }
 
@@ -223,15 +216,6 @@ router.put('/change-password', async (req, res) => {
       return res.status(400).json({
         success: false,
         message: 'Current password is incorrect'
-      });
-    }
-
-    // Check if new password is different from old password
-    const isSamePassword = await bcrypt.compare(newPassword, user.password_hash);
-    if (isSamePassword) {
-      return res.status(400).json({
-        success: false,
-        message: 'New password must be different from current password'
       });
     }
 

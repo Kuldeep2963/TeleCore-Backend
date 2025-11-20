@@ -10,7 +10,7 @@ if (!root) {
   try {
     createRoot(root).render(
       <StrictMode>
-        <ChakraProvider>
+        <ChakraProvider toastOptions={{ defaultOptions: { position: 'bottom-right' } }}>
           <App />
         </ChakraProvider>
       </StrictMode>

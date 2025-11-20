@@ -36,7 +36,7 @@ function Dashboard({ userId, userRole }) {
   const [stats, setStats] = useState({
     activeNumbers: 0,
     totalOrders: 0,
-    countries: 0,
+    invoices: 0,
     totalSpent: 0
   });
   const [loading, setLoading] = useState(true);
@@ -80,10 +80,10 @@ function Dashboard({ userId, userRole }) {
       setLoading(true);
 
       // Calculate stats from individual API calls for accurate data
-      const [ordersResponse, numbersResponse, countriesResponse] = await Promise.all([
+      const [ordersResponse, numbersResponse, invoicesResponse] = await Promise.all([
         api.orders.getAll({ user_id: userId }),
         api.numbers.getAll(),
-        api.countries.getAll()
+        api.invoices.getAll()
       ]);
 
       const totalOrders = ordersResponse.success ? ordersResponse.data.length : 0;
@@ -91,7 +91,7 @@ function Dashboard({ userId, userRole }) {
       const activeNumbers = numbersResponse.success
         ? numbersResponse.data.filter(num => num.disconnection_status !== 'Completed').length
         : 0;
-      const countries = countriesResponse.success ? countriesResponse.data.length : 0;
+      const invoices = invoicesResponse.success ? invoicesResponse.data.filter(inv => inv.customer_id == userId).length : 0;
 
       // Calculate total spent from orders
       const totalSpent = ordersResponse.success
@@ -101,7 +101,7 @@ function Dashboard({ userId, userRole }) {
       setStats({
         activeNumbers,
         totalOrders,
-        countries,
+        invoices,
         totalSpent
       });
 
@@ -111,7 +111,7 @@ function Dashboard({ userId, userRole }) {
       setStats({
         activeNumbers: 0,
         totalOrders: 0,
-        countries: 0,
+        invoices: 0,
         totalSpent: 0
       });
     } finally {
@@ -153,23 +153,23 @@ function Dashboard({ userId, userRole }) {
     {
       label: 'Active Numbers',
       value: stats.activeNumbers.toString(),
-      change: '+12%',
+      // change: '+12%',
       icon: FiUsers,
       color: 'blue'
     },
     {
       label: 'Total Orders',
       value: stats.totalOrders.toString(),
-      change: '+8%',
+      // change: '+8%',
       icon: FiBarChart2,
       color: 'green'
     },
     {
-      label: 'Countries',
-      value: stats.countries.toString(),
-      change: '+2',
-      icon: FiWorld,
-      color: 'purple'
+      label: 'Client Invoices',
+      value: stats.invoices.toString(),
+      // change: '+5',
+      icon: FiBarChart2,
+      color: 'orange'
     },
 
   ];
@@ -222,9 +222,8 @@ function Dashboard({ userId, userRole }) {
             <Box
               key={index}
               bg="white"
-              p={8}
-              pl={4}
-              h={"90px"}
+              p={4}
+              h={"65px"}
               borderRadius="xl"
               boxShadow="0 2px 4px rgba(0, 0, 0, 0.05)"
               border="1px solid"
@@ -257,14 +256,14 @@ function Dashboard({ userId, userRole }) {
                 >
                   <Icon as={stat.icon} boxSize={5}/>
                 </Box>
-                 <Text fontSize="xl" fontWeight="bold" color="gray.800" mb={1}>
+                 <Text fontSize="2xl" fontWeight="bold" color="gray.800" mb={1}>
                 {stat.value}
               </Text>
               <Text color="gray.500" fontWeight="medium" fontSize="sm">
                 {stat.label}
               </Text>
               </HStack>
-                <Badge 
+                {/* <Badge 
                   colorScheme={stat.color}
                   fontSize="xs"
                   px={2}
@@ -273,7 +272,7 @@ function Dashboard({ userId, userRole }) {
                   variant="subtle"
                 >
                   {stat.change}
-                </Badge>
+                </Badge> */}
               </HStack>
             </Box>
           ))}

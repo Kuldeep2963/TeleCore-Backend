@@ -17,6 +17,28 @@ import {
 import { FaFileAlt } from 'react-icons/fa';
 
 function DocumentRequiredModal({ isOpen, onClose, documents = [], title = "Required Documents" }) {
+  // Default documents if none are provided
+  const defaultDocuments = [
+    {
+      name: "Business Registration",
+      required: true,
+      description: "Official business registration certificate or license"
+    },
+    {
+      name: "Identity Proof",
+      required: true,
+      description: "Government-issued ID with address and contact details such as passport"
+    },
+     {
+      name: "Bussiness Case / Use Case",
+      required: true,
+      description: ""
+    }
+  ];
+
+  // Use provided documents or default ones
+  const displayDocuments = documents.length > 0 ? documents : defaultDocuments;
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="lg">
       <ModalOverlay />
@@ -24,9 +46,9 @@ function DocumentRequiredModal({ isOpen, onClose, documents = [], title = "Requi
         <ModalHeader>{title}</ModalHeader>
         <ModalCloseButton />
         <ModalBody pb={6}>
-          {documents.length > 0 ? (
+          {displayDocuments.length > 0 ? (
             <List spacing={3}>
-              {documents.map((doc, index) => (
+              {displayDocuments.map((doc, index) => (
                 <ListItem key={index}>
                   <Box display="flex" alignItems="center">
                     <ListIcon as={FaFileAlt} color="blue.500" />

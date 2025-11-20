@@ -378,7 +378,7 @@ const Customers = () => {
                       </Badge>
                     </Td>
                     <Td>
-                      <Text fontWeight="medium">{customer.total_orders || 0}</Text>
+                      <Text fontWeight="medium">{customer.total_orders}</Text>
                     </Td>
                     <Td>
                       <Text fontWeight="medium">{formatCurrency(parseFloat(customer.total_spent) || 0)}</Text>

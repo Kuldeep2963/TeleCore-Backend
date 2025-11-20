@@ -1,9 +1,10 @@
 const express = require('express');
 const { query } = require('../config/database');
+const { authenticateToken, requireClient, requireInternal } = require('../middleware/auth');
 
 const router = express.Router();
 
-router.get('/', async (req, res) => {
+router.get('/', requireInternal, async (req, res) => {
   try {
     const result = await query(`
       SELECT c.*, u.email as user_email, u.first_name, u.last_name,
@@ -22,6 +23,44 @@ router.get('/', async (req, res) => {
     });
   } catch (error) {
     console.error('Get customers error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
+router.get('/me', async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
+
+    const userId = req.user.id;
+
+    const result = await query(`
+      SELECT c.*, u.email as user_email, u.first_name, u.last_name
+      FROM customers c
+      LEFT JOIN users u ON c.user_id = u.id
+      WHERE c.user_id = $1
+    `, [userId]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Customer not found for current user'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: result.rows[0]
+    });
+  } catch (error) {
+    console.error('Get current customer error:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error'

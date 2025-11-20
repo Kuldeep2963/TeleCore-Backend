@@ -113,9 +113,9 @@ const CustomerDetailModal = ({ isOpen, onClose, customer }) => {
       <ModalContent>
         <ModalHeader>
           <HStack spacing={3}>
-            <Avatar size="md" name={customer.name} />
+            <Avatar size="md" name={customer.companyname} />
             <VStack align="start" spacing={0}>
-              <Heading size="lg">{customer.name}</Heading>
+              <Heading size="xl">{customer.name}</Heading>
               <Text fontSize="sm" color="gray.600">Customer Details</Text>
             </VStack>
           </HStack>

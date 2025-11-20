@@ -8,7 +8,7 @@ router.get('/', async (req, res) => {
   try {
     const result = await query(`
       SELECT id, email, first_name, last_name, role, status, wallet_balance,
-             created_at, last_login_at
+             wallet_threshold, created_at, last_login_at
       FROM users
       ORDER BY created_at DESC
     `);
@@ -33,7 +33,7 @@ router.get('/by-email/:email', async (req, res) => {
 
     const result = await query(`
       SELECT id, email, first_name, last_name, role, status, wallet_balance,
-             profile_picture_url, created_at, updated_at, last_login_at
+             wallet_threshold, profile_picture_url, created_at, updated_at, last_login_at
       FROM users
       WHERE email = $1
     `, [email]);
@@ -45,9 +45,14 @@ router.get('/by-email/:email', async (req, res) => {
       });
     }
 
+    // Parse numeric fields
+    const userData = result.rows[0];
+    userData.wallet_balance = parseFloat(userData.wallet_balance) || 0;
+    userData.wallet_threshold = userData.wallet_threshold ? parseFloat(userData.wallet_threshold) : 10.00;
+
     res.json({
       success: true,
-      data: result.rows[0]
+      data: userData
     });
   } catch (error) {
     console.error('Get user by email error:', error);
@@ -65,7 +70,7 @@ router.get('/:id', async (req, res) => {
 
     const result = await query(`
       SELECT id, email, first_name, last_name, role, status, wallet_balance,
-             profile_picture_url, created_at, updated_at, last_login_at
+             wallet_threshold, profile_picture_url, created_at, updated_at, last_login_at
       FROM users
       WHERE id = $1
     `, [id]);
@@ -77,9 +82,14 @@ router.get('/:id', async (req, res) => {
       });
     }
 
+    // Parse numeric fields
+    const userData = result.rows[0];
+    userData.wallet_balance = parseFloat(userData.wallet_balance) || 0;
+    userData.wallet_threshold = userData.wallet_threshold ? parseFloat(userData.wallet_threshold) : 10.00;
+
     res.json({
       success: true,
-      data: result.rows[0]
+      data: userData
     });
   } catch (error) {
     console.error('Get user error:', error);
@@ -116,8 +126,8 @@ router.patch('/:id/wallet', async (req, res) => {
         });
       }
 
-      const currentBalance = balanceResult.rows[0].wallet_balance;
-      const newBalance = currentBalance + amount;
+      const currentBalance = parseFloat(balanceResult.rows[0].wallet_balance) || 0;
+      const newBalance = currentBalance + parseFloat(amount);
 
       // Update balance
       await client.query(
@@ -148,6 +158,47 @@ router.patch('/:id/wallet', async (req, res) => {
 
   } catch (error) {
     console.error('Update wallet error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
+// Update user wallet threshold
+router.patch('/:id/wallet-threshold', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { threshold } = req.body;
+
+    if (threshold === undefined || threshold < 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Valid threshold value is required'
+      });
+    }
+
+    const result = await query(`
+      UPDATE users
+      SET wallet_threshold = $1, updated_at = CURRENT_TIMESTAMP
+      WHERE id = $2
+      RETURNING id, wallet_threshold
+    `, [threshold, id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Wallet threshold updated successfully',
+      data: result.rows[0]
+    });
+  } catch (error) {
+    console.error('Update wallet threshold error:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error'

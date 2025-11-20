@@ -41,9 +41,9 @@ function Navbar({ cartCount = 0, walletBalance = 0, profilePicture = null, onLog
     onLogout();
   };
 
-  const handleRatesClick = () => {
-    navigate('/rates');
-  };
+  // const handleRatesClick = () => {
+  //   navigate('/rates');
+  // };
 
   const handleWalletClick = () => {
     navigate('/billing-invoices?tab=topup');
@@ -80,7 +80,7 @@ function Navbar({ cartCount = 0, walletBalance = 0, profilePicture = null, onLog
         
         {/* Right Section - All items in a single row */}
         <HStack spacing={4}>
-          {/* Excel Icon */}
+          {/* Excel Icon
             <IconButton
               icon={<FaFileExcel />}
               variant="ghost"
@@ -95,7 +95,7 @@ function Navbar({ cartCount = 0, walletBalance = 0, profilePicture = null, onLog
               transition="all 0.2s ease"
               onClick={handleRatesClick}
             />
-          
+           */}
           {/* Cart and Wallet - Only for Clients */}
           {userRole === 'Client' && (
             <>

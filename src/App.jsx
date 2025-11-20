@@ -18,13 +18,24 @@ import MyOrders from './pages/MyOrders';
 import ProductInfo from './pages/ProductInfo';
 import Profile from './pages/MyProfile';
 import Billing from './pages/Billing&TopUpbalance/Billing';
-// import PlaceOrder from './pages/OrderNumber/AddNewNumber/PlaceOrder';
+import TopUp from './pages/Billing&TopUpbalance/TopUp'; // Import the TopUp component
+import PlaceOrder from './pages/OrderNumber/AddNewNumber/PlaceOrder';
 import PlaceOrderPage from './pages/OrderNumber/AddNewNumber/PlaceOrderPage';
 import OrderNumberView from './pages/OrderNumberView';
 import Login from './pages/Login';
-import Rates from './pages/Rates';
 import DisconnectionModal from './Modals/DisconnectionModal';
 import api from './services/api';
+
+// Helper function to parse pricing values
+const parsePricingValue = (value) => {
+  if (!value) return null;
+  if (typeof value === 'string') {
+    const cleaned = value.replace('$', '').trim();
+    const parsed = parseFloat(cleaned);
+    return isNaN(parsed) ? null : parsed;
+  }
+  return typeof value === 'number' ? value : null;
+};
 
 function App() {
   const [cartItems, setCartItems] = useState([]);
@@ -32,7 +43,7 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [profilePicture, setProfilePicture] = useState(null);
   const [userRole, setUserRole] = useState(null);
-  const [userId, setUserId] = useState(null); // 'Client' or 'Internal'
+  const [userId, setUserId] = useState(null);
   const [userProfile, setUserProfile] = useState({
     firstName: '',
     lastName: '',
@@ -42,6 +53,7 @@ function App() {
   const [isDisconnectionModalOpen, setIsDisconnectionModalOpen] = useState(false);
   const [selectedNumberForDisconnection, setSelectedNumberForDisconnection] = useState(null);
   const [numbersRefreshTrigger, setNumbersRefreshTrigger] = useState(0);
+  const [walletRefreshTrigger, setWalletRefreshTrigger] = useState(0); // Add wallet refresh trigger
 
   // Load authentication state from sessionStorage on component mount
   useEffect(() => {
@@ -124,13 +136,164 @@ function App() {
     setCartItems((prev) => prev.filter((item) => item.id !== id));
   };
 
-  const handlePlaceOrder = () => {
-    // Clear cart after order is placed
-    setCartItems([]);
+  const handlePlaceOrder = async (orderDataParam) => {
+    try {
+      // Use cartItems from state or from parameter if provided
+      const itemsToProcess = cartItems.length > 0 ? cartItems : [];
+
+      if (itemsToProcess.length === 0) {
+        throw new Error('Cart is empty. No items to order.');
+      }
+
+      console.log('Placing order for', itemsToProcess.length, 'items');
+
+      // Get or create customer
+      let customerId;
+      try {
+        const customerResponse = await api.customers.getMe();
+        if (customerResponse.success) {
+          customerId = customerResponse.data.id;
+          console.log('Found existing customer:', customerId);
+        } else {
+          throw new Error('Customer not found');
+        }
+      } catch (customerError) {
+        console.log('Customer not found, creating new customer...');
+        // Create customer using user profile data
+        const createCustomerResponse = await api.customers.create({
+          company_name: userProfile.firstName + ' ' + userProfile.lastName || 'New Customer',
+          contact_person: userProfile.firstName + ' ' + userProfile.lastName || 'New Customer',
+          email: userProfile.email,
+          user_id: userId,
+          status: 'Active'
+        });
+        
+        if (createCustomerResponse.success) {
+          customerId = createCustomerResponse.data.id;
+          console.log('Created new customer:', customerId);
+        } else {
+          throw new Error('Failed to create customer: ' + (createCustomerResponse.message || 'Unknown error'));
+        }
+      }
+
+      // Create orders for each cart item
+      const orderPromises = itemsToProcess.map(async (item) => {
+        console.log('Processing cart item:', {
+          productId: item.productId,
+          countryId: item.countryId,
+          productType: item.productType,
+          country: item.country,
+          areaCode: item.areaCode,
+          quantity: item.quantity,
+          totalAmount: item.totalAmount
+        });
+
+        // Validate required fields
+        if (!item.productId || !item.countryId) {
+          console.error('Invalid cart item - missing productId or countryId:', item);
+          throw new Error(`Invalid order item: Missing required product or country information for ${item.productType}`);
+        }
+
+        // Convert documents to the format expected by backend
+        let documentsArray = null;
+        if (item.documents && item.documents.length > 0) {
+          documentsArray = item.documents.map(doc => ({
+            filename: doc.filename || doc.name || '',
+            name: doc.name || '',
+            type: doc.type || 'application/octet-stream',
+            size: doc.size || 0,
+            uploadedAt: doc.uploadedAt || new Date().toISOString()
+          }));
+        }
+
+        const orderData = {
+          customer_id: customerId,
+          vendor_id: null,
+          product_id: item.productId,
+          country_id: item.countryId,
+          area_code: item.areaCode,
+          quantity: item.quantity || 1,
+          total_amount: item.totalAmount || 0,
+          status: 'In Progress',
+          documents: documentsArray
+        };
+
+        console.log('Sending order data:', orderData);
+
+        const orderResponse = await api.orders.create(orderData);
+        console.log('Order response:', orderResponse);
+        
+        if (!orderResponse.success) {
+          const errorMsg = orderResponse.message || 'Unknown error from server';
+          throw new Error(`Failed to create order: ${errorMsg}`);
+        }
+
+        console.log('Order created successfully:', orderResponse.data.id);
+
+        // Save desired pricing to order_pricing table if it exists
+        if (item.desiredPricing) {
+          const pricingData = {
+            pricing_type: 'desired',
+            nrc: parsePricingValue(item.desiredPricing.nrc),
+            mrc: parsePricingValue(item.desiredPricing.mrc),
+            ppm: parsePricingValue(item.desiredPricing.ppm),
+            ppm_fix: parsePricingValue(item.desiredPricing.ppmFix),
+            ppm_mobile: parsePricingValue(item.desiredPricing.ppmMobile),
+            ppm_payphone: parsePricingValue(item.desiredPricing.ppmPayphone),
+            arc: parsePricingValue(item.desiredPricing.arc),
+            mo: parsePricingValue(item.desiredPricing.mo),
+            mt: parsePricingValue(item.desiredPricing.mt),
+            incoming_ppm: parsePricingValue(item.desiredPricing.Incomingppm),
+            outgoing_ppm_fix: parsePricingValue(item.desiredPricing.Outgoingppmfix),
+            outgoing_ppm_mobile: parsePricingValue(item.desiredPricing.Outgoingppmmobile),
+            incoming_sms: parsePricingValue(item.desiredPricing.incmongsms),
+            outgoing_sms: parsePricingValue(item.desiredPricing.outgoingsms)
+          };
+
+          // Remove null values
+          Object.keys(pricingData).forEach(key => {
+            if (pricingData[key] === null) {
+              delete pricingData[key];
+            }
+          });
+
+          if (Object.keys(pricingData).length > 1) { // More than just pricing_type
+            try {
+              await api.orders.createPricing(orderResponse.data.id, pricingData);
+              console.log('Desired pricing saved successfully');
+            } catch (pricingError) {
+              console.error('Failed to save desired pricing:', pricingError);
+              // Don't throw error here - pricing is optional
+            }
+          }
+        }
+
+        return orderResponse.data;
+      });
+
+      // Wait for all orders to be created
+      await Promise.all(orderPromises);
+
+      // Clear cart after successful order creation
+      setCartItems([]);
+      console.log('All orders placed successfully. Cart cleared.');
+      
+      return { success: true, message: 'Order placed successfully' };
+    } catch (error) {
+      console.error('Place order error:', error);
+      const errorMessage = error.response?.data?.message || error.message || 'Unknown error';
+      throw new Error('Failed to place order: ' + errorMessage);
+    }
   };
 
   const updateWalletBalance = (newBalance) => {
     setWalletBalance(newBalance);
+    setUserProfile(prev => ({
+      ...prev,
+      walletBalance: newBalance
+    }));
+    // Trigger wallet refresh
+    setWalletRefreshTrigger(prev => prev + 1);
   };
 
   const updateProfilePicture = (newPicture) => {
@@ -215,6 +378,10 @@ function App() {
     setSelectedNumberForDisconnection(null);
   };
 
+  const handleRefreshWallet = () => {
+    setWalletRefreshTrigger(prev => prev + 1);
+  };
+
   return (
     <Router>
       {isAuthenticated ? (
@@ -228,7 +395,15 @@ function App() {
           padding: 0,
           minHeight: '100vh'
         }}>
-          <Navbar cartCount={cartItems.length} walletBalance={userProfile.walletBalance} profilePicture={profilePicture} onLogout={handleLogout} userRole={userRole} userProfile={userProfile} />
+          <Navbar 
+            cartCount={cartItems.length} 
+            walletBalance={userProfile.walletBalance} 
+            profilePicture={profilePicture} 
+            onLogout={handleLogout} 
+            userRole={userRole} 
+            userProfile={userProfile}
+            onRefreshWallet={handleRefreshWallet} // Pass refresh function to navbar
+          />
           <div style={{
             display: 'flex',
             flex: 1,
@@ -262,9 +437,40 @@ function App() {
                 <Route path="/my-orders" element={<MyOrders userId={userId} userRole={userRole} />} />
                 <Route path="/order-number-view" element={<OrderNumberView userRole={userRole} />} />
                 <Route path="/product-info" element={<ProductInfo />} />
-                <Route path="/rates" element={<Rates />} />
-                <Route path="/my-profile" element={<Profile profilePicture={profilePicture} onProfilePictureUpdate={updateProfilePicture} userId={userId} userProfile={userProfile} userRole={userRole} />} />
-                <Route path="/billing-invoices" element={<Billing walletBalance={walletBalance} onUpdateBalance={updateWalletBalance} />} />
+                <Route 
+                  path="/my-profile" 
+                  element={
+                    <Profile 
+                      profilePicture={profilePicture} 
+                      onProfilePictureUpdate={updateProfilePicture} 
+                      userId={userId} 
+                      userProfile={userProfile} 
+                      userRole={userRole} 
+                    />
+                  } 
+                />
+                <Route
+                  path="/billing-invoices"
+                  element={
+                    <Billing
+                      userId={userId}
+                      walletBalance={walletBalance}
+                      onUpdateBalance={updateWalletBalance}
+                    />
+                  }
+                />
+                {/* Add TopUp route */}
+                <Route 
+                  path="/top-up" 
+                  element={
+                    <TopUp 
+                      userId={userId}
+                      walletBalance={walletBalance}
+                      onUpdateBalance={updateWalletBalance}
+                      refreshTrigger={walletRefreshTrigger}
+                    />
+                  } 
+                />
 
                 {/* Internal and Admin routes */}
                 {(userRole === 'Internal' || userRole === 'Admin') && (

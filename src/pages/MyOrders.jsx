@@ -434,12 +434,12 @@ function MyOrders({ userId, userRole }) {
                 }}
               >
                 <Th w="5%">Order</Th>
-                <Th >Country</Th>
-                <Th >Product Type</Th>
+                <Th>Country</Th>
+                <Th>Product Type</Th>
                 <Th>Amount</Th>
-                <Th >Area Code(Prefix)</Th>
-                <Th >Quantity</Th>
-                <Th >Order Status</Th>
+                <Th>Area Code(Prefix)</Th>
+                <Th>Quantity</Th>
+                <Th>Order Status</Th>
                 <Th>Order Date</Th>
                 <Th width="5%">Action</Th>
               </Tr>
@@ -454,7 +454,7 @@ function MyOrders({ userId, userRole }) {
                     <Td textAlign="center"><Badge size={"lg"} bg={"blue.100"}>{order.productType}</Badge></Td>
                     <Td fontWeight={"bold"} color={"green"} textAlign="center">${order.totalAmount}</Td>
                     <Td textAlign="center">{order.areaCode}</Td>
-                    <Td fontWeight={"bold"} textAlign="center">{order.quantity}</Td>
+                    <Td w={"5%"} fontWeight={"bold"} textAlign="center">{order.quantity}</Td>
                     <Td textAlign="center">
                       
                       <Badge borderRadius={"full"} colorScheme={getStatusColor(order.orderStatus)}>
@@ -464,14 +464,14 @@ function MyOrders({ userId, userRole }) {
                        </HStack>
                       </Badge>
                     </Td>
-                    <Td w={"15%"} textAlign="center">{order.orderDate}</Td>
+                    <Td textAlign="center">{order.orderDate}</Td>
                     <Td textAlign="center">
                       <HStack spacing={2} justify="center">
                         <Button
                           size="sm"
                           colorScheme="blue"
                           variant="ghost"
-                          fontWeight="bold"
+                          fontWeight="semibold"
                           leftIcon={<FaEye />}
                           onClick={() => handleViewOrder(order)}
                         >
@@ -482,8 +482,8 @@ function MyOrders({ userId, userRole }) {
                             size="sm"
                             colorScheme="green"
                             variant="ghost"
-                            fontWeight="bold"
-                            bg='green.100'
+                            fontWeight="semibold"
+                            // bg='green.100'
                             borderRadius='full'
                             _hover={bg=>{return {'bg':'green.200'}}}
                             leftIcon={<FiDollarSign />}

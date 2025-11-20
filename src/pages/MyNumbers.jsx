@@ -22,7 +22,10 @@ import {
   Spinner,
   Center,
   useToast,
-  Badge
+  Badge,
+  SimpleGrid,
+  Card,
+  CardBody
 } from '@chakra-ui/react';
 import { FaFileExcel, FaEye, FaSearch, FaUnlink } from 'react-icons/fa';
 import { FiRefreshCw } from 'react-icons/fi';
@@ -38,15 +41,22 @@ function MyNumbers({ onRequestDisconnection, refreshTrigger }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [numbers, setNumbers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [allocationSummary, setAllocationSummary] = useState({
+    totalRequired: 0,
+    totalAllocated: 0,
+    pendingAllocation: 0
+  });
   const toast = useToast();
 
   useEffect(() => {
     fetchNumbers();
+    fetchAllocationSummary();
   }, []);
 
   useEffect(() => {
     if (refreshTrigger > 0) {
       fetchNumbers();
+      fetchAllocationSummary();
     }
   }, [refreshTrigger]);
 
@@ -77,7 +87,39 @@ function MyNumbers({ onRequestDisconnection, refreshTrigger }) {
     } finally {
       setLoading(false);
     }
-  }
+  };
+
+  const fetchAllocationSummary = async () => {
+    try {
+      const ordersResponse = await api.orders.getAll();
+      if (ordersResponse.success && ordersResponse.data) {
+        const orders = ordersResponse.data;
+        const numbersResponse = await api.numbers.getAll();
+        const allNumbers = numbersResponse.success ? numbersResponse.data : [];
+
+        let totalRequired = 0;
+        let totalAllocated = 0;
+
+        orders.forEach(order => {
+          if (order.orderStatus === 'Delivered') {
+            totalRequired += order.quantity || 0;
+            const allocatedCount = allNumbers.filter(n => n.order_id === order.id).length;
+            totalAllocated += allocatedCount;
+          }
+        });
+
+        const pendingAllocation = Math.max(0, totalRequired - totalAllocated);
+
+        setAllocationSummary({
+          totalRequired,
+          totalAllocated,
+          pendingAllocation
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching allocation summary:', error);
+    }
+  };
 
   // Filter numbers based on search term
   const filteredNumbers = useMemo(() => {
@@ -176,6 +218,7 @@ function MyNumbers({ onRequestDisconnection, refreshTrigger }) {
     <Box
       flex={1}
       p={6}
+      pb={0}
       bg="#f8f9fa"
       height="calc(100vh - 76px)"
       overflowY="auto"
@@ -249,13 +292,43 @@ function MyNumbers({ onRequestDisconnection, refreshTrigger }) {
           </Box>
         )}
 
+        {/* Allocation Summary */}
+        <SimpleGrid columns={{ base: 1, md: 3 }} spacing={8}>
+          <Card bg="white" borderRadius="12px" boxShadow="sm" border="1px solid" borderColor="gray.200">
+            <CardBody>
+              <HStack spacing={6}>
+                <Text fontSize="sm" color="gray.600" fontWeight="medium">Total Quantity Required</Text>
+                <Text fontSize="2xl" color="blue.600" fontWeight="bold">{allocationSummary.totalRequired}</Text>
+              </HStack>
+            </CardBody>
+          </Card>
+
+          <Card bg="white" borderRadius="12px" boxShadow="sm" border="1px solid" borderColor="gray.200">
+            <CardBody>
+              <HStack spacing={6}>
+                <Text fontSize="sm" color="gray.600" fontWeight="medium">Total Quantity Allocated</Text>
+                <Text fontSize="2xl" color="green.600" fontWeight="bold">{allocationSummary.totalAllocated}</Text>
+              </HStack>
+            </CardBody>
+          </Card>
+
+          <Card bg="white" borderRadius="12px" boxShadow="sm" border="1px solid" borderColor="gray.200">
+            <CardBody>
+              <HStack spacing={6}>
+                <Text fontSize="sm" color="gray.600" fontWeight="medium">Pending Allocation</Text>
+                <Text fontSize="2xl" color={allocationSummary.pendingAllocation > 0 ? "orange.600" : "green.600"} fontWeight="bold">{allocationSummary.pendingAllocation}</Text>
+              </HStack>
+            </CardBody>
+          </Card>
+        </SimpleGrid>
+
         <Box
           bg="white"
           borderRadius="12px"
           boxShadow="sm"
           border="1px solid"
           borderColor="gray.200"
-          h="480px"
+          h="60%"
           overflowY="auto"
           p={2}
         >
@@ -287,12 +360,12 @@ function MyNumbers({ onRequestDisconnection, refreshTrigger }) {
               {currentNumbers.length > 0 ? (
                 currentNumbers.map((number, index) => (
                   <Tr key={number.id} _hover={{ bg: 'gray.50' }}>
-                    <Td textAlign="center">{startIndex + index + 1}</Td>
-                    <Td textAlign="center"><Badge size="lg" bg="green.100">{number.country_name}</Badge></Td>
+                    <Td color={"blue.500"} fontWeight={"bold"} textAlign="center">{startIndex + index + 1}</Td>
+                    <Td fontWeight={"semibold"} color={"green"} textAlign="center">{number.country_name}</Td>
                     
                     <Td textAlign="center"><Badge size={"lg"} bg={"blue.100"}>{number.product_name}</Badge></Td>
                     
-                    <Td fontWeight={"semibold"} textAlign="center">+{number.area_code}</Td>
+                    <Td fontWeight={"semibold"} textAlign="center">{number.area_code}</Td>
                     <Td textAlign="center">{number.number}</Td>
                     <Td textAlign="center">
                       <HStack spacing={2} justify="center">

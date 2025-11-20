@@ -17,7 +17,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // limit each IP to 100 requests per windowMs
+  max: 10000 // limit each IP to 10000 requests per windowMs
 });
 app.use(limiter);
 
@@ -48,6 +48,7 @@ app.use('/api/auth', require('./routes/auth'));
 
 // Protected routes - require authentication
 app.use('/api/users', authenticateToken, require('./routes/users'));
+app.use('/api/wallet', authenticateToken, require('./routes/wallet'));
 app.use('/api/customers', authenticateToken, require('./routes/customers'));
 app.use('/api/vendors', authenticateToken, requireInternal, require('./routes/vendors'));
 app.use('/api/orders', authenticateToken, require('./routes/orders'));
@@ -58,6 +59,9 @@ app.use('/api/disconnection-requests', authenticateToken, require('./routes/disc
 app.use('/api/countries', authenticateToken, require('./routes/countries'));
 app.use('/api/products', authenticateToken, require('./routes/products'));
 app.use('/api/stats', authenticateToken, require('./routes/stats'));
+app.use('/api/documents', authenticateToken, require('./routes/documents'));
+app.use('/api/service-details', authenticateToken, require('./routes/service_details'));
+app.use('/api/required-documents', authenticateToken, require('./routes/required_documents'));
 
 // Error handling middleware
 app.use((err, req, res, next) => {

@@ -20,7 +20,7 @@ import {
 } from '@chakra-ui/react';
 import { FaShoppingCart } from 'react-icons/fa';
 
-const AddCart = ({ selectedNumbers = [], formData = {}, onAddToCart = () => {} }) => {
+const AddCart = ({ selectedNumbers = [], formData = {}, documents = [], onAddToCart = () => {} }) => {
   const [connectivityMode, setConnectivityMode] = useState('SIP');
   const [selectedPrefix, setSelectedPrefix] = useState('E.164');
   const [prefixValue, setPrefixValue] = useState('');
@@ -46,7 +46,12 @@ const AddCart = ({ selectedNumbers = [], formData = {}, onAddToCart = () => {} }
   const handleAddToCart = () => {
     const cartData = {
       connectivityMode,
-      selectedPrefix
+      selectedPrefix,
+      documents,
+      country: formData.country,
+      productType: formData.productType,
+      areaCode: formData.areaCode,
+      quantity: formData.quantity
     };
 
     // Add prefix value if "Prefix + E.164" is selected
@@ -80,28 +85,28 @@ const AddCart = ({ selectedNumbers = [], formData = {}, onAddToCart = () => {} }
               <Heading size="md" color="gray.800" mb={4}>
                 Order Summary
               </Heading>
-              <HStack spacing={6} wrap="wrap">
+              <HStack spacing={12} wrap="wrap">
                 <Box>
                   <Text fontSize="sm" color="gray.700" fontWeight="medium">Product Type</Text>
-                  <Badge mt={2} borderRadius={"full"} colorScheme="blue" fontSize="sm" px={3} py={1}>
+                  <Badge mt={2} borderRadius={"full"} colorScheme="blue"  px={3} py={1}>
                     {formData.productType?.toUpperCase() || 'N/A'}
                   </Badge>
                 </Box>
                 <Box>
                   <Text fontSize="sm" color="gray.700" fontWeight="medium">Country</Text>
-                  <Badge mt={2} borderRadius={"full"} colorScheme="purple" fontSize="sm" px={3} py={1}>
+                  <Badge mt={2} borderRadius={"full"} colorScheme="purple"  px={3} py={1}>
                     {getCountryName(formData.country)}
                   </Badge>
                 </Box>
                 <Box>
                   <Text fontSize="sm" color="gray.700" fontWeight="medium">Area Code</Text>
-                  <Badge mt={2} borderRadius={"full"} colorScheme="orange" fontSize="sm" px={3} py={1}>
+                  <Badge mt={2} borderRadius={"full"} colorScheme="orange" px={3} py={1}>
                     {formData.areaCode || 'N/A'}
                   </Badge>
                 </Box>
                 <Box>
                   <Text fontSize="sm" color="gray.700" fontWeight="medium">Quantity</Text>
-                  <Badge mt={2} borderRadius={"full"} colorScheme="green" fontSize="sm" px={3} py={1}>
+                  <Badge mt={2} borderRadius={"full"} colorScheme="green"  px={3} py={1}>
                     {formData?.quantity || 0} Numbers
                   </Badge>
                 </Box>
@@ -111,7 +116,7 @@ const AddCart = ({ selectedNumbers = [], formData = {}, onAddToCart = () => {} }
             <Divider />
 
             {/* Preferred mode of connectivity */}
-            <Box>
+            {/* <Box>
               <Heading size="md" color="gray.800" mb={4}>
                 Preferred mode of connectivity:
               </Heading>
@@ -127,10 +132,10 @@ const AddCart = ({ selectedNumbers = [], formData = {}, onAddToCart = () => {} }
               </RadioGroup>
             </Box>
 
-            <Divider />
+            <Divider /> */}
 
             {/* Select Prefix - Only show for SIP */}
-            {connectivityMode === 'SIP' && (
+            {/* {connectivityMode === 'SIP' && (
               <>
                 <Box>
                   <Heading size="md" color="gray.800" mb={4}>
@@ -161,7 +166,6 @@ const AddCart = ({ selectedNumbers = [], formData = {}, onAddToCart = () => {} }
                   </HStack>
                 </Box>
 
-                {/* Prefix Input - Show when "Prefix + E.164" is selected */}
                 {selectedPrefix === 'Prefix + E.164' && (
                   <Box>
                     <FormControl w={"250px"}>
@@ -180,10 +184,10 @@ const AddCart = ({ selectedNumbers = [], formData = {}, onAddToCart = () => {} }
 
                 <Divider />
               </>
-            )}
+            )} */}
 
             {/* Configure Routing Number List - Show for PSTN */}
-            {connectivityMode === 'PSTN' && (
+            {/* {connectivityMode === 'PSTN' && (
               <>
                 <Box
                   border="1px solid"
@@ -223,10 +227,10 @@ const AddCart = ({ selectedNumbers = [], formData = {}, onAddToCart = () => {} }
 
                 <Divider />
               </>
-            )}
+            )} */}
 
             {/* Configure Others - Show when "Others" is selected in SIP mode */}
-            {connectivityMode === 'SIP' && selectedPrefix === 'Others' && (
+            {/* {connectivityMode === 'SIP' && selectedPrefix === 'Others' && (
               <>
                 <Box
                   border="1px solid"
@@ -276,7 +280,7 @@ const AddCart = ({ selectedNumbers = [], formData = {}, onAddToCart = () => {} }
 
                 <Divider />
               </>
-            )}
+            )} */}
 
             {/* Add to Cart Button */}
             <HStack justify={"flex-end"}>

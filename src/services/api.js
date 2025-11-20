@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+const API_BASE_URL = '/api';
 
 const getAuthToken = () => {
   return sessionStorage.getItem('authToken');
@@ -32,10 +32,21 @@ const apiCall = async (endpoint, options = {}) => {
         window.location.href = '/';
         throw new Error('Authentication required');
       }
-      throw new Error(`API Error: ${response.statusText}`);
+      
+      let errorMessage = `API Error: ${response.statusText}`;
+      try {
+        const errorData = await response.json();
+        if (errorData.message) {
+          errorMessage = errorData.message;
+        }
+      } catch (parseError) {
+        // Could not parse error response
+      }
+      throw new Error(errorMessage);
     }
 
-    return await response.json();
+    const responseData = await response.json();
+    return responseData;
   } catch (error) {
     console.error('API call failed:', error);
     throw error;
@@ -61,6 +72,15 @@ const api = {
   customers: {
     getAll: () => apiCall('/customers'),
     getById: (id) => apiCall(`/customers/${id}`),
+    getMe: () => {
+      return apiCall('/customers/me').catch(error => {
+        if (error.message && error.message.includes('401')) {
+          console.warn('Not authenticated for getMe');
+          throw new Error('Customer not found - authentication issue');
+        }
+        throw error;
+      });
+    },
     create: (data) => apiCall('/customers', { method: 'POST', body: JSON.stringify(data) }),
     update: (id, data) => apiCall(`/customers/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     delete: (id) => apiCall(`/customers/${id}`, { method: 'DELETE' }),
@@ -76,6 +96,12 @@ const api = {
     update: (id, data) => apiCall(`/orders/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     delete: (id) => apiCall(`/orders/${id}`, { method: 'DELETE' }),
     updateStatus: (id, status) => apiCall(`/orders/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
+    // ADDED MISSING METHOD
+    createPricing: (orderId, data) => apiCall(`/orders/${orderId}/pricing`, { 
+      method: 'POST', 
+      body: JSON.stringify(data) 
+    }),
+    getPricing: (orderId) => apiCall(`/orders/${orderId}/pricing`),
   },
 
   invoices: {
@@ -85,17 +111,22 @@ const api = {
     update: (id, data) => apiCall(`/invoices/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     delete: (id) => apiCall(`/invoices/${id}`, { method: 'DELETE' }),
     updateStatus: (id, status, paidDate) => apiCall(`/invoices/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status, paid_date: paidDate }) }),
+    updateUsage: (id, data) => apiCall(`/invoices/${id}/usage`, { method: 'PATCH', body: JSON.stringify(data) }),
   },
 
   numbers: {
     getAll: () => apiCall('/numbers'),
     getById: (id) => apiCall(`/numbers/${id}`),
     getAreaCodes: (countryId, productId) => apiCall(`/numbers/area-codes/${countryId}/${productId}`),
+    create: (data) => apiCall('/numbers', { method: 'POST', body: JSON.stringify(data) }),
+    getByOrder: (orderId) => apiCall(`/numbers/order/${orderId}`),
+    updateUserForOrder: (orderId) => apiCall(`/numbers/order/${orderId}/user`, { method: 'PUT', body: JSON.stringify({}) }),
+    delete: (id) => apiCall(`/numbers/${id}`, { method: 'DELETE' }),
   },
 
   pricing: {
     getAll: () => apiCall('/pricing'),
-    getByProduct: (productId) => apiCall(`/pricing?product_id=${productId}`),
+    getByProduct: (productId, countryId) => apiCall(`/pricing/product/${productId}/country/${countryId}`),
   },
 
   disconnectionRequests: {
@@ -131,6 +162,42 @@ const api = {
 
   stats: {
     getDashboardStats: () => apiCall('/stats'),
+  },
+
+  documents: {
+    upload: (orderId, formData) => {
+      const token = getAuthToken();
+      return fetch(`${API_BASE_URL}/orders/documents/upload/${orderId}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : '',
+        },
+        body: formData,
+      }).then(response => {
+        if (!response.ok) {
+          if (response.status === 401) {
+            sessionStorage.removeItem('authToken');
+            sessionStorage.removeItem('isAuthenticated');
+            sessionStorage.removeItem('userRole');
+            sessionStorage.removeItem('userId');
+            window.location.href = '/';
+            throw new Error('Authentication required');
+          }
+          throw new Error(`API Error: ${response.statusText}`);
+        }
+        return response.json();
+      });
+    },
+    getByOrderId: (orderId) => apiCall(`/documents/${orderId}`),
+    download: (orderId, filename) => {
+      const token = getAuthToken();
+      return fetch(`${API_BASE_URL}/documents/download/${orderId}/${filename}`, {
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : '',
+        },
+      });
+    },
+    delete: (orderId, filename) => apiCall(`/documents/${orderId}/${filename}`, { method: 'DELETE' }),
   },
 };
 

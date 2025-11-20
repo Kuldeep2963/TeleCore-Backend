@@ -175,7 +175,7 @@ function Products() {
       orderStatus: 'Available',
       orderDate: new Date().toISOString().split('T')[0], // Today's date
       region: product.region, // Add region for product view
-      edt: product.edt // Add estimated delivery time for product view
+      createdBy: 'System' // Product view doesn't have a specific creator
     };
 
     navigate('/order-number-view', { state: { orderData } });

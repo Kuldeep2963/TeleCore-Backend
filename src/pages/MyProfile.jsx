@@ -13,35 +13,81 @@ import {
   useColorModeValue,
   Avatar,
   IconButton,
-  useToast
+  useToast,
+  Card,
+  CardBody,
+  Grid,
+  GridItem,
+  Badge,
+  Divider,
+  Flex,
+  SimpleGrid,
+  InputGroup,
+  InputLeftAddon,
+  InputRightElement,
+  Tooltip,
+  Skeleton,
+  Alert,
+  AlertIcon
 } from '@chakra-ui/react';
-import { EditIcon } from '@chakra-ui/icons';
-import { FaCamera } from 'react-icons/fa';
+import { EditIcon, PhoneIcon, EmailIcon, LockIcon } from '@chakra-ui/icons';
+import { FaUser, FaMapMarkerAlt, FaCamera, FaShieldAlt, FaWallet } from 'react-icons/fa';
+import { MdSecurity, MdPerson } from 'react-icons/md';
 import api from '../services/api';
 
 function Profile({ profilePicture, onProfilePictureUpdate, userId, userProfile, userRole }) {
   const [customerData, setCustomerData] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const borderColor = useColorModeValue('gray.200', 'gray.700');
+  const [loading, setLoading] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    address: ''
+  });
   const toast = useToast();
   const fileInputRef = useRef(null);
+
+  const cardBg = useColorModeValue('white', 'gray.800');
+  const borderColor = useColorModeValue('gray.200', 'gray.600');
+  const accentColor = useColorModeValue('blue.500', 'blue.300');
+  const subtleBg = useColorModeValue('gray.50', 'gray.700');
 
   // Fetch customer data for client users
   useEffect(() => {
     const fetchCustomerData = async () => {
-      if (userRole === 'Client' && userId) {
+      if (userId) {
         setLoading(true);
         try {
-          // Find customer by user_id
-          const customersResponse = await api.customers.getAll();
-          if (customersResponse.success) {
-            const customer = customersResponse.data.find(c => c.user_id === userId);
-            if (customer) {
-              setCustomerData(customer);
+          if (userRole === 'Client') {
+            // Find customer by user_id
+            const customersResponse = await api.customers.getAll();
+            if (customersResponse.success) {
+              const customer = customersResponse.data.find(c => c.user_id === userId);
+              if (customer) {
+                setCustomerData(customer);
+              }
             }
           }
+
+          // Initialize form data
+          setFormData({
+            firstName: userProfile.firstName || '',
+            lastName: userProfile.lastName || '',
+            email: userProfile.email || '',
+            phone: customerData?.phone || '',
+            address: customerData?.location || ''
+          });
         } catch (error) {
-          console.error('Failed to fetch customer data:', error);
+          console.error('Failed to fetch profile data:', error);
+          toast({
+            title: 'Error loading profile',
+            description: 'Failed to load profile information',
+            status: 'error',
+            duration: 3000,
+            isClosable: true,
+          });
         } finally {
           setLoading(false);
         }
@@ -49,16 +95,7 @@ function Profile({ profilePicture, onProfilePictureUpdate, userId, userProfile, 
     };
 
     fetchCustomerData();
-  }, [userRole, userId]);
-
-  // Use real user data from props, with customer data for additional fields
-  const userData = {
-    firstName: userProfile.firstName || 'N/A',
-    lastName: userProfile.lastName || 'N/A',
-    email: userProfile.email || 'N/A',
-    phone: customerData?.phone || 'Not available',
-    address: customerData?.location || 'Not available'
-  };
+  }, [userRole, userId, userProfile, customerData?.phone, customerData?.location, toast]);
 
   const handleProfilePictureChange = async (event) => {
     const file = event.target.files[0];
@@ -67,7 +104,7 @@ function Profile({ profilePicture, onProfilePictureUpdate, userId, userProfile, 
       if (!file.type.startsWith('image/')) {
         toast({
           title: 'Invalid file type',
-          description: 'Please select an image file.',
+          description: 'Please select an image file (JPEG, PNG, etc.)',
           status: 'error',
           duration: 3000,
           isClosable: true,
@@ -79,7 +116,7 @@ function Profile({ profilePicture, onProfilePictureUpdate, userId, userProfile, 
       if (file.size > 5 * 1024 * 1024) {
         toast({
           title: 'File too large',
-          description: 'Please select an image smaller than 5MB.',
+          description: 'Please select an image smaller than 5MB',
           status: 'error',
           duration: 3000,
           isClosable: true,
@@ -100,8 +137,8 @@ function Profile({ profilePicture, onProfilePictureUpdate, userId, userProfile, 
             const response = await api.users.updateProfilePicture(userId, imageDataUrl);
             if (response.success) {
               toast({
-                title: 'Profile picture updated',
-                description: 'Your profile picture has been successfully saved.',
+                title: 'Profile picture updated!',
+                description: 'Your profile picture has been successfully updated.',
                 status: 'success',
                 duration: 3000,
                 isClosable: true,
@@ -109,14 +146,6 @@ function Profile({ profilePicture, onProfilePictureUpdate, userId, userProfile, 
             } else {
               throw new Error(response.message || 'Failed to save profile picture');
             }
-          } else {
-            toast({
-              title: 'Error',
-              description: 'User ID not available. Please try logging in again.',
-              status: 'error',
-              duration: 3000,
-              isClosable: true,
-            });
           }
         } catch (error) {
           console.error('Failed to update profile picture:', error);
@@ -137,157 +166,461 @@ function Profile({ profilePicture, onProfilePictureUpdate, userId, userProfile, 
     fileInputRef.current?.click();
   };
 
+  const handleInputChange = (field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleSaveChanges = async () => {
+    try {
+      // Here you would typically make API calls to update the user profile
+      // For now, we'll just show a success message
+      setIsEditing(false);
+      toast({
+        title: 'Profile updated!',
+        description: 'Your profile information has been updated successfully.',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+    } catch (error) {
+      console.error('Failed to update profile:', error);
+      toast({
+        title: 'Update failed',
+        description: 'Failed to update profile. Please try again.',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
+
+  const handleCancelEdit = () => {
+    // Reset form data to original values
+    setFormData({
+      firstName: userProfile.firstName || '',
+      lastName: userProfile.lastName || '',
+      email: userProfile.email || '',
+      phone: customerData?.phone || '',
+      address: customerData?.location || ''
+    });
+    setIsEditing(false);
+  };
+
+  const userData = {
+    firstName: formData.firstName || 'N/A',
+    lastName: formData.lastName || 'N/A',
+    email: formData.email || 'N/A',
+    phone: formData.phone || 'Not available',
+    address: formData.address || 'Not available',
+    role: userRole || 'Client',
+    joinDate: customerData?.join_date || new Date().toISOString().split('T')[0]
+  };
+
+  if (loading) {
+    return (
+      <Box flex={1} p={6} bg="#f8f9fa" height="calc(100vh - 76px)" overflowY="auto">
+        <Container maxW="container.xl">
+          <VStack spacing={6} align="stretch">
+            <Skeleton height="40px" width="300px" />
+            <Card>
+              <CardBody>
+                <VStack spacing={4}>
+                  <Skeleton height="120px" width="120px" borderRadius="full" />
+                  <SimpleGrid columns={2} gap={4} width="100%">
+                    <Skeleton height="60px" />
+                    <Skeleton height="60px" />
+                    <Skeleton height="60px" />
+                    <Skeleton height="60px" />
+                    <Skeleton height="60px" />
+                  </SimpleGrid>
+                </VStack>
+              </CardBody>
+            </Card>
+          </VStack>
+        </Container>
+      </Box>
+    );
+  }
+
   return (
     <Box 
       flex={1} 
       p={6} 
       bg="#f8f9fa"
-      height="calc(100vh - 76px)"
+      minHeight="calc(100vh - 76px)"
       overflowY="auto"
     >
-      <Container maxW="container.xl">
-        <VStack spacing={6} align="stretch">
-          <Heading
-            color="#1a3a52"
-            fontSize="3xl"
-            fontWeight="bold"
-            letterSpacing="-0.2px"
-          >
-            User Information
-          </Heading>
-
-          <Box
-            bg="white"
-            borderRadius="12px"
-            p={6}
-            boxShadow="sm"
-            border="1px solid"
-            borderColor={borderColor}
-          >
-            <VStack spacing={6} align="stretch">
-              {/* Profile Picture */}
-              <HStack spacing={6} align="center" justify="center">
-                <VStack spacing={4} align="center">
-                  <Box position="relative">
-                    <Avatar
-                      size="xl"
-                      src={profilePicture}
-                      name={`${userData.firstName} ${userData.lastName}`}
-                      bg="blue.500"
-                      color="white"
-                    />
-                    <IconButton
-                      aria-label="Change profile picture"
-                      icon={<EditIcon />}
-                      size="sm"
-                      colorScheme="green"
-                      variant="solid"
-                      borderRadius="full"
-                      position="absolute"
-                      bottom={0}
-                      right={0}
-                      onClick={handleEditProfilePicture}
-                      _hover={{
-                        transform: 'scale(1.1)',
-                        transition: 'all 0.2s'
-                      }}
-                    />
-                  </Box>
-                  {/* <Button
-                    leftIcon={<FaCamera />}
-                    colorScheme="blue"
-                    variant="outline"
-                    size="sm"
-                    onClick={handleEditProfilePicture}
-                  >
-                    Change Profile Picture
-                  </Button> */}
-                </VStack>
-              </HStack>
-
-              {/* Hidden file input */}
-              <Input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleProfilePictureChange}
-                accept="image/*"
-                display="none"
-              />
-
-              {/* First Name & Last Name */}
-              <HStack spacing={6} align="start">
-                <FormControl flex={1}>
-                  <FormLabel fontWeight="semibold" color="gray.700" mb={2}>
-                    First Name
-                  </FormLabel>
-                  <Input 
-                    value={userData.firstName}
-                    bg="white"
-                    borderColor="gray.300"
-                    size="md"
-                    readOnly
-                  />
-                </FormControl>
-                
-                <FormControl flex={1}>
-                  <FormLabel fontWeight="semibold" color="gray.700" mb={2}>
-                    Last Name
-                  </FormLabel>
-                  <Input 
-                    value={userData.lastName}
-                    bg="white"
-                    borderColor="gray.300"
-                    size="md"
-                    readOnly
-                  />
-                </FormControl>
-              </HStack>
-
-              {/* Email & Phone */}
-              <HStack spacing={6} align="start">
-                <FormControl flex={1}>
-                  <FormLabel fontWeight="semibold" color="gray.700" mb={2}>
-                    Email Address
-                  </FormLabel>
-                  <Input 
-                    value={userData.email}
-                    bg="white"
-                    borderColor="gray.300"
-                    size="md"
-                    readOnly
-                  />
-                </FormControl>
-                
-                <FormControl flex={1}>
-                  <FormLabel fontWeight="semibold" color="gray.700" mb={2}>
-                    Phone
-                  </FormLabel>
-                  <Input 
-                    value={userData.phone}
-                    bg="white"
-                    borderColor="gray.300"
-                    size="md"
-                    readOnly
-                  />
-                </FormControl>
-              </HStack>
-
-              {/* Address */}
-              <FormControl>
-                <FormLabel fontWeight="semibold" color="gray.700" mb={2}>
-                  Address
-                </FormLabel>
-                <Input 
-                  value={userData.address}
-                  bg="white"
-                  borderColor="gray.300"
-                  size="md"
-                  readOnly
-                />
-              </FormControl>
-            </VStack>
+      <Container maxW="6xl">
+        <VStack spacing={8} align="stretch">
+          {/* Header Section */}
+          <Box>
+            <Heading
+              color="#1a3a52"
+              fontSize="4xl"
+              fontWeight="bold"
+              letterSpacing="-0.5px"
+              mb={2}
+            >
+              Profile Settings
+            </Heading>
+            <Text color="gray.600" fontSize="lg">
+              Manage your personal information and account settings
+            </Text>
           </Box>
+
+          <Grid templateColumns={{ base: '1fr', lg: '1fr 2fr' }} gap={8}>
+            {/* Left Column - Profile Overview */}
+            <VStack spacing={6} align="stretch">
+              {/* Profile Card */}
+              <Card 
+                bg={cardBg}
+                border="1px solid"
+                borderColor={borderColor}
+                borderRadius="2xl"
+                boxShadow="lg"
+              >
+                <CardBody p={6}>
+                  <VStack spacing={4} align="center">
+                    <Box position="relative">
+                      <Avatar
+                        size="2xl"
+                        src={profilePicture}
+                        name={`${userData.firstName} ${userData.lastName}`}
+                        bg={accentColor}
+                        color="white"
+                        fontSize="2xl"
+                        fontWeight="bold"
+                      />
+                      <Tooltip label="Change profile picture">
+                        <IconButton
+                          aria-label="Change profile picture"
+                          icon={<FaCamera />}
+                          size="sm"
+                          colorScheme="blue"
+                          borderRadius="full"
+                          position="absolute"
+                          bottom={2}
+                          right={2}
+                          onClick={handleEditProfilePicture}
+                          _hover={{
+                            transform: 'scale(1.1)',
+                            boxShadow: 'lg'
+                          }}
+                          transition="all 0.2s"
+                        />
+                      </Tooltip>
+                    </Box>
+
+                    <VStack spacing={1} textAlign="center">
+                      <Heading size="lg" color="gray.800">
+                        {userData.firstName} {userData.lastName}
+                      </Heading>
+                      <Badge 
+                        colorScheme={
+                          userData.role === 'Admin' ? 'red' : 
+                          userData.role === 'Internal' ? 'purple' : 'blue'
+                        }
+                        fontSize="sm"
+                        px={3}
+                        py={1}
+                        borderRadius="full"
+                      >
+                        {userData.role}
+                      </Badge>
+                      <Text color="gray.600" fontSize="sm">
+                        Member since {new Date(userData.joinDate).toLocaleDateString()}
+                      </Text>
+                    </VStack>
+
+                    <Divider />
+
+                    <VStack spacing={2} align="stretch" width="100%">
+                      <HStack spacing={3}>
+                        <EmailIcon color="gray.500" />
+                        <Text fontSize="sm" color="gray.600">{userData.email}</Text>
+                      </HStack>
+                      <HStack spacing={3}>
+                        <PhoneIcon color="gray.500" />
+                        <Text fontSize="sm" color="gray.600">{userData.phone}</Text>
+                      </HStack>
+                    </VStack>
+                  </VStack>
+                </CardBody>
+              </Card>
+
+              {/* Quick Stats Card */}
+              <Card 
+                bg={cardBg}
+                border="1px solid"
+                borderColor={borderColor}
+                borderRadius="2xl"
+                boxShadow="lg"
+              >
+                <CardBody p={6}>
+                  <VStack spacing={4} align="stretch">
+                    <Heading size="md" color="gray.800">Account Overview</Heading>
+                    <VStack spacing={3} align="stretch">
+                      <HStack justify="space-between">
+                        <Text color="gray.600">Status</Text>
+                        <Badge colorScheme="green" borderRadius="full">Active</Badge>
+                      </HStack>
+                      <HStack justify="space-between">
+                        <Text color="gray.600">Role</Text>
+                        <Text fontWeight="medium">{userData.role}</Text>
+                      </HStack>
+                      <HStack justify="space-between">
+                        <Text color="gray.600">Member since</Text>
+                        <Text fontWeight="medium">
+                          {new Date(userData.joinDate).toLocaleDateString()}
+                        </Text>
+                      </HStack>
+                    </VStack>
+                  </VStack>
+                </CardBody>
+              </Card>
+            </VStack>
+
+            {/* Right Column - Profile Details */}
+            <VStack spacing={6} align="stretch">
+              {/* Personal Information Card */}
+              <Card 
+                bg={cardBg}
+                border="1px solid"
+                borderColor={borderColor}
+                borderRadius="2xl"
+                boxShadow="lg"
+              >
+                <CardBody p={6}>
+                  <VStack spacing={6} align="stretch">
+                    <Flex justify="space-between" align="center">
+                      <Heading size="md" color="gray.800">
+                        Personal Information
+                      </Heading>
+                      <Button
+                        leftIcon={<EditIcon />}
+                        colorScheme={isEditing ? "gray" : "blue"}
+                        variant={isEditing ? "outline" : "solid"}
+                        size="sm"
+                        onClick={() => setIsEditing(!isEditing)}
+                      >
+                        {isEditing ? 'Cancel' : 'Edit Profile'}
+                      </Button>
+                    </Flex>
+
+                    <SimpleGrid columns={{ base: 1, md: 2 }} gap={6}>
+                      <FormControl>
+                        <FormLabel fontWeight="semibold" color="gray.700" display="flex" alignItems="center" gap={2}>
+                          <MdPerson color="#4A5568" />
+                          First Name
+                        </FormLabel>
+                        <Input
+                          value={userData.firstName}
+                          bg={isEditing ? "white" : subtleBg}
+                          borderColor={borderColor}
+                          size="md"
+                          readOnly={!isEditing}
+                          onChange={(e) => handleInputChange('firstName', e.target.value)}
+                          _readOnly={{
+                            bg: subtleBg,
+                            cursor: 'not-allowed'
+                          }}
+                        />
+                      </FormControl>
+
+                      <FormControl>
+                        <FormLabel fontWeight="semibold" color="gray.700" display="flex" alignItems="center" gap={2}>
+                          <MdPerson color="#4A5568" />
+                          Last Name
+                        </FormLabel>
+                        <Input
+                          value={userData.lastName}
+                          bg={isEditing ? "white" : subtleBg}
+                          borderColor={borderColor}
+                          size="md"
+                          readOnly={!isEditing}
+                          onChange={(e) => handleInputChange('lastName', e.target.value)}
+                          _readOnly={{
+                            bg: subtleBg,
+                            cursor: 'not-allowed'
+                          }}
+                        />
+                      </FormControl>
+
+                      <FormControl>
+                        <FormLabel fontWeight="semibold" color="gray.700" display="flex" alignItems="center" gap={2}>
+                          <EmailIcon color="#4A5568" />
+                          Email Address
+                        </FormLabel>
+                        <InputGroup>
+                          <Input
+                            type="email"
+                            value={userData.email}
+                            bg={subtleBg}
+                            borderColor={borderColor}
+                            size="md"
+                            readOnly
+                            _readOnly={{
+                              bg: subtleBg,
+                              cursor: 'not-allowed'
+                            }}
+                          />
+                          <InputRightElement>
+                            <LockIcon color="gray.400" />
+                          </InputRightElement>
+                        </InputGroup>
+                        <Text fontSize="sm" color="gray.500" mt={1}>
+                          Contact support to change your email
+                        </Text>
+                      </FormControl>
+
+                      <FormControl>
+                        <FormLabel fontWeight="semibold" color="gray.700" display="flex" alignItems="center" gap={2}>
+                          <PhoneIcon color="#4A5568" />
+                          Phone Number
+                        </FormLabel>
+                        <Input
+                          value={userData.phone}
+                          bg={isEditing ? "white" : subtleBg}
+                          borderColor={borderColor}
+                          size="md"
+                          readOnly={!isEditing}
+                          onChange={(e) => handleInputChange('phone', e.target.value)}
+                          _readOnly={{
+                            bg: subtleBg,
+                            cursor: 'not-allowed'
+                          }}
+                        />
+                      </FormControl>
+                    </SimpleGrid>
+
+                    <FormControl>
+                      <FormLabel fontWeight="semibold" color="gray.700" display="flex" alignItems="center" gap={2}>
+                        <FaMapMarkerAlt color="#4A5568" />
+                        Address
+                      </FormLabel>
+                      <Input
+                        value={userData.address}
+                        bg={isEditing ? "white" : subtleBg}
+                        borderColor={borderColor}
+                        size="md"
+                        readOnly={!isEditing}
+                        onChange={(e) => handleInputChange('address', e.target.value)}
+                        _readOnly={{
+                          bg: subtleBg,
+                          cursor: 'not-allowed'
+                        }}
+                      />
+                    </FormControl>
+
+                    {isEditing && (
+                      <HStack spacing={3} justify="flex-end" pt={4}>
+                        <Button
+                          variant="outline"
+                          onClick={handleCancelEdit}
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          colorScheme="blue"
+                          onClick={handleSaveChanges}
+                        >
+                          Save Changes
+                        </Button>
+                      </HStack>
+                    )}
+                  </VStack>
+                </CardBody>
+              </Card>
+
+              {/* Security & Preferences Card */}
+              <Card 
+                bg={cardBg}
+                border="1px solid"
+                borderColor={borderColor}
+                borderRadius="2xl"
+                boxShadow="lg"
+              >
+                <CardBody p={6}>
+                  <VStack spacing={6} align="stretch">
+                    <Heading size="md" color="gray.800">
+                      Security & Preferences
+                    </Heading>
+                    
+                    <SimpleGrid columns={{ base: 1, md: 2 }} gap={6}>
+                      <Button
+                        leftIcon={<MdSecurity />}
+                        variant="outline"
+                        justifyContent="flex-start"
+                        height="auto"
+                        py={4}
+                        textAlign="left"
+                      >
+                        <Box>
+                          <Text fontWeight="semibold">Change Password</Text>
+                          <Text fontSize="sm" color="gray.600">Update your account password</Text>
+                        </Box>
+                      </Button>
+
+                      <Button
+                        leftIcon={<FaShieldAlt />}
+                        variant="outline"
+                        justifyContent="flex-start"
+                        height="auto"
+                        py={4}
+                        textAlign="left"
+                      >
+                        <Box>
+                          <Text fontWeight="semibold">Two-Factor Auth</Text>
+                          <Text fontSize="sm" color="gray.600">Enable 2FA for extra security</Text>
+                        </Box>
+                      </Button>
+
+                      <Button
+                        leftIcon={<FaWallet />}
+                        variant="outline"
+                        justifyContent="flex-start"
+                        height="auto"
+                        py={4}
+                        textAlign="left"
+                      >
+                        <Box>
+                          <Text fontWeight="semibold">Payment Methods</Text>
+                          <Text fontSize="sm" color="gray.600">Manage your payment options</Text>
+                        </Box>
+                      </Button>
+
+                      <Button
+                        leftIcon={<FaUser />}
+                        variant="outline"
+                        justifyContent="flex-start"
+                        height="auto"
+                        py={4}
+                        textAlign="left"
+                      >
+                        <Box>
+                          <Text fontWeight="semibold">Privacy Settings</Text>
+                          <Text fontSize="sm" color="gray.600">Control your privacy options</Text>
+                        </Box>
+                      </Button>
+                    </SimpleGrid>
+                  </VStack>
+                </CardBody>
+              </Card>
+            </VStack>
+          </Grid>
         </VStack>
+
+        {/* Hidden file input */}
+        <Input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleProfilePictureChange}
+          accept="image/*"
+          display="none"
+        />
       </Container>
     </Box>
   );

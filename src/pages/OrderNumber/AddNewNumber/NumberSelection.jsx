@@ -33,29 +33,7 @@ import { FaInfoCircle, FaTrash, FaEye } from 'react-icons/fa';
 import DocumentRequiredModal from '../../../Modals/DocumentRequiredModal';
 import api from '../../../services/api';
 
-export const defaultPricingData = {
-  nrc: '$24.00',
-  mrc: '$24.00',
-  ppm: '$0.0380',
-  ppmFix: '$0.0250',
-  ppmMobile: '$0.0350',
-  ppmPayphone: '$0.0450',
-  ppmIncoming: '$0.0200',
-  ppmOutgoingfix: '$0.0300',
-  ppmOutgoingmobile: '$0.0400',
-  arc: '$0.0150',
-  mo: '$0.0120',
-  mt: '$0.0180',
-  Incomingppm: '$0.0220',
-  Outgoingppmfix: '$0.0320',
-  Outgoingppmmobile: '$0.0420',
-  incmongsms: '$0.0100',
-  outgoingsms: '$0.0160',
-  billingPulse: '60/60',
-  estimatedLeadTime: '15 Days',
-  contractTerm: '1 Month',
-  disconnectionNoticeTerm: '1 Month'
-};
+export const defaultPricingData = {};
 
 function NumberSelection({
   formData,
@@ -75,51 +53,70 @@ function NumberSelection({
   const [bargainData, setBargainData] = useState({});
   const [fetchedPricingData, setFetchedPricingData] = useState(null);
   const [loadingPricing, setLoadingPricing] = useState(false);
+  const [serviceDetails, setServiceDetails] = useState(null);
+  const [loadingServiceDetails, setLoadingServiceDetails] = useState(false);
+  const [requiredDocuments, setRequiredDocuments] = useState([]);
+  const [loadingRequiredDocuments, setLoadingRequiredDocuments] = useState(false);
   const [countries, setCountries] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [coverageData, setCoverageData] = useState(null);
+  const [channelDetails, setChannelDetails] = useState(null);
+  const [loadingCoverageChannel, setLoadingCoverageChannel] = useState(false);
   const fileInputRef = useRef(null);
   const toast = useToast();
 
   useEffect(() => {
     fetchCountries();
+    fetchProducts();
   }, []);
 
   useEffect(() => {
+    console.log('Form data changed:', { productType: formData.productType, country: formData.country });
+    console.log('Countries:', countries);
+    console.log('Products:', products);
     fetchPricingData();
-  }, [formData.productType, formData.country, countries]);
+    fetchServiceDetails();
+    fetchRequiredDocuments();
+  }, [formData.productType, formData.country, countries, products]);
 
   const fetchCountries = async () => {
     try {
-      console.log('Fetching countries from API...');
+      console.log('Fetching countries...');
       const response = await api.countries.getAll();
-      console.log('Countries API response:', response);
+      console.log('Countries response:', response);
       if (response.success) {
-        console.log('Countries data:', response.data);
+        console.log('Countries loaded:', response.data);
         setCountries(response.data);
       } else {
         console.error('Countries API returned unsuccessful:', response);
-        // Fallback to some test data if API fails
-        console.log('Using fallback country data');
-        setCountries([
-          { id: 1, code: 'us', name: 'United States', phone_code: '+1' },
-          { id: 2, code: 'uk', name: 'United Kingdom', phone_code: '+44' },
-          { id: 3, code: 'ca', name: 'Canada', phone_code: '+1' },
-          { id: 4, code: 'au', name: 'Australia', phone_code: '+61' }
-        ]);
+        setCountries([]);
       }
     } catch (error) {
       console.error('Error fetching countries:', error);
-      // Fallback to some test data if API fails
-      console.log('Using fallback country data due to error');
-      setCountries([
-        { id: 1, code: 'us', name: 'United States', phone_code: '+1' },
-        { id: 2, code: 'uk', name: 'United Kingdom', phone_code: '+44' },
-        { id: 3, code: 'ca', name: 'Canada', phone_code: '+1' },
-        { id: 4, code: 'au', name: 'Australia', phone_code: '+61' }
-      ]);
+      setCountries([]);
+    }
+  };
+
+  const fetchProducts = async () => {
+    try {
+      console.log('Fetching products...');
+      const response = await api.products.getAll();
+      console.log('Products response:', response);
+      if (response.success) {
+        console.log('Products with codes:', response.data);
+        setProducts(response.data);
+      } else {
+        console.error('Products API returned unsuccessful:', response);
+        setProducts([]);
+      }
+    } catch (error) {
+      console.error('Error fetching products:', error);
+      setProducts([]);
     }
   };
 
   const fetchPricingData = async () => {
+    // Always fetch general pricing data from pricing_plans for base pricing
     if (!formData.productType || !formData.country) {
       return;
     }
@@ -127,60 +124,119 @@ function NumberSelection({
     try {
       setLoadingPricing(true);
 
-      // Map product type to product ID (this would need proper mapping)
-      // For now, we'll use a simple mapping
-      const productTypeMap = {
-        'did': 1, // DID
-        'freephone': 2, // Freephone
-        'universal': 3, // Universal Freephone
-        'two-way-voice': 4, // Two Way Voice
-        'two-way-sms': 5, // Two Way SMS
-        'mobile': 6 // Mobile
-      };
+      const product = products.find(p => p.code?.toLowerCase() === formData.productType?.toLowerCase());
+      const country = countries.find(c => c.countryname?.toLowerCase().includes(formData.country?.toLowerCase().split(' ')[0]));
 
-      // Build country code map dynamically from API data
-      const countryCodeMap = {};
-      countries.forEach((country, index) => {
-        countryCodeMap[country.code] = country.id || index + 1;
-      });
+      console.log('Fetching pricing - Product:', product, 'Country:', country);
 
-      const productId = productTypeMap[formData.productType];
-      const countryId = countryCodeMap[formData.country];
-
-      if (productId && countryId) {
-        const response = await api.pricing.getByProduct(productId, countryId);
+      if (product && country) {
+        const response = await api.pricing.getByProduct(product.id, country.id);
+        console.log('Pricing response:', response);
         if (response.success) {
-          // Transform the pricing data to match the expected format
           const pricing = response.data;
+          const formatPrice = (value) => `$${parseFloat(value || 0).toFixed(4)}`;
           const transformedPricing = {
-            nrc: `$${pricing.nrc || 0}`,
-            mrc: `$${pricing.mrc || 0}`,
-            ppm: `$${pricing.ppm || 0}`,
-            ppmFix: `$${pricing.ppm_fix || 0}`,
-            ppmMobile: `$${pricing.ppm_mobile || 0}`,
-            ppmPayphone: `$${pricing.ppm_payphone || 0}`,
-            arc: `$${pricing.arc || 0}`,
-            mo: `$${pricing.mo || 0}`,
-            mt: `$${pricing.mt || 0}`,
-            Incomingppm: `$${pricing.incoming_ppm || 0}`,
-            Outgoingppmfix: `$${pricing.outgoing_ppm_fix || 0}`,
-            Outgoingppmmobile: `$${pricing.outgoing_ppm_mobile || 0}`,
-            incmongsms: `$${pricing.incoming_sms || 0}`,
-            outgoingsms: `$${pricing.outgoing_sms || 0}`,
-            billingPulse: pricing.billing_pulse || '60/60',
-            estimatedLeadTime: pricing.estimated_lead_time || '15 Days',
-            contractTerm: pricing.contract_term || '1 Month',
-            disconnectionNoticeTerm: pricing.disconnection_notice_term || '1 Month'
+            nrc: formatPrice(pricing.nrc),
+            mrc: formatPrice(pricing.mrc),
+            ppm: formatPrice(pricing.ppm),
+            ppmFix: formatPrice(pricing.ppm_fix),
+            ppmMobile: formatPrice(pricing.ppm_mobile),
+            ppmPayphone: formatPrice(pricing.ppm_payphone),
+            arc: formatPrice(pricing.arc),
+            mo: formatPrice(pricing.mo),
+            mt: formatPrice(pricing.mt),
+            Incomingppm: formatPrice(pricing.incoming_ppm),
+            Outgoingppmfix: formatPrice(pricing.outgoing_ppm_fix),
+            Outgoingppmmobile: formatPrice(pricing.outgoing_ppm_mobile),
+            incmongsms: formatPrice(pricing.incoming_sms),
+            outgoingsms: formatPrice(pricing.outgoing_sms),
+            billingPulse: pricing.billing_pulse || '',
+            estimatedLeadTime: pricing.estimated_lead_time || '',
+            contractTerm: pricing.contract_term || '',
+            disconnectionNoticeTerm: pricing.disconnection_notice_term || ''
           };
           setFetchedPricingData(transformedPricing);
+        } else {
+          console.error('Pricing API returned unsuccessful:', response);
         }
+      } else {
+        console.log('Product or country not found');
       }
     } catch (error) {
       console.error('Error fetching pricing data:', error);
-      // Fall back to default pricing if API fails
       setFetchedPricingData(null);
     } finally {
       setLoadingPricing(false);
+    }
+  };
+
+  const fetchServiceDetails = async () => {
+    if (!formData.productType || !formData.country) {
+      return;
+    }
+
+    try {
+      setLoadingServiceDetails(true);
+      setLoadingCoverageChannel(true);
+
+      const product = products.find(p => p.code?.toLowerCase() === formData.productType?.toLowerCase());
+      const country = countries.find(c => c.countryname?.toLowerCase().includes(formData.country?.toLowerCase().split(' ')[0]));
+
+      if (product && country) {
+        const response = await api.serviceDetails.getByProductCountry(product.id, country.id);
+        if (response.success) {
+          setServiceDetails(response.data);
+          
+          const data = response.data;
+          setCoverageData({
+            restrictions: data.restrictions || '',
+            channels: data.channels || '',
+            portability: data.portability || '',
+            fix: data.fix_coverage || '',
+            mobile: data.mobile_coverage || '',
+            payphone: data.payphone_coverage || ''
+          });
+          
+          setChannelDetails({
+            defaultChannels: data.default_channels || '',
+            maximumChannels: data.maximum_channels || '',
+            extraChannelPrice: `$${data.extra_channel_price || 0}`
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching service details:', error);
+      setServiceDetails(null);
+      setCoverageData(null);
+      setChannelDetails(null);
+    } finally {
+      setLoadingServiceDetails(false);
+      setLoadingCoverageChannel(false);
+    }
+  };
+
+  const fetchRequiredDocuments = async () => {
+    if (!formData.productType || !formData.country) {
+      return;
+    }
+
+    try {
+      setLoadingRequiredDocuments(true);
+
+      const product = products.find(p => p.code?.toLowerCase() === formData.productType?.toLowerCase());
+      const country = countries.find(c => c.countryname?.toLowerCase().includes(formData.country?.toLowerCase().split(' ')[0]));
+
+      if (product && country) {
+        const response = await api.requiredDocuments.getByProductCountry(product.id, country.id);
+        if (response.success) {
+          setRequiredDocuments(response.data);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching required documents:', error);
+      setRequiredDocuments([]);
+    } finally {
+      setLoadingRequiredDocuments(false);
     }
   };
 
@@ -199,7 +255,7 @@ function NumberSelection({
   const mergedPricingData = useMemo(() => ({
     ...defaultPricingData,
     ...(fetchedPricingData || {}),
-    ...(pricingDataProp || {})
+    ...(pricingDataProp || {}) // order_pricing takes precedence only if fetched data is missing
   }), [fetchedPricingData, pricingDataProp]);
 
   const pricingData = mergedPricingData;
@@ -231,30 +287,6 @@ const statusKey = orderStatus ? orderStatus.toLowerCase() : '';
 const showBasePricing = !['confirmed', 'delivered', 'amount paid'].includes(statusKey);
 const desiredPricingHeading = ['confirmed', 'delivered', 'amount paid'].includes(statusKey) ? 'Pricing' : 'Desired Pricings';
 
-  const coverageData = {
-    restrictions: 'None',
-    channels: 'SMS, Voice',
-    portability: 'Yes',
-    fix: 'Supported',
-    mobile: 'Supported',
-    payphone: 'Not Supported'
-  };
-
-  const channelDetails = {
-    defaultChannels: '2',
-    maximumChannels: '10',
-    extraChannelPrice: '$45.00'
-  };
-
-  // Required documents for number ordering
-  const requiredDocuments = [
-    { name: 'Business License', required: true, description: 'Valid business registration certificate' },
-    { name: 'Tax Certificate', required: true, description: 'Latest tax clearance certificate' },
-    { name: 'ID Proof', required: false, description: 'Government issued ID for authorized signatory' },
-    { name: 'Address Proof', required: true, description: 'Utility bill or bank statement showing address' },
-    { name: 'Bank Details', required: true, description: 'Bank account details for payment processing' }
-  ];
-
   const formatDocumentType = (file) => {
     if (file.type) {
       const parts = file.type.split('/');
@@ -270,36 +302,107 @@ const desiredPricingHeading = ['confirmed', 'delivered', 'amount paid'].includes
     }
   };
 
-  const handleFileChange = (event) => {
+  const handleFileChange = async (event) => {
     const { files } = event.target;
     if (!files || files.length === 0) {
       return;
     }
-    const timestamp = Date.now();
-    const newDocuments = Array.from(files).map((file, index) => ({
-      id: `${timestamp}-${index}`,
-      name: file.name,
-      type: formatDocumentType(file),
-      uploadedAt: new Date().toISOString(),
-      file
-    }));
-    setDocuments((prev) => [...prev, ...newDocuments]);
+
+    try {
+      // Create FormData for file upload
+      const formData = new FormData();
+      Array.from(files).forEach(file => {
+        formData.append('documents', file);
+      });
+
+      // Upload files to server
+      const response = await api.documents.upload('temp', formData);
+
+      if (response.success) {
+        // Update local state with uploaded file info
+        const newDocuments = response.data.uploadedFiles.map((uploadedFile, index) => ({
+          id: `uploaded-${Date.now()}-${index}`,
+          name: uploadedFile.originalname,
+          type: uploadedFile.mimetype.split('/')[1]?.toUpperCase() || 'UNKNOWN',
+          uploadedAt: uploadedFile.uploadDate,
+          filename: uploadedFile.filename, // Store server filename for later use
+          size: uploadedFile.size
+        }));
+
+        setDocuments((prev) => [...prev, ...newDocuments]);
+
+        toast({
+          title: 'Documents uploaded',
+          description: `${files.length} document(s) uploaded successfully`,
+          status: 'success',
+          duration: 3000,
+          isClosable: true,
+        });
+      } else {
+        throw new Error(response.message || 'Upload failed');
+      }
+    } catch (error) {
+      console.error('File upload error:', error);
+      toast({
+        title: 'Upload failed',
+        description: error.message || 'Failed to upload documents',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+    }
+
     event.target.value = '';
   };
 
-  const handleDeleteDocument = (id) => {
+  const handleDeleteDocument = async (id) => {
+    const document = documents.find(doc => doc.id === id);
+    if (document && document.filename) {
+      try {
+        // Delete from server
+        await api.documents.delete('temp', document.filename);
+      } catch (error) {
+        console.error('Delete error:', error);
+        // Continue with local deletion even if server delete fails
+      }
+    }
+
+    // Remove from local state
     setDocuments((prev) => prev.filter((doc) => doc.id !== id));
   };
 
-  const handleViewDocument = (document) => {
-    if (document.file) {
+  const handleViewDocument = async (document) => {
+    if (document.filename) {
+      try {
+        // Download file from server
+        const response = await api.documents.download('temp', document.filename);
+
+        if (response.ok) {
+          const blob = await response.blob();
+          const url = URL.createObjectURL(blob);
+          window.open(url, '_blank');
+        } else {
+          throw new Error('Download failed');
+        }
+      } catch (error) {
+        console.error('Download error:', error);
+        toast({
+          title: 'Download failed',
+          description: 'Failed to download document',
+          status: 'error',
+          duration: 3000,
+          isClosable: true,
+        });
+      }
+    } else if (document.file) {
+      // Fallback for local files
       const url = URL.createObjectURL(document.file);
       window.open(url, '_blank');
     }
   };
 
-  const serviceRestriction = coverageData.restrictions && coverageData.restrictions.toLowerCase() === 'none' ? 'No' : 'Yes';
-  const portingAvailability = coverageData.portability && coverageData.portability.toLowerCase() === 'yes' ? 'Yes' : 'No';
+  const serviceRestriction = coverageData?.restrictions && coverageData.restrictions.toLowerCase() === 'none' ? 'No' : 'Yes';
+  const portingAvailability = coverageData?.portability && coverageData.portability.toLowerCase() === 'yes' ? 'Yes' : 'No';
 
 
 
@@ -307,7 +410,13 @@ const desiredPricingHeading = ['confirmed', 'delivered', 'amount paid'].includes
 
   const handleConfigureClick = () => {
     if (onConfigure) {
-      onConfigure([]);
+      onConfigure({
+        documents,
+        bargainData,
+        country: formData.country,
+        productType: formData.productType,
+        areaCode: formData.areaCode
+      });
     }
   };
 
@@ -515,13 +624,11 @@ const desiredPricingHeading = ['confirmed', 'delivered', 'amount paid'].includes
               )}
             </Tbody>
           </Table>
-          
+         </Box>
         </Box>
-      </Box>
-    </VStack>
-  </CardBody>
-</Card>
-
+       </VStack>
+      </CardBody>
+     </Card>
         <Card bg="white" borderRadius="12px" h={"250px"} boxShadow="sm" border="1px solid" borderColor="gray.200">
           <CardBody p={6}>
             <Heading size="md" color="gray.800" mb={4}>Service Details</Heading>
@@ -544,9 +651,9 @@ const desiredPricingHeading = ['confirmed', 'delivered', 'amount paid'].includes
                     </Thead>
                     <Tbody>
                       <Tr>
-                        <Td>{coverageData.fix}</Td>
-                        <Td>{coverageData.mobile}</Td>
-                        <Td>{coverageData.payphone}</Td>
+                        <Td>{coverageData?.fix || '—'}</Td>
+                        <Td>{coverageData?.mobile || '—'}</Td>
+                        <Td>{coverageData?.payphone || '—'}</Td>
                       </Tr>
                     </Tbody>
                   </Table>
@@ -569,9 +676,9 @@ const desiredPricingHeading = ['confirmed', 'delivered', 'amount paid'].includes
                     </Thead>
                     <Tbody>
                       <Tr>
-                        <Td>{channelDetails.defaultChannels}</Td>
-                        <Td>{channelDetails.maximumChannels}</Td>
-                        <Td>{channelDetails.extraChannelPrice}</Td>
+                        <Td>{channelDetails?.defaultChannels || '—'}</Td>
+                        <Td>{channelDetails?.maximumChannels || '—'}</Td>
+                        <Td>{channelDetails?.extraChannelPrice || '—'}</Td>
                       </Tr>
                     </Tbody>
                   </Table>
@@ -612,7 +719,7 @@ const desiredPricingHeading = ['confirmed', 'delivered', 'amount paid'].includes
       <DocumentRequiredModal
         isOpen={isDocumentsModalOpen}
         onClose={() => setIsDocumentsModalOpen(false)}
-        documents={requiredDocuments}
+        documents={requiredDocuments && requiredDocuments.length > 0 ? requiredDocuments : []}
         title="Required Documents"
       />
     </VStack>

@@ -418,7 +418,7 @@ const DisconnectionRequests = () => {
 
             {filteredRequests.length === 0 && (
               <Box p={8} textAlign="center">
-                <Icon as={FiRefreshCw} boxSize={8} color="gray.500" mb={4} />
+                <Icon as={FiRefreshCw} boxSize={6} color="gray.500" mb={4} />
                 <Text fontStyle='italic' fontSize="sm" color="gray.600">
                   No disconnection requests found matching your criteria.
                 </Text>

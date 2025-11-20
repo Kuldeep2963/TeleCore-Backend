@@ -7,7 +7,7 @@ const router = express.Router();
 router.get('/', async (req, res) => {
   try {
     const result = await query(`
-      SELECT countryname, phonecode, availableproducts
+      SELECT id, countryname, phonecode, availableproducts
       FROM countries
       ORDER BY countryname ASC
     `);
@@ -31,7 +31,7 @@ router.get('/:countryname', async (req, res) => {
     const { countryname } = req.params;
 
     const result = await query(`
-      SELECT countryname, phonecode, availableproducts
+      SELECT id, countryname, phonecode, availableproducts
       FROM countries
       WHERE countryname = $1
     `, [countryname]);

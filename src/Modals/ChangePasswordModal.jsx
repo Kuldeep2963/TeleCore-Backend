@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, memo } from 'react';
 import {
   Modal,
   ModalOverlay,
@@ -25,6 +25,47 @@ import {
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
 import api from '../services/api';
 
+// PasswordInput component defined outside to prevent recreation on each render
+const PasswordInput = memo(({ label, value, onChange, show, onToggleShow, error, placeholder, name }) => (
+  <FormControl isInvalid={!!error}>
+    <FormLabel fontWeight="semibold" color="gray.700" fontSize="sm">
+      {label}
+    </FormLabel>
+    <InputGroup>
+      <Input
+        key={name}
+        name={name}
+        type={show ? 'text' : 'password'}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        bg="white"
+        borderColor={error ? 'red.500' : 'gray.300'}
+        _focus={{
+          borderColor: error ? 'red.500' : 'blue.500',
+          boxShadow: error ? '0 0 0 1px red.500' : '0 0 0 1px blue.500'
+        }}
+        size="md"
+      />
+      <InputRightElement>
+        <IconButton
+          icon={show ? <FaEye /> : <FaEyeSlash />}
+          size="sm"
+          variant="ghost"
+          onClick={onToggleShow}
+          tabIndex={-1}
+          aria-label={show ? 'Show password' : 'Hide password'}
+        />
+      </InputRightElement>
+    </InputGroup>
+    {error && (
+      <Text fontSize="xs" color="red.500" mt={1}>
+        {error}
+      </Text>
+    )}
+  </FormControl>
+));
+
 function ChangePasswordModal({ isOpen, onClose }) {
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -45,18 +86,12 @@ function ChangePasswordModal({ isOpen, onClose }) {
 
     if (!newPassword.trim()) {
       newErrors.newPassword = 'New password is required';
-    } else if (newPassword.length < 8) {
-      newErrors.newPassword = 'Password must be at least 8 characters';
     }
 
     if (!confirmPassword.trim()) {
       newErrors.confirmPassword = 'Please confirm your password';
     } else if (newPassword !== confirmPassword) {
       newErrors.confirmPassword = 'Passwords do not match';
-    }
-
-    if (oldPassword === newPassword) {
-      newErrors.newPassword = 'New password must be different from old password';
     }
 
     setErrors(newErrors);
@@ -121,46 +156,8 @@ function ChangePasswordModal({ isOpen, onClose }) {
     onClose();
   };
 
-  const PasswordInput = ({ label, value, onChange, show, onToggleShow, error, placeholder }) => (
-    <FormControl isInvalid={!!error}>
-      <FormLabel fontWeight="semibold" color="gray.700" fontSize="sm">
-        {label}
-      </FormLabel>
-      <InputGroup>
-        <Input
-          type={show ? 'text' : 'password'}
-          value={value}
-          onChange={onChange}
-          placeholder={placeholder}
-          bg="white"
-          borderColor={error ? 'red.500' : 'gray.300'}
-          _focus={{
-            borderColor: error ? 'red.500' : 'blue.500',
-            boxShadow: error ? '0 0 0 1px red.500' : '0 0 0 1px blue.500'
-          }}
-          size="md"
-        />
-        <InputRightElement>
-          <IconButton
-            icon={show ? <FaEye /> : <FaEyeSlash />}
-            size="sm"
-            variant="ghost"
-            onClick={onToggleShow}
-            tabIndex={-1}
-            aria-label={show ? 'Show password' : 'Hide password'}
-          />
-        </InputRightElement>
-      </InputGroup>
-      {error && (
-        <Text fontSize="xs" color="red.500" mt={1}>
-          {error}
-        </Text>
-      )}
-    </FormControl>
-  );
-
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} isCentered size="md">
+    <Modal isOpen={isOpen} onClose={handleClose} isCentered size="md" autoFocus={false} blockScrollOnMount={false}>
       <ModalOverlay backdropFilter="blur(4px)" />
       <ModalContent borderRadius="12px" boxShadow="0 8px 32px rgba(0, 0, 0, 0.15)">
         <ModalHeader
@@ -184,23 +181,15 @@ function ChangePasswordModal({ isOpen, onClose }) {
               fontSize="sm"
             >
               <AlertIcon />
-              <Box>
-                <Text fontWeight="medium">Password Requirements:</Text>
-                <Text fontSize="xs" mt={1}>
-                  • Minimum 8 characters
-                  • Must be different from your old password
-                </Text>
-              </Box>
+              Enter your current password and choose a new one.
             </Alert>
 
             {/* Old Password */}
             <PasswordInput
+              name="oldPassword"
               label="Old Password"
               value={oldPassword}
-              onChange={(e) => {
-                setOldPassword(e.target.value);
-                if (errors.oldPassword) setErrors({ ...errors, oldPassword: '' });
-              }}
+              onChange={(e) => setOldPassword(e.target.value)}
               show={showOldPassword}
               onToggleShow={() => setShowOldPassword(!showOldPassword)}
               error={errors.oldPassword}
@@ -209,12 +198,10 @@ function ChangePasswordModal({ isOpen, onClose }) {
 
             {/* New Password */}
             <PasswordInput
+              name="newPassword"
               label="New Password"
               value={newPassword}
-              onChange={(e) => {
-                setNewPassword(e.target.value);
-                if (errors.newPassword) setErrors({ ...errors, newPassword: '' });
-              }}
+              onChange={(e) => setNewPassword(e.target.value)}
               show={showNewPassword}
               onToggleShow={() => setShowNewPassword(!showNewPassword)}
               error={errors.newPassword}
@@ -223,71 +210,15 @@ function ChangePasswordModal({ isOpen, onClose }) {
 
             {/* Confirm Password */}
             <PasswordInput
+              name="confirmPassword"
               label="Confirm Password"
               value={confirmPassword}
-              onChange={(e) => {
-                setConfirmPassword(e.target.value);
-                if (errors.confirmPassword) setErrors({ ...errors, confirmPassword: '' });
-              }}
+              onChange={(e) => setConfirmPassword(e.target.value)}
               show={showConfirmPassword}
               onToggleShow={() => setShowConfirmPassword(!showConfirmPassword)}
               error={errors.confirmPassword}
               placeholder="Confirm your new password"
             />
-
-            {/* Password Strength Indicator */}
-            {newPassword && (
-              <Box
-                p={3}
-                bg="gray.50"
-                borderRadius="8px"
-                border="1px solid"
-                borderColor="gray.200"
-              >
-                <HStack justify="space-between" mb={2}>
-                  <Text fontSize="xs" fontWeight="semibold" color="gray.600">
-                    Password Strength
-                  </Text>
-                  <Text
-                    fontSize="xs"
-                    fontWeight="bold"
-                    color={
-                      newPassword.length >= 12
-                        ? 'green.600'
-                        : newPassword.length >= 8
-                        ? 'orange.600'
-                        : 'red.600'
-                    }
-                  >
-                    {newPassword.length >= 12
-                      ? 'Strong'
-                      : newPassword.length >= 8
-                      ? 'Medium'
-                      : 'Weak'}
-                  </Text>
-                </HStack>
-                <Box height="4px" bg="gray.200" borderRadius="full" overflow="hidden">
-                  <Box
-                    height="100%"
-                    width={
-                      newPassword.length >= 12
-                        ? '100%'
-                        : newPassword.length >= 8
-                        ? '60%'
-                        : '30%'
-                    }
-                    bg={
-                      newPassword.length >= 12
-                        ? 'green.500'
-                        : newPassword.length >= 8
-                        ? 'orange.500'
-                        : 'red.500'
-                    }
-                    transition="width 0.3s ease"
-                  />
-                </Box>
-              </Box>
-            )}
           </VStack>
         </ModalBody>
 

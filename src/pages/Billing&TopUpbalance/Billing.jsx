@@ -1,12 +1,13 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import {Box, Container, VStack, HStack, Text, Table, Thead, Tbody, Tr, Th, Td, IconButton, Badge, Button, Card, CardBody, Heading, Flex, Select,Icon,Input, InputGroup, InputLeftElement, Grid, GridItem, Divider, useColorModeValue, Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalCloseButton, useDisclosure, Tabs, TabList, TabPanels, Tab, TabPanel, Collapse, Wrap, WrapItem, Spinner, Center, useToast
+import {Box, VStack, HStack, Text, Table, Thead, Tbody, Tr, Th, Td, IconButton, Badge, Button, Card, CardBody, Heading, Flex, Select,Icon,Input, InputGroup, InputLeftElement, Grid, GridItem, Divider, useColorModeValue, Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalCloseButton, useDisclosure, Tabs, TabList, TabPanels, Tab, TabPanel, Collapse, Wrap, WrapItem, Spinner, Center, useToast
 } from '@chakra-ui/react';
 import { FaSearch, FaDownload, FaEye, FaPrint, FaFileInvoice, FaCreditCard, FaWallet, FaChevronDown, FaChevronUp, FaFilter, FaCalendarAlt, FaTimes } from 'react-icons/fa';
 import TopUp from './TopUp';
 import api from '../../services/api';
+import { FiCheckCircle, FiClock, FiXCircle, FiFileText,} from 'react-icons/fi';
 
-const Billing = ({ walletBalance = 50.00, onUpdateBalance = () => {} }) => {
+const Billing = ({ walletBalance = 50.00, onUpdateBalance = () => {}, userId }) => {
   const [invoices, setInvoices] = useState([]);
   const [activeServices, setActiveServices] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -24,18 +25,22 @@ const Billing = ({ walletBalance = 50.00, onUpdateBalance = () => {} }) => {
       const invoicesResponse = await api.invoices.getAll();
       if (invoicesResponse.success) {
         // Transform invoices data to match expected format
-        const transformedInvoices = invoicesResponse.data.map(invoice => ({
-          id: invoice.invoice_number,
-          date: new Date(invoice.invoice_date).toISOString().split('T')[0],
-          dueDate: new Date(invoice.due_date).toISOString().split('T')[0],
-          payDate: invoice.paid_date ? new Date(invoice.paid_date).toISOString().split('T')[0] : null,
-          service: 'Service', // This would need to be derived from order data
-          amount: parseFloat(invoice.amount),
-          status: invoice.status,
-          period: invoice.period || 'N/A',
-          fromDate: invoice.from_date ? new Date(invoice.from_date).toISOString().split('T')[0] : null,
-          toDate: invoice.to_date ? new Date(invoice.to_date).toISOString().split('T')[0] : null
-        }));
+        const transformedInvoices = invoicesResponse.data.map(invoice => {
+          return {
+            id: invoice.invoice_number,
+            date: new Date(invoice.invoice_date).toISOString().split('T')[0],
+            dueDate: new Date(invoice.due_date).toISOString().split('T')[0],
+            payDate: invoice.paid_date ? new Date(invoice.paid_date).toISOString().split('T')[0] : null,
+            service: invoice.customer_name || 'Service', // Use customer name as service name
+            amount: parseFloat(invoice.amount),
+            mrcAmount: parseFloat(invoice.mrc_amount || 0),
+            usageAmount: parseFloat(invoice.usage_amount || 0),
+            status: invoice.status,
+            period: invoice.period || 'N/A',
+            fromDate: invoice.from_date ? new Date(invoice.from_date).toISOString().split('T')[0] : null,
+            toDate: invoice.to_date ? new Date(invoice.to_date).toISOString().split('T')[0] : null
+          };
+        });
         setInvoices(transformedInvoices);
       }
 
@@ -183,6 +188,8 @@ const Billing = ({ walletBalance = 50.00, onUpdateBalance = () => {} }) => {
     console.log(`Downloading invoice: ${invoiceId}`);
   };
 
+
+
   const calculateTotalDue = () => {
     return activeServices.reduce((total, service) => total + (service.price * service.quantity), 0);
   };
@@ -278,12 +285,19 @@ const Billing = ({ walletBalance = 50.00, onUpdateBalance = () => {} }) => {
   const getStatusColor = (status) => {
     switch (status) {
       case 'Paid': return 'green';
-      case 'Pending': return 'orange';
+      case 'Pending': return 'yellow';
       case 'Overdue': return 'red';
       default: return 'gray';
     }
   };
-
+   const getStatusIcon = (status) => {
+      switch (status?.toLowerCase()) {
+        case 'paid': return FiCheckCircle;
+        case 'pending': return FiClock;
+        case 'overdue': return FiXCircle;
+        default: return FiFileText;
+      }
+    };
 
 
 
@@ -421,10 +435,11 @@ const Billing = ({ walletBalance = 50.00, onUpdateBalance = () => {} }) => {
                       <Text fontSize="sm" fontWeight="semibold" mb={2} color="gray.700">
                         Quick Filters:
                       </Text>
-                      <Wrap spacing={2}>
+                      <Wrap spacing={8}>
                         <WrapItem>
                           <Button
-                            size="xs"
+                            size="sm"
+                            borderRadius='full'
                             variant="outline"
                             colorScheme="blue"
                             leftIcon={<FaCalendarAlt />}
@@ -435,7 +450,9 @@ const Billing = ({ walletBalance = 50.00, onUpdateBalance = () => {} }) => {
                         </WrapItem>
                         <WrapItem>
                           <Button
-                            size="xs"
+                          borderRadius='full'
+
+                            size="sm"
                             variant="outline"
                             colorScheme="blue"
                             leftIcon={<FaCalendarAlt />}
@@ -446,7 +463,9 @@ const Billing = ({ walletBalance = 50.00, onUpdateBalance = () => {} }) => {
                         </WrapItem>
                         <WrapItem>
                           <Button
-                            size="xs"
+                          borderRadius='full'
+
+                            size="sm"
                             variant="outline"
                             colorScheme="blue"
                             leftIcon={<FaCalendarAlt />}
@@ -457,7 +476,9 @@ const Billing = ({ walletBalance = 50.00, onUpdateBalance = () => {} }) => {
                         </WrapItem>
                         <WrapItem>
                           <Button
-                            size="xs"
+                          borderRadius='full'
+
+                            size="sm"
                             variant="outline"
                             colorScheme="blue"
                             leftIcon={<FaCalendarAlt />}
@@ -468,7 +489,9 @@ const Billing = ({ walletBalance = 50.00, onUpdateBalance = () => {} }) => {
                         </WrapItem>
                         <WrapItem>
                           <Button
-                            size="xs"
+                          borderRadius='full'
+
+                            size="sm"
                             variant="outline"
                             colorScheme="blue"
                             leftIcon={<FaCalendarAlt />}
@@ -489,6 +512,7 @@ const Billing = ({ walletBalance = 50.00, onUpdateBalance = () => {} }) => {
                         <Input
                           type="date"
                           size="sm"
+                          borderRadius='full'
                           value={dateFrom}
                           onChange={(e) => setDateFrom(e.target.value)}
                           bg="white"
@@ -499,6 +523,8 @@ const Billing = ({ walletBalance = 50.00, onUpdateBalance = () => {} }) => {
                           To Date
                         </Text>
                         <Input
+                          borderRadius='full'
+
                           type="date"
                           size="sm"
                           value={dateTo}
@@ -511,6 +537,8 @@ const Billing = ({ walletBalance = 50.00, onUpdateBalance = () => {} }) => {
                           Status
                         </Text>
                         <Select
+                          borderRadius='full'
+
                           size="sm"
                           placeholder="All Status"
                           value={selectedStatus}
@@ -524,6 +552,8 @@ const Billing = ({ walletBalance = 50.00, onUpdateBalance = () => {} }) => {
                       </GridItem>
                       <GridItem>
                         <Button
+                          borderRadius='full'
+
                           leftIcon={<FaTimes />}
                           size="sm"
                           variant="outline"
@@ -594,7 +624,8 @@ const Billing = ({ walletBalance = 50.00, onUpdateBalance = () => {} }) => {
                       )}
                     </Flex>
                   </Th>
-                  <Th>Billing Period</Th>
+                  <Th>MRC Amount</Th>
+                  <Th>Usage Amount</Th>
                   <Th onClick={() => handleSort('amount')} isNumeric _hover={{ bg: "gray.200" }}>
                     <Flex align="center" justify="center">
                       Amount
@@ -603,7 +634,6 @@ const Billing = ({ walletBalance = 50.00, onUpdateBalance = () => {} }) => {
                       )}
                     </Flex>
                   </Th>
-                  <Th>Pay Date</Th>
                   <Th onClick={() => handleSort('status')} _hover={{ bg: "gray.200" }}>
                     <Flex align="center" justify="center">
                       Status
@@ -612,7 +642,7 @@ const Billing = ({ walletBalance = 50.00, onUpdateBalance = () => {} }) => {
                       )}
                     </Flex>
                   </Th>
-                  <Th width="15%">Action</Th>
+                  <Th>Action</Th>
                 </Tr>
               </Thead>
               <Tbody>
@@ -622,13 +652,19 @@ const Billing = ({ walletBalance = 50.00, onUpdateBalance = () => {} }) => {
                       <Td textAlign="center" fontWeight="medium">{invoice.id}</Td>
                       <Td textAlign="center" fontWeight="500">{invoice.service}</Td>
                       <Td textAlign="center" fontSize="sm" color="gray.600">{invoice.date}</Td>
-                      <Td textAlign="center">{invoice.period}</Td>
-                      <Td textAlign="center" isNumeric fontWeight="semibold" color="green.600">${invoice.amount.toFixed(2)}</Td>
-                      <Td textAlign="center" fontSize="sm">{invoice.payDate ? invoice.payDate : '-'}</Td>
+                      <Td textAlign="center" isNumeric fontWeight="semibold" color="blue.600">${invoice.mrcAmount.toFixed(2)}</Td>
+                      <Td textAlign="center" isNumeric fontWeight="semibold" color="purple.600">${invoice.usageAmount.toFixed(2)}</Td>
+                      <Td textAlign="center" isNumeric fontWeight="bold" color="green.600">${invoice.amount.toFixed(2)}</Td>
                       <Td textAlign="center">
-                        <Badge colorScheme={getStatusColor(invoice.status)}>
+                        {/* <Badge  colorScheme={getStatusColor(invoice.status)}>
                           {invoice.status}
-                        </Badge>
+                        </Badge> */}
+                        <Badge colorScheme={getStatusColor(invoice.status)} borderRadius={"full"}>
+                                    <HStack spacing={1}>
+                                                  <Icon as={getStatusIcon(invoice.status)} boxSize={3} />
+                                                  <Text>{invoice.status}</Text>
+                                                </HStack>
+                                              </Badge>
                       </Td>
                       <Td textAlign="center">
                         <HStack justify="center" spacing={2}>
@@ -648,20 +684,13 @@ const Billing = ({ walletBalance = 50.00, onUpdateBalance = () => {} }) => {
                             onClick={() => handleDownloadInvoice(invoice.id)}
                             aria-label="Download invoice"
                           />
-                          <IconButton
-                            icon={<FaPrint />}
-                            colorScheme="purple"
-                            variant="ghost"
-                            size="sm"
-                            aria-label="Print invoice"
-                          />
                         </HStack>
                       </Td>
                     </Tr>
                   ))
                 ) : (
                   <Tr>
-                    <Td colSpan={8} textAlign="center" py={8}>
+                    <Td colSpan={7} textAlign="center" py={8}>
                       <Text color="gray.500" fontWeight="medium">
                         No invoices found matching your search criteria.
                       </Text>
@@ -743,7 +772,11 @@ const Billing = ({ walletBalance = 50.00, onUpdateBalance = () => {} }) => {
 
             {/* TopUp/Balance Tab */}
             <TabPanel>
-              <TopUp walletBalance={walletBalance} onUpdateBalance={onUpdateBalance} />
+              <TopUp
+                userId={userId}
+                walletBalance={walletBalance}
+                onUpdateBalance={onUpdateBalance}
+              />
             </TabPanel>
           </TabPanels>
         </Tabs>
@@ -763,8 +796,8 @@ const Billing = ({ walletBalance = 50.00, onUpdateBalance = () => {} }) => {
                       <Text fontWeight="500">{selectedInvoice.service}</Text>
                     </Box>
                     <Box>
-                      <Text fontWeight="semibold" color="gray.600">Billing Period:</Text>
-                      <Text fontWeight="500">{selectedInvoice.period}</Text>
+                      <Text fontWeight="semibold" color="gray.600">MRC Amount:</Text>
+                      <Text fontWeight="500" color="blue.600">${selectedInvoice.mrcAmount.toFixed(2)}</Text>
                     </Box>
                     <Box>
                       <Text fontWeight="semibold" color="gray.600">Invoice Date:</Text>
@@ -775,11 +808,11 @@ const Billing = ({ walletBalance = 50.00, onUpdateBalance = () => {} }) => {
                       <Text fontWeight="500">{selectedInvoice.dueDate}</Text>
                     </Box>
                     <Box>
-                      <Text fontWeight="semibold" color="gray.600">Pay Date:</Text>
-                      <Text fontWeight="500">{selectedInvoice.payDate ? selectedInvoice.payDate : '-'}</Text>
+                      <Text fontWeight="semibold" color="gray.600">Usage Amount:</Text>
+                      <Text fontWeight="500" color="purple.600">${selectedInvoice.usageAmount.toFixed(2)}</Text>
                     </Box>
                     <Box>
-                      <Text fontWeight="semibold" color="gray.600">Billing Amount:</Text>
+                      <Text fontWeight="semibold" color="gray.600">Total Amount:</Text>
                       <Text fontWeight="500" color="green.600">${selectedInvoice.amount.toFixed(2)}</Text>
                     </Box>
                   </Grid>
@@ -804,6 +837,8 @@ const Billing = ({ walletBalance = 50.00, onUpdateBalance = () => {} }) => {
             </ModalBody>
           </ModalContent>
         </Modal>
+
+
       </VStack>
     </Box>
   );

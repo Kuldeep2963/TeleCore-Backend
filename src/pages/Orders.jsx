@@ -93,6 +93,16 @@ const Orders = () => {
     try {
       const response = await api.orders.updateStatus(orderId, newStatus);
       if (response.success) {
+        // If status is changed to 'Delivered', update user_id for allocated numbers
+        if (newStatus === 'Delivered') {
+          try {
+            await api.numbers.updateUserForOrder(orderId);
+          } catch (numberError) {
+            console.error('Error updating user_id for numbers:', numberError);
+            // Don't fail the whole operation if number update fails
+          }
+        }
+
         setOrders(orders.map(order =>
           order.id === orderId
             ? { ...order, orderStatus: newStatus, completedDate: newStatus === 'Delivered' ? new Date().toISOString().split('T')[0] : null }
@@ -141,21 +151,51 @@ const Orders = () => {
     }
   };
 
-  const handleViewOrder = (order) => {
-    // Transform order data to match OrderNumberView expected format
-    const transformedOrder = {
-      orderNo: String(order.id), // e.g., 'ORD-001'
-      serviceName: order.serviceName || 'N/A', // e.g., 'DID Numbers'
-      country: order.country || 'United States (+1)', // Use actual country from API
-      productType: (order.serviceName || '').split(' ')[0], // e.g., 'DID' from 'DID Numbers'
-      areaCode: 'Toll Free (800)', // Default
-      quantity: order.quantity,
-      orderStatus: order.orderStatus,
-      orderDate: order.created_at,
-      pricing: order.pricing,
-      desiredPricing: order.desiredPricing
-    };
-    navigate('/order-number-view', { state: { orderData: transformedOrder } });
+  const handleViewOrder = async (order) => {
+    try {
+      // Fetch pricing data for the order
+      const pricingResponse = await api.orders.getPricing(order.id);
+      const pricingData = pricingResponse.success ? pricingResponse.data : [];
+
+      // Transform order data to match OrderNumberView expected format
+      const transformedOrder = {
+        id: order.id,
+        orderNo: order.orderNo, // Use the proper order number from API
+        serviceName: order.serviceName || 'N/A', // e.g., 'DID Numbers'
+        country: order.country || 'United States (+1)', // Use actual country from API
+        productType: (order.serviceName || '').split(' ')[0], // e.g., 'DID' from 'DID Numbers'
+        areaCode: order.areaCode || 'Toll Free (800)', // Use actual area code from API
+        countryId: order.country_id,
+        productId: order.product_id,
+        quantity: order.quantity,
+        orderStatus: order.orderStatus,
+        orderDate: order.created_at,
+        createdBy: order.first_name && order.last_name ? `${order.first_name} ${order.last_name}` : 'Unknown',
+        pricing: pricingData.length > 0 ? pricingData[0] : null, // Use first pricing entry
+        desiredPricing: pricingData.length > 0 ? pricingData[0] : null // For now, use same as pricing
+      };
+      navigate('/order-number-view', { state: { orderData: transformedOrder } });
+    } catch (error) {
+      console.error('Error fetching order pricing:', error);
+      // Navigate without pricing data
+      const transformedOrder = {
+        id: order.id,
+        orderNo: order.orderNo,
+        serviceName: order.serviceName || 'N/A',
+        country: order.country || 'United States (+1)',
+        productType: (order.serviceName || '').split(' ')[0],
+        areaCode: order.areaCode || 'Toll Free (800)',
+        countryId: order.country_id,
+        productId: order.product_id,
+        quantity: order.quantity,
+        orderStatus: order.orderStatus,
+        orderDate: order.created_at,
+        createdBy: order.first_name && order.last_name ? `${order.first_name} ${order.last_name}` : 'Unknown',
+        pricing: null,
+        desiredPricing: null
+      };
+      navigate('/order-number-view', { state: { orderData: transformedOrder } });
+    }
   };
 
   const formatCurrency = (amount) => {

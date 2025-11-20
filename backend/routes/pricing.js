@@ -8,7 +8,7 @@ router.get('/', async (req, res) => {
   try {
     const result = await query(`
       SELECT pp.*, p.name as product_name, p.code as product_code,
-             c.name as country_name, c.code as country_code
+             c.countryname as country_name, c.phonecode
       FROM pricing_plans pp
       JOIN products p ON pp.product_id = p.id
       JOIN countries c ON pp.country_id = c.id
@@ -36,7 +36,7 @@ router.get('/:id', async (req, res) => {
 
     const result = await query(`
       SELECT pp.*, p.name as product_name, p.code as product_code,
-             c.name as country_name, c.code as country_code
+             c.countryname as country_name, c.phonecode
       FROM pricing_plans pp
       JOIN products p ON pp.product_id = p.id
       JOIN countries c ON pp.country_id = c.id
@@ -63,16 +63,18 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// Get pricing by product and country
+// Get pricing by product and country (supports both numeric IDs and string values)
 router.get('/product/:productId/country/:countryId', async (req, res) => {
   try {
     const { productId, countryId } = req.params;
 
     const result = await query(`
-      SELECT * FROM pricing_plans
-      WHERE product_id = $1 AND country_id = $2 AND status = 'Active'
-      AND (effective_to IS NULL OR effective_to >= CURRENT_DATE)
-      ORDER BY effective_from DESC
+      SELECT pp.* FROM pricing_plans pp
+      WHERE (pp.product_id::text = $1 OR pp.product_id = CAST($1 as uuid))
+      AND (pp.country_id::text = $2 OR pp.country_id = CAST($2 as uuid))
+      AND pp.status = 'Active'
+      AND (pp.effective_to IS NULL OR pp.effective_to >= CURRENT_DATE)
+      ORDER BY pp.effective_from DESC
       LIMIT 1
     `, [productId, countryId]);
 
