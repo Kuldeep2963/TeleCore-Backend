@@ -107,6 +107,7 @@ const api = {
   invoices: {
     getAll: () => apiCall('/invoices'),
     getById: (id) => apiCall(`/invoices/${id}`),
+    getDetails: (id) => apiCall(`/invoices/${id}/details`),
     create: (data) => apiCall('/invoices', { method: 'POST', body: JSON.stringify(data) }),
     update: (id, data) => apiCall(`/invoices/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     delete: (id) => apiCall(`/invoices/${id}`, { method: 'DELETE' }),

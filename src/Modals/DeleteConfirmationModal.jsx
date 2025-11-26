@@ -34,7 +34,7 @@ const DeleteConfirmationModal = ({
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} isCentered>
-      <ModalOverlay />
+      <ModalOverlay backdropFilter="blur(4px)" />
       <ModalContent bg={bgColor} border="1px solid" borderColor={borderColor}>
         <ModalHeader>
           <VStack spacing={3}>

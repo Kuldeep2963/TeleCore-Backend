@@ -1,15 +1,41 @@
 const express = require('express');
 const { query } = require('../config/database');
+const { generateMonthlyInvoices } = require('../jobs/invoiceScheduler');
 
 const router = express.Router();
+
+// Manual trigger for invoice generation (for testing)
+router.post('/manual-trigger/generate', async (req, res) => {
+  try {
+    await generateMonthlyInvoices();
+    res.json({
+      success: true,
+      message: 'Invoice generation triggered successfully'
+    });
+  } catch (error) {
+    console.error('Manual invoice generation error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to trigger invoice generation',
+      error: error.message
+    });
+  }
+});
 
 // Get all invoices
 router.get('/', async (req, res) => {
   try {
     const result = await query(`
-      SELECT i.*, c.company_name as customer_name
+      SELECT i.*, 
+             c.company_name as customer_name,
+             o.area_code,
+             p.category as product_type,
+             co.countryname as country_name
       FROM invoices i
       LEFT JOIN customers c ON i.customer_id = c.id
+      LEFT JOIN orders o ON i.order_id = o.id
+      LEFT JOIN products p ON o.product_id = p.id
+      LEFT JOIN countries co ON o.country_id = co.id
       ORDER BY i.created_at DESC
     `);
 
@@ -22,6 +48,77 @@ router.get('/', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Internal server error'
+    });
+  }
+});
+
+// Get detailed invoice with all related information for PDF generation (must come before /:id)
+router.get('/:id/details', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    let result;
+    const numericId = parseInt(id, 10);
+    
+    if (!isNaN(numericId)) {
+      result = await query(`
+        SELECT i.*,
+               c.company_name as customer_name,
+               c.email as customer_email,
+               c.phone as customer_phone,
+               c.location as customer_address,
+               o.area_code,
+               o.quantity,
+               o.completed_date,
+               p.name as product_name,
+               p.category as product_type,
+               co.countryname as country_name
+        FROM invoices i
+        LEFT JOIN customers c ON i.customer_id = c.id
+        LEFT JOIN orders o ON i.order_id = o.id
+        LEFT JOIN products p ON o.product_id = p.id
+        LEFT JOIN countries co ON o.country_id = co.id
+        WHERE i.id = $1 OR i.invoice_number = $2
+      `, [numericId, id]);
+    } else {
+      result = await query(`
+        SELECT i.*,
+               c.company_name as customer_name,
+               c.email as customer_email,
+               c.phone as customer_phone,
+               c.location as customer_address,
+               o.area_code,
+               o.quantity,
+               o.completed_date,
+               p.name as product_name,
+               p.category as product_type,
+               co.countryname as country_name
+        FROM invoices i
+        LEFT JOIN customers c ON i.customer_id = c.id
+        LEFT JOIN orders o ON i.order_id = o.id
+        LEFT JOIN products p ON o.product_id = p.id
+        LEFT JOIN countries co ON o.country_id = co.id
+        WHERE i.invoice_number = $1
+      `, [id]);
+    }
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Invoice not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: result.rows[0]
+    });
+  } catch (error) {
+    console.error('Get invoice details error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message
     });
   }
 });
@@ -45,20 +142,95 @@ router.get('/:id', async (req, res) => {
       });
     }
 
-    // Get invoice items
-    const itemsResult = await query(`
-      SELECT * FROM invoice_items WHERE invoice_id = $1 ORDER BY id
-    `, [id]);
-
     res.json({
       success: true,
-      data: {
-        ...result.rows[0],
-        items: itemsResult.rows
-      }
+      data: result.rows[0]
     });
   } catch (error) {
     console.error('Get invoice error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
+// Generate monthly recurring invoice for an order
+router.post('/generate-recurring/:orderId', async (req, res) => {
+  try {
+    const { orderId } = req.params;
+
+    const orderResult = await query(`
+      SELECT o.id, o.customer_id, o.completed_date, o.quantity, c.company_name
+      FROM orders o
+      LEFT JOIN customers c ON o.customer_id = c.id
+      WHERE o.id = $1 AND o.status = 'Delivered' AND o.completed_date IS NOT NULL
+    `, [orderId]);
+
+    if (orderResult.rows.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Order not found or not yet delivered'
+      });
+    }
+
+    const order = orderResult.rows[0];
+
+    const pricingResult = await query(`
+      SELECT mrc FROM order_pricing
+      WHERE order_id = $1 AND pricing_type IN ('current', 'desired')
+      ORDER BY CASE 
+        WHEN pricing_type = 'current' THEN 0 
+        ELSE 1 
+      END,
+      created_at DESC
+      LIMIT 1
+    `, [orderId]);
+
+    if (pricingResult.rows.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Pricing information not found for this order'
+      });
+    }
+
+    const mrc = Number(pricingResult.rows[0].mrc) || 0;
+    const quantity = Number(order.quantity) || 1;
+    const mrcAmount = mrc * quantity;
+    const invoiceDate = new Date();
+    const dueDate = new Date(invoiceDate);
+    dueDate.setDate(dueDate.getDate() + 10);
+
+    const period = invoiceDate.toLocaleString('default', { month: 'short', year: 'numeric' });
+    const fromDate = new Date(invoiceDate.getFullYear(), invoiceDate.getMonth(), 1);
+    const toDate = new Date(invoiceDate.getFullYear(), invoiceDate.getMonth() + 1, 0);
+
+    const invoiceNumber = `INV-${Date.now()}`;
+
+    const result = await query(`
+      INSERT INTO invoices (invoice_number, customer_id, order_id, mrc_amount, usage_amount, amount, due_date, period, from_date, to_date)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      RETURNING *
+    `, [
+      invoiceNumber,
+      order.customer_id,
+      orderId,
+      mrcAmount,
+      0,
+      mrcAmount,
+      dueDate,
+      period,
+      fromDate,
+      toDate
+    ]);
+
+    res.status(201).json({
+      success: true,
+      message: 'Monthly invoice generated successfully',
+      data: result.rows[0]
+    });
+  } catch (error) {
+    console.error('Generate recurring invoice error:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error'
@@ -79,8 +251,7 @@ router.post('/', async (req, res) => {
       period,
       from_date,
       to_date,
-      notes,
-      items
+      notes
     } = req.body;
 
     // Calculate total amount if not provided
@@ -96,16 +267,6 @@ router.post('/', async (req, res) => {
     `, [invoiceNumber, customer_id, order_id, mrc_amount || 0, usage_amount || 0, totalAmount, due_date, period, from_date, to_date, notes]);
 
     const invoice = result.rows[0];
-
-    // Add invoice items if provided
-    if (items && items.length > 0) {
-      for (const item of items) {
-        await query(`
-          INSERT INTO invoice_items (invoice_id, description, quantity, unit_price, total)
-          VALUES ($1, $2, $3, $4, $5)
-        `, [invoice.id, item.description, item.quantity, item.unit_price, item.total]);
-      }
-    }
 
     res.status(201).json({
       success: true,

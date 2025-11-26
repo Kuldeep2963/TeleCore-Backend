@@ -170,7 +170,7 @@ const Vendors = () => {
           </HStack>
 
           {/* Stats Cards */}
-          <SimpleGrid columns={{ base: 2, md: 4 }} spacing={4} w="full" mb={6}>
+          <SimpleGrid columns={{ base: 2, md: 3 }} spacing={4} w="full" mb={6}>
             <Box
               bg="white"
               p={6}
@@ -254,34 +254,6 @@ const Vendors = () => {
                 </Box>
               </HStack>
             </Box>
-
-            <Box
-              bg="white"
-              p={6}
-              borderRadius="xl"
-              boxShadow="0 2px 4px rgba(0, 0, 0, 0.05)"
-              border="1px solid"
-              borderColor="gray.100"
-            >
-              <HStack spacing={4}>
-                <Box
-                  p={3}
-                  borderRadius="full"
-                  bgGradient="linear(135deg, orange.50, orange.100)"
-                  color="orange.600"
-                >
-                  <Icon as={FiUsers} boxSize={6} />
-                </Box>
-                <Box>
-                  <Text fontSize="2xl" fontWeight="bold" color="gray.800">
-                    {vendors.length > 0 ? (vendors.reduce((sum, vendor) => sum + (vendor.rating || 0), 0) / vendors.length).toFixed(1) : 'N/A'}
-                  </Text>
-                  <Text color="gray.500" fontSize="sm">
-                    Avg Rating
-                  </Text>
-                </Box>
-              </HStack>
-            </Box>
           </SimpleGrid>
 
           {/* Filters */}
@@ -328,7 +300,6 @@ const Vendors = () => {
                   <Th color={"gray.700"} textAlign="center">Status</Th>
                   <Th color={"gray.700"} textAlign="center">Products</Th>
                   <Th color={"gray.700"} textAlign="center">Orders</Th>
-                  <Th color={"gray.700"} textAlign="center">Rating</Th>
                   <Th color={"gray.700"} textAlign="center">Actions</Th>
                 </Tr>
               </Thead>
@@ -375,12 +346,7 @@ const Vendors = () => {
                     <Td>
                       <Text fontWeight="medium">{vendor.completed_orders || 0}</Text>
                     </Td>
-                    <Td>
-                      <HStack>
-                        <Text fontWeight="medium">{vendor.rating || 'N/A'}</Text>
-                        <Text color="yellow.500">★</Text>
-                      </HStack>
-                    </Td>
+                  
                     <Td>
                       <HStack spacing={0}>
                         <Button size="sm" variant="ghost" colorScheme="blue" onClick={() => handleViewDetails(vendor)}>

@@ -66,19 +66,53 @@ const CustomerDetailModal = ({ isOpen, onClose, customer }) => {
       if (ordersResponse.success) {
         setCustomerOrders(ordersResponse.data.map(order => ({
           id: `#${order.orderNo}`,
-          service: order.productType,
+          service: order.serviceName || 'Service',
           quantity: order.quantity,
           totalAmount: order.totalAmount,
           status: order.orderStatus,
           orderDate: order.orderDate,
-          vendor: order.vendorName
+          vendor: order.vendorName || 'Vendor'
         })));
       }
 
       // Fetch numbers for this customer
-      // Assuming we can get numbers by customer
-      // For now, we'll use a placeholder or extend API
-      setCustomerProducts([]); // TODO: Implement numbers API
+      const numbersResponse = await api.numbers.getAll();
+      if (numbersResponse.success && ordersResponse.success) {
+        // Get order IDs for this customer
+        const customerOrderIds = ordersResponse.data.map(order => order.id);
+
+        // Filter numbers that belong to customer's orders
+        const customerNumbers = numbersResponse.data.filter(number =>
+          customerOrderIds.includes(number.order_id)
+        );
+
+        // Group numbers by order for display
+        const productsMap = new Map();
+        customerNumbers.forEach(number => {
+          const order = ordersResponse.data.find(o => o.id === number.order_id);
+          if (order) {
+            const key = `${order.id}-${order.area_code}`;
+            if (!productsMap.has(key)) {
+              productsMap.set(key, {
+                id: key,
+                country: order.country,
+                productType: order.productType,
+                areaCode: order.areaCode,
+                purchaseDate: order.completedDate,
+                quantity: order.quantity,
+                numbers: []
+              });
+            }
+            const product = productsMap.get(key);
+            product.quantity = Number(product.quantity);
+            product.numbers.push(number);
+          }
+        });
+
+        setCustomerProducts(Array.from(productsMap.values()));
+      } else {
+        setCustomerProducts([]);
+      }
 
     } catch (error) {
       console.error('Error fetching customer data:', error);
@@ -109,13 +143,13 @@ const CustomerDetailModal = ({ isOpen, onClose, customer }) => {
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="6xl" scrollBehavior="inside">
-      <ModalOverlay />
+      <ModalOverlay backdropFilter="blur(4px)" />
       <ModalContent>
         <ModalHeader>
           <HStack spacing={3}>
-            <Avatar size="md" name={customer.companyname} />
+            <Avatar size="md" name={customer.company_name} />
             <VStack align="start" spacing={0}>
-              <Heading size="xl">{customer.name}</Heading>
+              <Heading size="lg">{customer.contact_person || customer.company_name}</Heading>
               <Text fontSize="sm" color="gray.600">Customer Details</Text>
             </VStack>
           </HStack>
@@ -170,7 +204,7 @@ const CustomerDetailModal = ({ isOpen, onClose, customer }) => {
                         <Icon as={FiCalendar} color="purple.500" />
                         <Text fontWeight="medium">Joined Date</Text>
                       </HStack>
-                      <Text>{new Date(customer.joinDate).toLocaleDateString()}</Text>
+                      <Text>{new Date(customer.join_date).toLocaleDateString()}</Text>
                     </VStack>
                   </CardBody>
                 </Card>
@@ -188,7 +222,7 @@ const CustomerDetailModal = ({ isOpen, onClose, customer }) => {
                     <VStack>
                       <Icon as={FiShoppingCart} boxSize={6} color="blue.500" />
                       <Text fontSize="2xl" fontWeight="bold" color="blue.600">
-                        {customer.orders}
+                        {customer.total_orders || 0}
                       </Text>
                       <Text fontSize="sm" color="blue.600">Total Orders</Text>
                     </VStack>
@@ -200,7 +234,7 @@ const CustomerDetailModal = ({ isOpen, onClose, customer }) => {
                     <VStack>
                       <Icon as={FiDollarSign} boxSize={6} color="green.500" />
                       <Text fontSize="2xl" fontWeight="bold" color="green.600">
-                        {formatCurrency(customer.totalSpent)}
+                        {formatCurrency(customer.total_spent || 0)}
                       </Text>
                       <Text fontSize="sm" color="green.600">Total Spent</Text>
                     </VStack>
@@ -264,40 +298,44 @@ const CustomerDetailModal = ({ isOpen, onClose, customer }) => {
                       <Table variant="simple">
                         <Thead bg="gray.200">
                           <Tr>
-                            <Th color={"gray.700"} >Product</Th>
-                            <Th color={"gray.700"} >Product List</Th>
-                            <Th color={"gray.700"} textAlign="center">Vendor</Th>
-                            <Th color={"gray.700"} >Purchase Date</Th>
-                            <Th color={"gray.700"}>Expiry Date</Th>
-                            <Th color={"gray.700"} textAlign="center">Status</Th>
+                            <Th color={"gray.700"} >Country</Th>
+                            <Th color={"gray.700"} >Product Type</Th>
+                            <Th color={"gray.700"} textAlign="center">Area Code</Th>
+                            <Th color={"gray.700"} textAlign="center">Quantity</Th>
+                            <Th color={"gray.700"} >Delivery Date</Th>
                           </Tr>
                         </Thead>
                         <Tbody>
-                          {customerProducts.map((product) => (
+                          {customerProducts.length > 0 ? customerProducts.map((product) => (
                             <Tr key={product.id} _hover={{ bg: 'gray.50' }}>
                               <Td>
-                                <Text fontWeight="medium">{product.name}</Text>
+                                <Text fontWeight="medium">{product.country}</Text>
                               </Td>
                               <Td>
-                                <Button py={0} size={"sm"}>View Products</Button>
-                                {/* <Badge variant="subtle" colorScheme="blue">{product.type}</Badge> */}
-                              </Td>
-                              <Td>
-                                <Text fontSize="sm">{product.vendor}</Text>
-                              </Td>
-                              <Td>
-                                <Text fontSize="sm">{new Date(product.purchaseDate).toLocaleDateString()}</Text>
-                              </Td>
-                              <Td>
-                                <Text fontSize="sm">{new Date(product.expiryDate).toLocaleDateString()}</Text>
-                              </Td>
-                              <Td textAlign="center">
-                                <Badge colorScheme={getStatusColor(product.status)} borderRadius={"full"}>
-                                  {product.status}
+                                <Badge bg={"blue.100"}>
+                                <Text >{product.productType}</Text>
                                 </Badge>
                               </Td>
+                              <Td textAlign="center">
+                                <Text color={"purple"} fontWeight="medium">{product.areaCode}</Text>
+                              </Td>
+                              <Td textAlign="center">
+                                <Text fontWeight="medium">{product.quantity}</Text>
+                              </Td>
+                              <Td>
+                                <Text color={"green"} fontWeight={"medium"} fontSize="sm">{product.purchaseDate ? new Date(product.purchaseDate).toLocaleDateString() : 'N/A'}</Text>
+                              </Td>
                             </Tr>
-                          ))}
+                          )) : (
+                            <Tr>
+                              <Td colSpan={5} textAlign="center" color="gray.600" py={8}>
+                                <VStack spacing={3} justify="center">
+                                  <Icon as={FiPackage} boxSize={6} color="gray.500" />
+                                  <Text>No products found for this customer</Text>
+                                </VStack>
+                              </Td>
+                            </Tr>
+                          )}
                         </Tbody>
                       </Table>
                     </Box>
@@ -326,7 +364,7 @@ const CustomerDetailModal = ({ isOpen, onClose, customer }) => {
                           </Tr>
                         </Thead>
                         <Tbody>
-                          {customerOrders.map((order) => (
+                          {customerOrders.length > 0 ? customerOrders.map((order) => (
                             <Tr key={order.id} _hover={{ bg: 'gray.50' }}>
                               <Td>
                                 <Text fontWeight="medium" color="blue.600">{order.id}</Text>
@@ -352,7 +390,16 @@ const CustomerDetailModal = ({ isOpen, onClose, customer }) => {
                                 <Text fontSize="sm">{order.vendor}</Text>
                               </Td>
                             </Tr>
-                          ))}
+                          )) : (
+                            <Tr>
+                              <Td colSpan={7} textAlign="center" color="gray.600" py={8}>
+                                <VStack spacing={3} justify="center">
+                                  <Icon as={FiShoppingCart} boxSize={6} color="gray.500" />
+                                  <Text>No orders found for this customer</Text>
+                                </VStack>
+                              </Td>
+                            </Tr>
+                          )}
                         </Tbody>
                       </Table>
                     </Box>

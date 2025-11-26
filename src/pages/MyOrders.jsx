@@ -316,7 +316,7 @@ function MyOrders({ userId, userRole }) {
 
 
 
-              <FormControl>
+              {/* <FormControl>
                 <FormLabel color="#1a3a52" fontWeight="medium" fontSize="sm">
                   Start Date
                 </FormLabel>
@@ -330,9 +330,9 @@ function MyOrders({ userId, userRole }) {
                   _hover={{ borderColor: "blue.400" }}
                   onKeyDown={(e) => handleKeyDown(e, endDateRef)}
                 />
-              </FormControl>
+              </FormControl> */}
 
-              <FormControl>
+              {/* <FormControl>
                 <FormLabel color="#1a3a52" fontWeight="medium" fontSize="sm">
                   End Date
                 </FormLabel>
@@ -346,7 +346,7 @@ function MyOrders({ userId, userRole }) {
                   _hover={{ borderColor: "blue.400" }}
                   onKeyDown={(e) => handleKeyDown(e, statusRef)}
                 />
-              </FormControl>
+              </FormControl> */}
 
               <FormControl>
                 <FormLabel color="#1a3a52" fontWeight="medium" fontSize="sm">
@@ -370,7 +370,6 @@ function MyOrders({ userId, userRole }) {
                 </Select>
               </FormControl>
 
-              <GridItem colSpan={{ base: 1, md: 5 }} display="flex" justifyContent="center" alignItems="center" gap={3}>
                 <Button
                   // variant={"ghost"}
                   colorScheme="blue"
@@ -405,7 +404,6 @@ function MyOrders({ userId, userRole }) {
                 >
                   Clear
                 </Button>
-              </GridItem>
             </Grid>
           </CardBody>
         </Card>

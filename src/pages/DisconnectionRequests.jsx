@@ -322,9 +322,9 @@ const DisconnectionRequests = () => {
                 </Tr>
               </Thead>
               <Tbody>
-                {filteredRequests.map((request) => (
+                {filteredRequests.map((request, index) => (
                   <Tr key={request.id} >
-                    <Td fontWeight="medium">{request.id}</Td>
+                    <Td textAlign={"center"} color={"blue.500"} fontWeight="bold">{index + 1}</Td>
                     <Td>
                       <HStack>
                         <Avatar size="sm" name={request.customer} />

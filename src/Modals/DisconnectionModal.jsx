@@ -86,7 +86,7 @@ function DisconnectionModal({ isOpen, onClose, number, onSuccess }) {
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="lg" isCentered>
-      <ModalOverlay />
+      <ModalOverlay backdropFilter="blur(4px)" />
       <ModalContent>
         <ModalHeader>
           <HStack spacing={3}>

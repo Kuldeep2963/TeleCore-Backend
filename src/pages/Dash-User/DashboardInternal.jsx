@@ -112,7 +112,7 @@ const DashboardInternal = ({ userId, userRole }) => {
       icon: FiTrendingUp,
       color: 'purple',
       route: '/orders',
-      confirmedCount: stats.confirmedOrders.toString()
+      confirmedCount: stats.confirmedOrders.toString(),
     }
   ];
 

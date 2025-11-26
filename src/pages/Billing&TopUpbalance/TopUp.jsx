@@ -503,7 +503,7 @@ const TopUp = ({
                 {/* Quick Threshold Buttons */}
                 <Box>
                   <Text fontWeight="medium" mb={3}>Quick Settings</Text>
-                  <SimpleGrid columns={2} gap={2}>
+                  <SimpleGrid columns={4} gap={2}>
                     {thresholdOptions.map((amount) => (
                       <Button
                         key={amount}
@@ -550,7 +550,7 @@ const TopUp = ({
             <CardBody p={6}>
               <VStack spacing={4} align="stretch">
                 <Heading size="sm">Wallet Features</Heading>
-                <VStack spacing={3} align="start">
+                < VStack spacing={3} align="start">
                   <Flex align="center">
                     <Icon as={FaShieldAlt} color="green.500" mr={3} />
                     <Text fontSize="sm">Secure transactions</Text>
@@ -559,6 +559,7 @@ const TopUp = ({
                     <Icon as={FaBell} color="blue.500" mr={3} />
                     <Text fontSize="sm">Low balance alerts</Text>
                   </Flex>
+                  
                   <Flex align="center">
                     <Icon as={RiFlashlightFill} color="purple.500" mr={3} />
                     <Text fontSize="sm">Instant top-ups</Text>

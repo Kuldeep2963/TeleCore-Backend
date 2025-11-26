@@ -149,7 +149,7 @@ function Navbar({ cartCount = 0, walletBalance = 0, profilePicture = null, onLog
                 onClick={handleWalletClick}
               >
                 <FaWallet color="#1a3a52" size={16} />
-                <Text fontWeight="bold" fontSize="18px" color="green.500">
+                <Text fontWeight="bold" fontSize="18px" color="green.600">
                   ${walletBalance}
                 </Text>
               </Box>

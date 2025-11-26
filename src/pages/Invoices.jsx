@@ -327,7 +327,7 @@ const Invoices = () => {
                 Create and manage customer invoices
               </Text>
             </Box>
-            {/* <Button
+            <Button
               leftIcon={<FiPlus />}
               colorScheme="blue"
               size="sm"
@@ -335,7 +335,7 @@ const Invoices = () => {
               borderRadius="full"
             >
               Create Invoice
-            </Button> */}
+            </Button> 
           </HStack>
 
           {/* Stats Cards */}
@@ -568,9 +568,7 @@ const Invoices = () => {
           </Box>
         </Box>
       </VStack>
-
-      {/* Create Invoice Modal */}
-      {/* <Modal isOpen={isOpen} onClose={onClose} size="lg">
+       <Modal isOpen={isOpen} onClose={onClose} size="lg">
         <ModalOverlay />
         <ModalContent>
           <ModalHeader>Create New Invoice</ModalHeader>
@@ -631,7 +629,7 @@ const Invoices = () => {
             </Button>
           </ModalFooter>
         </ModalContent>
-      </Modal> */}
+      </Modal>
 
       {/* Edit Usage Amount Modal */}
       <Modal isOpen={!!editingUsage} onClose={handleCancelEditUsage} size="md">

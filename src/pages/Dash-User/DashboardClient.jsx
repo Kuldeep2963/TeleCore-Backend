@@ -37,6 +37,8 @@ function Dashboard({ userId, userRole }) {
     activeNumbers: 0,
     totalOrders: 0,
     invoices: 0,
+    pendingInvoices: 0,
+    overdueInvoices: 0,
     totalSpent: 0
   });
   const [loading, setLoading] = useState(true);
@@ -91,7 +93,27 @@ function Dashboard({ userId, userRole }) {
       const activeNumbers = numbersResponse.success
         ? numbersResponse.data.filter(num => num.disconnection_status !== 'Completed').length
         : 0;
-      const invoices = invoicesResponse.success ? invoicesResponse.data.filter(inv => inv.customer_id == userId).length : 0;
+
+      // Calculate invoice counts by status
+      let pendingInvoices = 0;
+      let overdueInvoices = 0;
+      let totalInvoices = 0;
+
+      if (invoicesResponse.success) {
+        console.log('All invoices:', invoicesResponse.data.map(inv => ({ id: inv.id, customer_id: inv.customer_id, status: inv.status })));
+        console.log('Current userId:', userId);
+
+        const userInvoices = invoicesResponse.data.filter(inv => inv.customer_id == userId);
+        totalInvoices = userInvoices.length;
+
+        // Debug: log invoice statuses
+        console.log('User invoices:', userInvoices.map(inv => ({ id: inv.id, status: inv.status })));
+
+        pendingInvoices = userInvoices.filter(inv => inv.status?.toLowerCase() === 'pending').length;
+        overdueInvoices = userInvoices.filter(inv => inv.status?.toLowerCase() === 'overdue').length;
+
+        console.log('Invoice counts:', { totalInvoices, pendingInvoices, overdueInvoices });
+      }
 
       // Calculate total spent from orders
       const totalSpent = ordersResponse.success
@@ -101,7 +123,9 @@ function Dashboard({ userId, userRole }) {
       setStats({
         activeNumbers,
         totalOrders,
-        invoices,
+        invoices: totalInvoices,
+        pendingInvoices,
+        overdueInvoices,
         totalSpent
       });
 
@@ -112,6 +136,8 @@ function Dashboard({ userId, userRole }) {
         activeNumbers: 0,
         totalOrders: 0,
         invoices: 0,
+        pendingInvoices: 0,
+        overdueInvoices: 0,
         totalSpent: 0
       });
     } finally {
@@ -165,21 +191,21 @@ function Dashboard({ userId, userRole }) {
       color: 'green'
     },
     {
-      label: 'Client Invoices',
-      value: stats.invoices.toString(),
+      label: 'Pending Invoices',
+      value: stats.pendingInvoices.toString(),
       // change: '+5',
       icon: FiBarChart2,
       color: 'orange'
     },
+    {
+      label: 'Overdue Invoices',
+      value: stats.overdueInvoices.toString(),
+      // change: '+5',
+      icon: FiBarChart2,
+      color: 'red'
+    },
 
   ];
-
-
-
-
-
-
-
   return (
     <Box
       flex={1}
@@ -217,7 +243,7 @@ function Dashboard({ userId, userRole }) {
           </HStack>
           
         {/* Statistics Cards */}
-        <SimpleGrid columns={{ base: 2, md: 3 }} spacing={5} w="full">
+        <SimpleGrid columns={{ base: 2, md: 4 }} spacing={4} w="full">
           {statsData.map((stat, index) => (
             <Box
               key={index}
@@ -295,7 +321,7 @@ function Dashboard({ userId, userRole }) {
 
           {services.length > 0 ? (
             <Grid
-              templateColumns={{ base: "1fr", md: "repeat(1, 1fr)", lg: "repeat(3, 1fr)" }}
+              templateColumns={{ base: "1fr", md: "repeat(2, 1fr)", lg: "repeat(6, 1fr)" }}
               gap={6}
             >
               {services.map(service => (
@@ -403,10 +429,3 @@ function Dashboard({ userId, userRole }) {
 }
 
 export default Dashboard;
-
-
-
-
-
-
-

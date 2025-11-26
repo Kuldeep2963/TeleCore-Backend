@@ -314,7 +314,7 @@ function Profile({ profilePicture, onProfilePictureUpdate, userId, userProfile, 
                       </Tooltip>
                     </Box>
 
-                    <VStack spacing={1} textAlign="center">
+                    <VStack spacing={3} textAlign="center">
                       <Heading size="lg" color="gray.800">
                         {userData.firstName} {userData.lastName}
                       </Heading>

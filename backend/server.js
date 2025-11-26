@@ -87,6 +87,11 @@ if (process.env.NODE_ENV !== 'test') {
     console.log(`TeleCore Backend server is running on port ${PORT}`);
   });
 
+  // Start invoice scheduler
+  const { startInvoiceScheduler } = require('./jobs/invoiceScheduler');
+  startInvoiceScheduler();
+}
+
   // Graceful shutdown
   process.on('SIGTERM', () => {
     console.log('SIGTERM received, shutting down gracefully');
@@ -103,6 +108,6 @@ if (process.env.NODE_ENV !== 'test') {
       process.exit(0);
     });
   });
-}
+
 
 module.exports = app;

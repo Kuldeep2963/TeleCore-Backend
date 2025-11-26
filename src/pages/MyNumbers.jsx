@@ -218,7 +218,7 @@ function MyNumbers({ onRequestDisconnection, refreshTrigger }) {
     <Box
       flex={1}
       p={6}
-      pb={0}
+      pb={2}
       bg="#f8f9fa"
       height="calc(100vh - 76px)"
       overflowY="auto"

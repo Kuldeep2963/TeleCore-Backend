@@ -226,7 +226,7 @@ const Customers = () => {
                 </Box>
                 <Box>
                   <Text fontSize="2xl" fontWeight="bold" color="gray.800">
-                    {customers.reduce((sum, customer) => sum + (customer.total_orders || 0), 0)}
+                    {customers.reduce((sum, customer) => sum + Number(customer.total_orders), 0)}
                   </Text>
                   <Text color="gray.500" fontSize="sm">
                     Total Orders
@@ -294,7 +294,7 @@ const Customers = () => {
 
           {/* Filters */}
           <HStack spacing={4} mb={6}>
-            <InputGroup maxW="300px">
+            <InputGroup bg={"white"} maxW="300px">
               <InputLeftElement>
                 <Icon as={FiSearch} color="gray.400" />
               </InputLeftElement>
@@ -307,6 +307,7 @@ const Customers = () => {
             </InputGroup>
 
             <Select
+              bg={"white"}
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
               maxW="150px"
@@ -381,7 +382,7 @@ const Customers = () => {
                       <Text fontWeight="medium">{customer.total_orders}</Text>
                     </Td>
                     <Td>
-                      <Text fontWeight="medium">{formatCurrency(parseFloat(customer.total_spent) || 0)}</Text>
+                      <Text color={"green"} fontWeight="medium">{formatCurrency(parseFloat(customer.total_spent) || 0)}</Text>
                     </Td>
                     <Td>
                       <Text fontSize="sm">{customer.last_order_date ? new Date(customer.last_order_date).toLocaleDateString() : 'N/A'}</Text>

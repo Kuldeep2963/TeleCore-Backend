@@ -106,7 +106,7 @@ const VendorDetailModal = ({ isOpen, onClose, vendor }) => {
   return (
     <Box>
     <Modal isOpen={isOpen} onClose={onClose} size="6xl" scrollBehavior="inside">
-      <ModalOverlay />
+      <ModalOverlay backdropFilter="blur(4px)" />
       <ModalContent>
         <ModalHeader>
           <HStack spacing={3}>
@@ -179,7 +179,7 @@ const VendorDetailModal = ({ isOpen, onClose, vendor }) => {
             {/* Statistics */}
             <Box>
               <Heading size="md" mb={4}>Statistics</Heading>
-              <SimpleGrid columns={{ base: 2, md: 4 }} spacing={4}>
+              <SimpleGrid columns={{ base: 2, md: 3 }} spacing={4}>
                 <Card bg="blue.50">
                   <CardBody>
                     <VStack>
@@ -200,18 +200,6 @@ const VendorDetailModal = ({ isOpen, onClose, vendor }) => {
                         {vendor.orders}
                       </Text>
                       <Text fontSize="sm" color="green.600">Total Orders</Text>
-                    </VStack>
-                  </CardBody>
-                </Card>
-
-                <Card bg="purple.50">
-                  <CardBody>
-                    <VStack>
-                      <Icon as={FiStar} boxSize={6} color="purple.500" />
-                      <Text fontSize="2xl" fontWeight="bold" color="purple.600">
-                        {vendor.rating}
-                      </Text>
-                      <Text fontSize="sm" color="purple.600">Rating</Text>
                     </VStack>
                   </CardBody>
                 </Card>

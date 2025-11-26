@@ -181,17 +181,7 @@ CREATE TABLE invoices (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Invoice items (for detailed billing)
-CREATE TABLE invoice_items (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    invoice_id UUID REFERENCES invoices(id) ON DELETE CASCADE,
-    description VARCHAR(255) NOT NULL,
-    quantity INTEGER DEFAULT 1,
-    unit_price DECIMAL(10,2) NOT NULL,
-    total_amount DECIMAL(10,2) NOT NULL,
-    service_period_start DATE,
-    service_period_end DATE
-);
+
 
 -- Disconnection requests table
 CREATE TABLE disconnection_requests (

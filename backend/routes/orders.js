@@ -72,7 +72,7 @@ router.get('/', async (req, res) => {
     }
 
     const result = await query(`
-      SELECT o.id, o.order_number, o.quantity, o.total_amount, o.status, o.order_date, o.created_at, o.documents, o.area_code,
+      SELECT o.id, o.order_number, o.quantity, o.total_amount, o.status, o.order_date, o.completed_date, o.created_at, o.documents, o.area_code,
              o.country_id, o.product_id,
              c.company_name, c.contact_person,
              u.first_name, u.last_name, u.email as user_email,
@@ -100,6 +100,7 @@ router.get('/', async (req, res) => {
       quantity: order.quantity,
       orderStatus: order.status,
       orderDate: order.order_date ? new Date(order.order_date).toISOString().split('T')[0] : null,
+      completedDate: order.completed_date ? new Date(order.completed_date).toISOString().split('T')[0] : null,
       created_at: order.created_at,
       totalAmount: order.total_amount,
       companyName: order.company_name,
@@ -325,9 +326,10 @@ router.patch('/:id/status', async (req, res) => {
       });
     }
 
+    const isDelivered = status.toLowerCase() === 'delivered';
     const result = await query(`
       UPDATE orders
-      SET status = $1, updated_at = CURRENT_TIMESTAMP
+      SET status = $1, ${isDelivered ? 'completed_date = CURRENT_DATE,' : ''} updated_at = CURRENT_TIMESTAMP
       WHERE id = $2
       RETURNING *
     `, [status, id]);
@@ -392,6 +394,10 @@ router.put('/:id', async (req, res) => {
     const { id } = req.params;
     const { customer_id, vendor_id, product_id, area_code, quantity, total_amount, status, documents } = req.body;
 
+    const completedDateClause = status && status.toLowerCase() === 'delivered' 
+      ? 'completed_date = CURRENT_DATE,'
+      : '';
+
     const result = await query(`
       UPDATE orders
       SET customer_id = COALESCE($1, customer_id),
@@ -402,6 +408,7 @@ router.put('/:id', async (req, res) => {
           total_amount = COALESCE($6, total_amount),
           status = COALESCE($7, status),
           documents = COALESCE($8, documents),
+          ${completedDateClause}
           updated_at = CURRENT_TIMESTAMP
       WHERE id = $9
       RETURNING *

@@ -104,7 +104,7 @@ function NumberPricingModal({ isOpen, onClose, selectedNumber }) {
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size={"5xl"} scrollBehavior="inside" isCentered isScrollable>
-      <ModalOverlay />
+      <ModalOverlay backdropFilter="blur(4px)" />
       <ModalContent>
         <ModalHeader>
           Number Details - {selectedNumber?.number}
