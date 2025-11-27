@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Box,
   Heading,
@@ -44,6 +44,7 @@ import api from '../services/api';
 
 const AddVendorCustomer = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const toast = useToast();
   const [activeTab, setActiveTab] = useState(location.state?.activeTab || 0);
   const [stats, setStats] = useState({
@@ -81,19 +82,13 @@ const AddVendorCustomer = () => {
 
   // Vendor form state
   const [vendorForm, setVendorForm] = useState({
-    companyName: '',
+    name: '',
     email: '',
     phone: '',
-    website: '',
     location: '',
-    address: '',
-    description: '',
-    contactPerson: '',
-    contactPersonPhone: '',
-    industry: '',
-    productsCount: '',
-    establishedYear: ''
+    status: 'Active'
   });
+  const [vendorLoading, setVendorLoading] = useState(false);
 
   // Customer form state
   const [customerForm, setCustomerForm] = useState({
@@ -125,14 +120,13 @@ const AddVendorCustomer = () => {
     }));
   };
 
-  const handleVendorSubmit = (e) => {
+  const handleVendorSubmit = async (e) => {
     e.preventDefault();
 
-    // Basic validation
-    if (!vendorForm.companyName || !vendorForm.email || !vendorForm.phone) {
+    if (!vendorForm.name || !vendorForm.email || !vendorForm.phone || !vendorForm.location) {
       toast({
         title: 'Validation Error',
-        description: 'Please fill in all required fields.',
+        description: 'Please fill in all required fields (Name, Email, Phone, Location).',
         status: 'error',
         duration: 3000,
         isClosable: true,
@@ -140,32 +134,41 @@ const AddVendorCustomer = () => {
       return;
     }
 
-    // Here you would typically send the data to your backend
-    console.log('Vendor data:', vendorForm);
+    try {
+      setVendorLoading(true);
+      const response = await api.vendors.create({
+        name: vendorForm.name,
+        email: vendorForm.email,
+        phone: vendorForm.phone,
+        location: vendorForm.location,
+        status: vendorForm.status
+      });
 
-    toast({
-      title: 'Vendor Added',
-      description: `${vendorForm.companyName} has been successfully added.`,
-      status: 'success',
-      duration: 3000,
-      isClosable: true,
-    });
+      if (response.success) {
+        toast({
+          title: 'Success',
+          description: `${vendorForm.name} has been successfully added.`,
+          status: 'success',
+          duration: 2000,
+          isClosable: true,
+        });
 
-    // Reset form
-    setVendorForm({
-      companyName: '',
-      email: '',
-      phone: '',
-      website: '',
-      location: '',
-      address: '',
-      description: '',
-      contactPerson: '',
-      contactPersonPhone: '',
-      industry: '',
-      productsCount: '',
-      establishedYear: ''
-    });
+        setTimeout(() => {
+          navigate('/vendors');
+        }, 1500);
+      }
+    } catch (error) {
+      console.error('Error creating vendor:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to add vendor.',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    } finally {
+      setVendorLoading(false);
+    }
   };
 
   const handleCustomerSubmit = (e) => {
@@ -365,11 +368,11 @@ const AddVendorCustomer = () => {
 
                       <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} w="full">
                         <FormControl isRequired>
-                          <FormLabel>Company Name</FormLabel>
+                          <FormLabel>Vendor Name</FormLabel>
                           <Input
-                            placeholder="Enter company name"
-                            value={vendorForm.companyName}
-                            onChange={(e) => handleVendorChange('companyName', e.target.value)}
+                            placeholder="Enter vendor name"
+                            value={vendorForm.name}
+                            onChange={(e) => handleVendorChange('name', e.target.value)}
                           />
                         </FormControl>
 
@@ -392,15 +395,6 @@ const AddVendorCustomer = () => {
                           />
                         </FormControl>
 
-                        <FormControl>
-                          <FormLabel>Website</FormLabel>
-                          <Input
-                            placeholder="https://example.com"
-                            value={vendorForm.website}
-                            onChange={(e) => handleVendorChange('website', e.target.value)}
-                          />
-                        </FormControl>
-
                         <FormControl isRequired>
                           <FormLabel>Location</FormLabel>
                           <Input
@@ -410,79 +404,17 @@ const AddVendorCustomer = () => {
                           />
                         </FormControl>
 
-                        <FormControl>
-                          <FormLabel>Industry</FormLabel>
+                        <FormControl isRequired>
+                          <FormLabel>Status</FormLabel>
                           <Select
-                            placeholder="Select industry"
-                            value={vendorForm.industry}
-                            onChange={(e) => handleVendorChange('industry', e.target.value)}
+                            value={vendorForm.status}
+                            onChange={(e) => handleVendorChange('status', e.target.value)}
                           >
-                            <option value="telecom">Telecommunications</option>
-                            <option value="technology">Technology</option>
-                            <option value="manufacturing">Manufacturing</option>
-                            <option value="services">Services</option>
-                            <option value="other">Other</option>
+                            <option value="Active">Active</option>
+                            <option value="Inactive">Inactive</option>
                           </Select>
                         </FormControl>
                       </SimpleGrid>
-
-                      <FormControl>
-                        <FormLabel>Address</FormLabel>
-                        <Textarea
-                          placeholder="Enter full address"
-                          value={vendorForm.address}
-                          onChange={(e) => handleVendorChange('address', e.target.value)}
-                        />
-                      </FormControl>
-
-                      <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} w="full">
-                        <FormControl>
-                          <FormLabel>Contact Person</FormLabel>
-                          <Input
-                            placeholder="Primary contact name"
-                            value={vendorForm.contactPerson}
-                            onChange={(e) => handleVendorChange('contactPerson', e.target.value)}
-                          />
-                        </FormControl>
-
-                        <FormControl>
-                          <FormLabel>Contact Person Phone</FormLabel>
-                          <Input
-                            placeholder="Contact person's phone"
-                            value={vendorForm.contactPersonPhone}
-                            onChange={(e) => handleVendorChange('contactPersonPhone', e.target.value)}
-                          />
-                        </FormControl>
-
-                        <FormControl>
-                          <FormLabel>Products Count</FormLabel>
-                          <Input
-                            type="number"
-                            placeholder="Number of products offered"
-                            value={vendorForm.productsCount}
-                            onChange={(e) => handleVendorChange('productsCount', e.target.value)}
-                          />
-                        </FormControl>
-
-                        <FormControl>
-                          <FormLabel>Established Year</FormLabel>
-                          <Input
-                            type="number"
-                            placeholder="Year established"
-                            value={vendorForm.establishedYear}
-                            onChange={(e) => handleVendorChange('establishedYear', e.target.value)}
-                          />
-                        </FormControl>
-                      </SimpleGrid>
-
-                      <FormControl>
-                        <FormLabel>Description</FormLabel>
-                        <Textarea
-                          placeholder="Brief description of the vendor"
-                          value={vendorForm.description}
-                          onChange={(e) => handleVendorChange('description', e.target.value)}
-                        />
-                      </FormControl>
 
                       <Divider />
 
@@ -491,19 +423,13 @@ const AddVendorCustomer = () => {
                           leftIcon={<FiX />}
                           variant="ghost"
                           onClick={() => setVendorForm({
-                            companyName: '',
+                            name: '',
                             email: '',
                             phone: '',
-                            website: '',
                             location: '',
-                            address: '',
-                            description: '',
-                            contactPerson: '',
-                            contactPersonPhone: '',
-                            industry: '',
-                            productsCount: '',
-                            establishedYear: ''
+                            status: 'Active'
                           })}
+                          isDisabled={vendorLoading}
                         >
                           Clear
                         </Button>
@@ -511,6 +437,8 @@ const AddVendorCustomer = () => {
                           leftIcon={<FiSave />}
                           colorScheme="blue"
                           type="submit"
+                          isLoading={vendorLoading}
+                          loadingText="Adding..."
                         >
                           Add Vendor
                         </Button>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Heading,
@@ -8,7 +8,9 @@ import {
   SimpleGrid,
   Badge,
   Text,
-  Flex
+  Flex,
+  Spinner,
+  Center
 } from '@chakra-ui/react';
 import {
   FiPhone,
@@ -17,9 +19,31 @@ import {
   FiGlobe,
   FiSmartphone
 } from 'react-icons/fi';
+import api from '../../services/api';
+
+const REGION_MAP = {
+  'Africa': ['South Africa', 'Nigeria', 'Egypt'],
+  'Asia': ['Bahrain', 'Bangladesh', 'Brunei', 'Cambodia', 'China', 'Hong Kong', 'India', 'Japan', 'Malaysia', 'Philippines', 'Singapore', 'South Korea', 'Thailand', 'Vietnam'],
+  'Europe': ['Albania', 'Austria', 'Belarus', 'Belgium', 'Bosnia And Herzegovina', 'Bulgaria', 'Croatia', 'Cyprus', 'Czech Republic', 'Denmark', 'Estonia', 'Finland', 'France', 'Germany', 'Greece', 'Hungary', 'Iceland', 'Ireland', 'Italy', 'Latvia', 'Lithuania', 'Luxembourg', 'Malta', 'Netherlands', 'Norway', 'Poland', 'Portugal', 'Romania', 'Russia', 'Serbia', 'Slovakia', 'Slovenia', 'Spain', 'Sweden', 'Switzerland', 'Turkey', 'Ukraine', 'United Kingdom'],
+  'North America': ['Anguilla', 'Antigua & Barbuda', 'Bahamas', 'Barbados', 'Belize', 'Bermuda', 'Canada', 'Costa Rica', 'Dominican Republic', 'El Salvador', 'Grenada', 'Guatemala', 'Haiti', 'Honduras', 'Jamaica', 'Mexico', 'Nicaragua', 'Panama', 'Puerto Rico', 'Saint Lucia', 'Trinidad & Tobago', 'United States'],
+  'Oceania': ['Australia', 'New Zealand', 'Fiji', 'Papua New Guinea', 'Samoa'],
+  'South America': ['Argentina', 'Bolivia', 'Brazil', 'Chile', 'Colombia', 'Curacao', 'Ecuador', 'Guyana', 'Paraguay', 'Peru', 'Suriname', 'Uruguay', 'Venezuela']
+};
+
+const getRegionForCountry = (countryName) => {
+  for (const [region, countries] of Object.entries(REGION_MAP)) {
+    if (countries.some(c => c.toLowerCase() === countryName.toLowerCase())) {
+      return region;
+    }
+  }
+  return 'Other';
+};
 
 const GlobalCoverage = () => {
   const [selectedService, setSelectedService] = useState('All');
+  const [globalCoverage, setGlobalCoverage] = useState({ regions: [] });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const services = [
     {
@@ -78,72 +102,73 @@ const GlobalCoverage = () => {
     }
   ];
 
-  // Sample data structure showing which services are available in which countries
-  const globalCoverage = {
-    regions: [
-      {
-        name: 'Africa',
-        countries: [
-          { name: 'South Africa', services: ['DID', 'Mobile'] },
-          { name: 'Nigeria', services: ['DID', 'Two Way SMS'] },
-          { name: 'Egypt', services: ['DID'] }
-        ]
-      },
-      {
-        name: 'Asia',
-        countries: [
-          { name: 'Bahrain', services: ['DID', 'Freephone', 'Two Way Voice'] },
-          { name: 'Bangladesh', services: ['DID', 'Two Way SMS', 'Mobile'] },
-          { name: 'Brunei', services: ['DID'] },
-          { name: 'Cambodia', services: ['DID', 'Mobile'] },
-          { name: 'China', services: ['DID', 'Freephone', 'Two Way Voice', 'Two Way SMS'] },
-          { name: 'Hong Kong', services: ['DID', 'Freephone', 'Universal Freephone', 'Two Way Voice'] },
-          { name: 'India', services: ['DID', 'Freephone', 'Two Way Voice', 'Two Way SMS', 'Mobile'] }
-        ]
-      },
-      {
-        name: 'Europe',
-        countries: [
-          { name: 'Albania', services: ['DID'] },
-          { name: 'Austria', services: ['DID', 'Freephone', 'Two Way Voice'] },
-          { name: 'Belarus', services: ['DID', 'Mobile'] },
-          { name: 'Belgium', services: ['DID', 'Freephone', 'Two Way Voice'] },
-          { name: 'Bosnia And Herzegovina', services: ['DID'] },
-          { name: 'Bulgaria', services: ['DID', 'Two Way SMS'] }
-        ]
-      },
-      {
-        name: 'North America',
-        countries: [
-          { name: 'Anguilla', services: ['DID'] },
-          { name: 'Antigua & Barbuda', services: ['DID', 'Mobile'] },
-          { name: 'Bahamas', services: ['DID'] },
-          { name: 'Barbados', services: ['DID', 'Two Way Voice'] },
-          { name: 'Belize', services: ['DID'] },
-          { name: 'Bermuda', services: ['DID', 'Freephone'] }
-        ]
-      },
-      {
-        name: 'Oceania',
-        countries: [
-          { name: 'Australia', services: ['DID', 'Freephone', 'Universal Freephone', 'Two Way Voice', 'Two Way SMS', 'Mobile'] },
-          { name: 'New Zealand', services: ['DID', 'Freephone', 'Two Way Voice', 'Mobile'] }
-        ]
-      },
-      {
-        name: 'South America',
-        countries: [
-          { name: 'Argentina', services: ['DID', 'Two Way SMS'] },
-          { name: 'Bolivia', services: ['DID'] },
-          { name: 'Brazil', services: ['DID', 'Freephone', 'Two Way Voice', 'Mobile'] },
-          { name: 'Chile', services: ['DID', 'Two Way SMS'] },
-          { name: 'Colombia', services: ['DID', 'Mobile'] },
-          { name: 'Curacao', services: ['DID'] },
-          { name: 'Ecuador', services: ['DID', 'Two Way Voice'] }
-        ]
+  useEffect(() => {
+    const fetchCountries = async () => {
+      try {
+        setLoading(true);
+        const result = await api.countries.getAll();
+        
+        if (result.success && result.data) {
+          const groupedByRegion = {};
+          
+          result.data.forEach(country => {
+            const region = getRegionForCountry(country.countryname);
+            
+            if (!groupedByRegion[region]) {
+              groupedByRegion[region] = [];
+            }
+            
+            let services = [];
+            
+            if (Array.isArray(country.availableproducts)) {
+              services = country.availableproducts.map(item => 
+                typeof item === 'string' ? item : item.name || ''
+              ).filter(Boolean);
+            } else if (typeof country.availableproducts === 'string') {
+              try {
+                const parsed = JSON.parse(country.availableproducts);
+                services = Array.isArray(parsed) 
+                  ? parsed.map(item => typeof item === 'string' ? item : item.name || '').filter(Boolean)
+                  : [parsed.name || ''];
+              } catch (e) {
+                console.warn(`Failed to parse availableproducts for ${country.countryname}:`, e);
+              }
+            } else if (typeof country.availableproducts === 'object' && country.availableproducts !== null) {
+              if (Array.isArray(country.availableproducts)) {
+                services = country.availableproducts.map(item => typeof item === 'string' ? item : item.name || '').filter(Boolean);
+              } else if (country.availableproducts.name) {
+                services = [country.availableproducts.name];
+              }
+            }
+            
+            groupedByRegion[region].push({
+              name: country.countryname,
+              services: services,
+              phonecode: country.phonecode
+            });
+          });
+          
+          const regions = Object.entries(groupedByRegion)
+            .sort((a, b) => a[0].localeCompare(b[0]))
+            .map(([name, countries]) => ({
+              name,
+              countries: countries.sort((a, b) => a.name.localeCompare(b.name))
+            }));
+          
+          setGlobalCoverage({ regions });
+        }
+        
+        setError(null);
+      } catch (err) {
+        console.error('Error fetching countries:', err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
       }
-    ]
-  };
+    };
+    
+    fetchCountries();
+  }, []);
 
   const getFilteredCountries = (region) => {
     return region.countries;
@@ -154,6 +179,36 @@ const GlobalCoverage = () => {
   };
 
   const selectedServiceMeta = selectedService === 'All' ? null : getServiceMeta(selectedService);
+
+  if (loading) {
+    return (
+      <>
+        <Heading size="lg" color="gray.800">
+          Global Coverage
+        </Heading>
+        <Box w="full" bg="white" borderRadius="2xl" p={4} boxShadow="sm" border="1px solid" borderColor="gray.200">
+          <Center h="400px">
+            <Spinner size="lg" color="blue.500" />
+          </Center>
+        </Box>
+      </>
+    );
+  }
+
+  if (error) {
+    return (
+      <>
+        <Heading size="lg" color="gray.800">
+          Global Coverage
+        </Heading>
+        <Box w="full" bg="white" borderRadius="2xl" p={4} boxShadow="sm" border="1px solid" borderColor="gray.200">
+          <Center h="400px">
+            <Text color="red.500">Error loading coverage data: {error}</Text>
+          </Center>
+        </Box>
+      </>
+    );
+  }
 
   return (
     <>
@@ -238,8 +293,9 @@ const GlobalCoverage = () => {
                     position="sticky"
                     // top={"60px"}
                     zIndex={1}
-                    bg="blackAlpha.300"
-                    borderRadius={"12px"}
+                    textAlign={"center"}
+                    bg="blackAlpha.200"
+                    borderRadius={"full"}
                     p={2}
                   >
                     {region.name}

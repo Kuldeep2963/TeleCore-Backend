@@ -1,159 +1,421 @@
-// import React, { useState, useEffect } from 'react';
-// import {
-//   Box,
-//   Heading,
-//   VStack,
-//   HStack,
-//   Select,
-//   Button,
-//   Text,
-//   Spacer,
-//   Spinner,
-//   Center
-// } from '@chakra-ui/react';
-// import { FaSearch } from 'react-icons/fa';
-// import { FiXCircle } from 'react-icons/fi';
-// import api from '../services/api';
+import React, { useState, useEffect } from 'react';
+import { Box, Heading, VStack, HStack, Select, Button, Text, Spacer, Spinner, Center, Table, Thead, Tbody, Tr, Th, Td, Input, NumberInput, NumberInputField, IconButton, useToast } from '@chakra-ui/react';
+import { FaSearch } from 'react-icons/fa';
+import { FiXCircle, FiEdit2, FiSave, FiX } from 'react-icons/fi';
+import api from '../services/api';
 
-// const Rates = () => {
-//   const [country, setCountry] = useState('');
-//   const [productType, setProductType] = useState('');
-//   const [countries, setCountries] = useState([]);
-//   const [productTypes, setProductTypes] = useState([]);
-//   const [loading, setLoading] = useState(true);
+const pricingHeadings = {
+  did: { nrc: 'NRC', mrc: 'MRC', ppm: 'PPM' },
+  freephone: { nrc: 'NRC', mrc: 'MRC', ppmFix: 'PPM Fix', ppmMobile: 'PPM Mobile', ppmPayphone: 'PPM Payphone' },
+  universal: { nrc: 'NRC', mrc: 'MRC', ppmFix: 'PPM Fix', ppmMobile: 'PPM Mobile', ppmPayphone: 'PPM Payphone' },
+  'two-way-voice': { nrc: 'NRC', mrc: 'MRC', ppmIncoming: 'Incoming PPM', ppmOutgoingfix: 'Outgoing Fix PPM', ppmOutgoingmobile: 'Outgoing Mobile PPM' },
+  'two-way-sms': { nrc: 'NRC', mrc: 'MRC', arc: 'ARC', mo: 'MO', mt: 'MT' },
+  mobile: { nrc: 'NRC', mrc: 'MRC', Incomingppm: 'Incoming PPM', Outgoingppmfix: 'Outgoing Fix PPM', Outgoingppmmobile: 'Outgoing Mobile PPM', incmongsms: 'Incoming SMS', outgoingsms: 'Outgoing SMS' }
+};
 
-//   useEffect(() => {
-//     fetchData();
-//   }, []);
+const Rates = () => {
+  const [selectedCountry, setSelectedCountry] = useState('');
+  const [selectedProductType, setSelectedProductType] = useState('');
+  const [countries, setCountries] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [availableProducts, setAvailableProducts] = useState([]);
+  const [pricingData, setPricingData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [editValues, setEditValues] = useState({});
+  const toast = useToast();
 
-//   const fetchData = async () => {
-//     try {
-//       setLoading(true);
+  const currentHeadings = pricingHeadings[selectedProductType] || pricingHeadings.did;
 
-//       // Fetch countries from API
-//       const countriesResponse = await api.countries.getAll();
-//       if (countriesResponse.success) {
-//         const countriesData = countriesResponse.data.map(country => ({
-//           value: country.code,
-//           label: `${country.name} (${country.phone_code})`
-//         }));
-//         setCountries([{ value: '', label: 'Select Country' }, ...countriesData]);
-//       }
+  const fetchCountries = async () => {
+    try {
+      setLoading(true);
+      const response = await api.countries.getAll();
+      if (response.success) {
+        setCountries(response.data);
+      }
+    } catch (error) {
+      console.error('Error fetching countries:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load countries',
+        status: 'error',
+        duration: 3000,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
-//       // Fetch products from API
-//       const productsResponse = await api.products.getAll();
-//       if (productsResponse.success) {
-//         const productsData = productsResponse.data.map(product => ({
-//           value: product.code,
-//           label: product.name
-//         }));
-//         setProductTypes([{ value: '', label: 'Select Product Type' }, ...productsData]);
-//       }
+  const fetchProducts = async () => {
+    try {
+      const response = await api.products.getAll();
+      if (response.success) {
+        setProducts(response.data);
+      }
+    } catch (error) {
+      console.error('Error fetching products:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load products',
+        status: 'error',
+        duration: 3000,
+      });
+    }
+  };
 
-//     } catch (error) {
-//       console.error('Error fetching data:', error);
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
+  useEffect(() => {
+    fetchCountries();
+    fetchProducts();
+  }, [toast]);
 
-//   const handleSearch = () => {
-//     console.log('Searching rates', { country, productType });
-//   };
+  const handleCountryChange = (countryName) => {
+    setSelectedCountry(countryName);
+    setSelectedProductType('');
+    setPricingData([]);
+    if (countryName) {
+      const country = countries.find(c => c.countryname === countryName);
+      if (country) {
+        let availableProductsList = [];
+        if (Array.isArray(country.availableproducts)) {
+          availableProductsList = country.availableproducts.map(item =>
+            typeof item === 'string' ? item : item.name || item.code || ''
+          ).filter(Boolean);
+        } else if (typeof country.availableproducts === 'string') {
+          try {
+            const parsed = JSON.parse(country.availableproducts);
+            availableProductsList = Array.isArray(parsed)
+              ? parsed.map(item =>
+                typeof item === 'string' ? item : item.name || item.code || ''
+              ).filter(Boolean)
+              : [parsed.name || parsed.code || ''];
+          } catch (e) {
+            console.warn('Failed to parse availableproducts:', e);
+          }
+        } else if (typeof country.availableproducts === 'object' && country.availableproducts !== null) {
+          if (country.availableproducts.name || country.availableproducts.code) {
+            availableProductsList = [country.availableproducts.name || country.availableproducts.code];
+          }
+        }
+        setAvailableProducts(availableProductsList);
+      }
+    } else {
+      setAvailableProducts([]);
+    }
+  };
 
-//   const handleClear = () => {
-//     setCountry('');
-//     setProductType('');
-//   };
+  const handleSearch = async () => {
+    if (!selectedCountry) {
+      toast({
+        title: 'Please select a country',
+        status: 'warning',
+        duration: 3000,
+      });
+      return;
+    }
+    try {
+      setSearchLoading(true);
+      let response;
+      if (selectedProductType) {
+        const product = products.find(p => p.code?.toLowerCase() === selectedProductType?.toLowerCase());
+        const country = countries.find(c => c.countryname?.toLowerCase() === selectedCountry?.toLowerCase());
+        if (product && country) {
+          response = await api.pricing.getByProduct(product.id, country.id);
+        } else {
+          response = { success: false };
+        }
+      } else {
+        response = await api.pricing.getByCountry(selectedCountry);
+      }
+      if (response.success) {
+        const filtered = Array.isArray(response.data) ? response.data : [response.data];
+        setPricingData(filtered);
+      } else {
+        toast({
+          title: 'No pricing found',
+          description: 'No pricing data available for the selected criteria',
+          status: 'info',
+          duration: 3000,
+        });
+        setPricingData([]);
+      }
+    } catch (error) {
+      console.error('Error fetching pricing:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load pricing data',
+        status: 'error',
+        duration: 3000,
+      });
+      setPricingData([]);
+    } finally {
+      setSearchLoading(false);
+    }
+  };
 
-//   if (loading) {
-//     return (
-//       <Center flex={1} minH="calc(100vh - 76px)">
-//         <Spinner size="lg" color="blue.500" />
-//       </Center>
-//     );
-//   }
+  const handleEdit = (row) => {
+    setEditingId(row.id);
+    setEditValues({ ...row });
+  };
 
-//   return (
-//     <Box
-//       flex={1}
-//       p={8}
-//       bg="#f8f9fa"
-//       height="calc(100vh - 76px)"
-//       overflowY="auto"
-//     >
-//       <VStack spacing={6} align="stretch">
-//         <Heading
-//           color="#1a3a52"
-//           fontSize="3xl"
-//           fontWeight="bold"
-//           letterSpacing="-0.2px"
-//         >
-//           Rates
-//         </Heading>
+  const handleInputChange = (field, value) => {
+    setEditValues(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
 
-//         <Box
-//           bg="white"
-//           borderRadius="12px"
-//           boxShadow="sm"
-//           border="1px solid"
-//           borderColor="gray.200"
-//           p={5}
-//         >
-//           <VStack align="stretch" spacing={4}>
-            
-//             <HStack spacing={4} align="center">
-//               <VStack flex={3} align={"start"} spacing={1}>
-//               <Text fontWeight={"bold"}>Country</Text>
-//               <Select
-//                 value={country}
-//                 onChange={(e) => setCountry(e.target.value)}
-//               >
-//                 {countries.map((option) => (
-//                   <option key={option.value || 'placeholder'} value={option.value}>
-//                     {option.label}
-//                   </option>
-//                 ))}
-//               </Select>
-//               </VStack>
-//               <VStack flex={3} spacing={1} align={"start"}>
-//                 <Text fontWeight={"bold"}>Product Type</Text>
-//               <Select
-//                 value={productType}
-//                 onChange={(e) => setProductType(e.target.value)}
-//               >
-//                 {productTypes.map((option) => (
-//                   <option key={option.value || 'placeholder'} value={option.value}>
-//                     {option.label}
-//                   </option>
-//                 ))}
-//               </Select>
-//               </VStack>
-//               <Spacer/>
-//               <HStack flex={1} spacing={5} align={"center"}>
-//                 <Button
-//                   borderRadius={"full"}
-//                   leftIcon={<FaSearch/>}
-//                   colorScheme="blue"
-//                   onClick={handleSearch}
-//                 >
-//                   Search
-//                 </Button>
-//                 <Button
-//                   borderRadius={"full"}
-//                   variant="outline"
-//                   leftIcon={<FiXCircle />}
-//                   onClick={handleClear}
-//                 >
-//                   Clear
-//                 </Button>
-//               </HStack>
-//             </HStack>
-//           </VStack>
-//         </Box>
-//       </VStack>
-//     </Box>
-//   );
-// };
+  const handleSave = async () => {
+    try {
+      const fieldMap = {
+        nrc: 'nrc',
+        mrc: 'mrc',
+        ppm: 'ppm',
+        ppmFix: 'ppm_fix',
+        ppmMobile: 'ppm_mobile',
+        ppmPayphone: 'ppm_payphone',
+        arc: 'arc',
+        mo: 'mo',
+        mt: 'mt',
+        ppmIncoming: 'incoming_ppm',
+        ppmOutgoingfix: 'outgoing_ppm_fix',
+        ppmOutgoingmobile: 'outgoing_ppm_mobile',
+        incmongsms: 'incoming_sms',
+        outgoingsms: 'outgoing_sms',
+        Incomingppm: 'incoming_ppm',
+        Outgoingppmfix: 'outgoing_ppm_fix',
+        Outgoingppmmobile: 'outgoing_ppm_mobile'
+      };
+      const updateData = {};
+      Object.values(fieldMap).forEach(field => {
+        if (editValues[field] !== undefined && editValues[field] !== null && editValues[field] !== '') {
+          updateData[field] = parseFloat(editValues[field]);
+        }
+      });
+      await api.pricing.update(editingId, updateData);
+      toast({
+        title: 'Success',
+        description: 'Pricing updated successfully',
+        status: 'success',
+        duration: 3000,
+      });
+      setEditingId(null);
+      handleSearch();
+    } catch (error) {
+      console.error('Error updating pricing:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to update pricing',
+        status: 'error',
+        duration: 3000,
+      });
+    }
+  };
 
-// export default Rates;
+  const handleCancel = () => {
+    setEditingId(null);
+    setEditValues({});
+  };
+
+  const handleClear = () => {
+    setSelectedCountry('');
+    setSelectedProductType('');
+    setAvailableProducts([]);
+    setPricingData([]);
+    setEditingId(null);
+  };
+
+  if (loading) {
+    return (
+      <Center h="400px">
+        <Spinner size="lg" />
+      </Center>
+    );
+  }
+
+  return (
+    <Box p={8} bg="gray.50" minH="100vh">
+      <VStack spacing={6} align="stretch">
+        <Heading as="h1" size="lg">
+          Rates Management
+        </Heading>
+
+        <HStack spacing={4} bg="white" p={6} borderRadius="md" boxShadow="sm">
+          <VStack spacing={2} flex={1}>
+            <Text fontWeight="bold" fontSize="sm">Select Country</Text>
+            <Select
+              borderRadius={"15px"}
+              value={selectedCountry}
+              onChange={(e) => handleCountryChange(e.target.value)}
+              placeholder="Select country"
+            >
+              {countries.map((country) => (
+                <option key={country.id} value={country.countryname}>
+                  {country.countryname} ({country.phonecode})
+                </option>
+              ))}
+            </Select>
+          </VStack>
+
+          <VStack spacing={2} flex={1}>
+            <Text fontWeight="bold" fontSize="sm">Select Product Type</Text>
+            <Select
+              borderRadius={"15px"}
+              value={selectedProductType}
+              onChange={(e) => setSelectedProductType(e.target.value)}
+              placeholder="product type"
+              isDisabled={availableProducts.length === 0}
+            >
+              {products
+                .filter(product =>
+                  availableProducts.some(
+                    ap =>
+                      ap.toLowerCase() === product.code.toLowerCase() ||
+                      ap.toLowerCase() === product.name.toLowerCase()
+                  )
+                )
+                .map((product) => (
+                  <option key={product.id} value={product.code}>
+                    {product.name} ({product.code})
+                  </option>
+                ))}
+            </Select>
+          </VStack>
+
+          <Spacer />
+
+          <HStack spacing={5}>
+            <Button
+              variant="ghost"
+              borderRadius={"full"}
+              leftIcon={<FaSearch />}
+              colorScheme="blue"
+              onClick={handleSearch}
+              isLoading={searchLoading}
+              isDisabled={!selectedCountry}
+            >
+              Search
+            </Button>
+            <Button
+              borderRadius={"full"}
+              
+              leftIcon={<FiXCircle />}
+              onClick={handleClear}
+            >
+              Clear
+            </Button>
+          </HStack>
+        </HStack>
+
+        {pricingData.length > 0 && (
+          <Box bg="white" borderRadius="md" boxShadow="sm" overflowX="auto">
+            <Table variant="simple" size="sm">
+              <Thead bg="gray.100">
+                <Tr>
+                  {Object.entries(currentHeadings).map(([key, label]) => (
+                    <Th
+                      key={key}
+                      py={3}
+                      px={4}
+                      textAlign="left"
+                      fontWeight="bold"
+                      whiteSpace="nowrap"
+                    >
+                      {label}
+                    </Th>
+                  ))}
+                  <Th py={3} px={4} textAlign="left" fontWeight="bold" whiteSpace="nowrap">
+                    Actions
+                  </Th>
+                </Tr>
+              </Thead>
+              <Tbody>
+                {pricingData.map((row) => (
+                  <Tr key={row.id} borderBottomWidth="1px">
+                    {Object.entries(currentHeadings).map(([key]) => {
+                      const fieldMap = {
+                        nrc: 'nrc',
+                        mrc: 'mrc',
+                        ppm: 'ppm',
+                        ppmFix: 'ppm_fix',
+                        ppmMobile: 'ppm_mobile',
+                        ppmPayphone: 'ppm_payphone',
+                        arc: 'arc',
+                        mo: 'mo',
+                        mt: 'mt',
+                        ppmIncoming: 'incoming_ppm',
+                        ppmOutgoingfix: 'outgoing_ppm_fix',
+                        ppmOutgoingmobile: 'outgoing_ppm_mobile',
+                        incmongsms: 'incoming_sms',
+                        outgoingsms: 'outgoing_sms',
+                        Incomingppm: 'incoming_ppm',
+                        Outgoingppmfix: 'outgoing_ppm_fix',
+                        Outgoingppmmobile: 'outgoing_ppm_mobile'
+                      };
+                      const fieldName = fieldMap[key];
+                      const value = row[fieldName];
+                      return (
+                        <Td key={key} py={3} px={4}>
+                          {editingId === row.id ? (
+                            <NumberInput
+                              value={editValues[fieldName] || ''}
+                              onChange={(val) => handleInputChange(fieldName, val)}
+                              precision={4}
+                              size="sm"
+                            >
+                              <NumberInputField />
+                            </NumberInput>
+                          ) : (
+                            value ? `$${parseFloat(value).toFixed(4)}` : '-'
+                          )}
+                        </Td>
+                      );
+                    })}
+                    <Td py={3} px={4}>
+                      {editingId === row.id ? (
+                        <HStack spacing={2}>
+                          <IconButton
+                            icon={<FiSave />}
+                            size="sm"
+                            colorScheme="green"
+                            onClick={handleSave}
+                            aria-label="Save"
+                          />
+                          <IconButton
+                            icon={<FiX />}
+                            size="sm"
+                            variant="outline"
+                            onClick={handleCancel}
+                            aria-label="Cancel"
+                          />
+                        </HStack>
+                      ) : (
+                        <IconButton
+                          icon={<FiEdit2 />}
+                          size="sm"
+                          colorScheme="blue"
+                          variant="ghost"
+                          onClick={() => handleEdit(row)}
+                          aria-label="Edit"
+                        />
+                      )}
+                    </Td>
+                  </Tr>
+                ))}
+              </Tbody>
+            </Table>
+          </Box>
+        )}
+
+        {!searchLoading && pricingData.length === 0 && selectedCountry && (
+          <Center py={8}>
+            <Text color="gray.500">No pricing data found for {selectedCountry}</Text>
+          </Center>
+        )}
+      </VStack>
+    </Box>
+  );
+};
+
+export default Rates;

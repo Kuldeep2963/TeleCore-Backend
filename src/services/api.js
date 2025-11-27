@@ -128,6 +128,9 @@ const api = {
   pricing: {
     getAll: () => apiCall('/pricing'),
     getByProduct: (productId, countryId) => apiCall(`/pricing/product/${productId}/country/${countryId}`),
+    getByNames: (countryName, productName) => apiCall(`/pricing/by-names/${encodeURIComponent(countryName)}/${encodeURIComponent(productName)}`),
+    getByCountry: (countryName) => apiCall(`/pricing/country/${encodeURIComponent(countryName)}`),
+    update: (id, data) => apiCall(`/pricing/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   },
 
   disconnectionRequests: {

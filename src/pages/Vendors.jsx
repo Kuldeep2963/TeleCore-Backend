@@ -218,7 +218,7 @@ const Vendors = () => {
                 </Box>
                 <Box>
                   <Text fontSize="2xl" fontWeight="bold" color="gray.800">
-                    {vendors.reduce((sum, vendor) => sum + (vendor.total_orders || 0), 0)}
+                    {vendors.reduce((sum, vendor) => sum + Number(vendor.total_orders || 0), 0)}
                   </Text>
                   <Text color="gray.500" fontSize="sm">
                     Total Orders

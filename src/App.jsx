@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import Navbar from './components/Navbar';
-import Sidebar from './components/Sidebar';
+import Navbar from './Components/Navbar';
+import Sidebar from './Components/Sidebar';
 import Dashboard from './pages/Dash-User/DashboardClient';
 import DashboardInternal from './pages/Dash-User/DashboardInternal';
 import Vendors from './pages/Vendors';
@@ -18,10 +18,10 @@ import MyOrders from './pages/MyOrders';
 import ProductInfo from './pages/ProductInfo';
 import Profile from './pages/MyProfile';
 import Billing from './pages/Billing&TopUpbalance/Billing';
-import TopUp from './pages/Billing&TopUpbalance/TopUp'; // Import the TopUp component
-import PlaceOrder from './pages/OrderNumber/AddNewNumber/PlaceOrder';
+import TopUp from './pages/Billing&TopUpbalance/TopUp';
 import PlaceOrderPage from './pages/OrderNumber/AddNewNumber/PlaceOrderPage';
 import OrderNumberView from './pages/OrderNumberView';
+import Rates from './pages/Rates';
 import Login from './pages/Login';
 import DisconnectionModal from './Modals/DisconnectionModal';
 import api from './services/api';
@@ -437,6 +437,7 @@ function App() {
                 <Route path="/my-orders" element={<MyOrders userId={userId} userRole={userRole} />} />
                 <Route path="/order-number-view" element={<OrderNumberView userRole={userRole} />} />
                 <Route path="/product-info" element={<ProductInfo />} />
+                <Route path="/rates" element={<Rates />} />
                 <Route 
                   path="/my-profile" 
                   element={

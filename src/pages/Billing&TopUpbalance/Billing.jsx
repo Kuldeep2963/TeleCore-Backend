@@ -209,135 +209,141 @@ const Billing = ({ walletBalance = 50.00, onUpdateBalance = () => {}, userId }) 
   };
 
   const generateInvoicePDF = (invoiceData) => {
-    const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.getWidth();
-    let yPosition = 20;
+  const doc = new jsPDF();
+  const pageWidth = doc.internal.pageSize.getWidth();
+  let y = 20;
 
-    const formatDate = (date) => {
-      if (!date) return 'N/A';
-      return new Date(date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
-    };
+  // -------------------------
+  // Helpers
+  // -------------------------
+  const formatDate = (date) =>
+    date
+      ? new Date(date).toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+        })
+      : "N/A";
 
-    const formatCurrency = (amount) => {
-      return `$${Number(amount || 0).toFixed(2)}`;
-    };
+  const currency = (amount) => `$${Number(amount || 0).toFixed(2)}`;
 
-    doc.setFontSize(20);
-    doc.text(String('INVOICE'), pageWidth / 2, yPosition, { align: 'center' });
-    yPosition += 15;
-
-    doc.setFontSize(10);
-    doc.text(String(`Invoice Number: ${invoiceData.invoice_number || 'N/A'}`), 20, yPosition);
-    doc.text(String(`Invoice Date: ${formatDate(invoiceData.invoice_date)}`), pageWidth - 80, yPosition);
-    yPosition += 8;
-
-    doc.text(String(`Customer: ${invoiceData.customer_name || 'N/A'}`), 20, yPosition);
-    doc.text(String(`Due Date: ${formatDate(invoiceData.due_date)}`), pageWidth - 80, yPosition);
-    yPosition += 8;
-
-    if (invoiceData.customer_email) {
-      doc.text(String(`Email: ${invoiceData.customer_email}`), 20, yPosition);
-      yPosition += 6;
-    }
-
-    if (invoiceData.customer_phone) {
-      doc.text(String(`Phone: ${invoiceData.customer_phone}`), 20, yPosition);
-      yPosition += 6;
-    }
-
-    if (invoiceData.country_name || invoiceData.area_code) {
-      doc.text(String(`Location: ${invoiceData.country_name || ''} ${invoiceData.area_code || ''}`.trim()), 20, yPosition);
-      yPosition += 6;
-    }
-
-    yPosition += 8;
-    doc.setDrawColor(0, 0, 0);
-    doc.line(20, yPosition, pageWidth - 20, yPosition);
-    yPosition += 10;
-
-    doc.setFontSize(11);
-    doc.setFont(undefined, 'bold');
-    doc.text(String('Invoice Details'), 20, yPosition);
-    yPosition += 8;
-
-    doc.setFont(undefined, 'normal');
-    doc.setFontSize(10);
-
-    const details = [
-      ['Description', 'Value'],
-      ['Period', String(invoiceData.period || 'N/A')],
-      ['From Date', formatDate(invoiceData.from_date)],
-      ['To Date', formatDate(invoiceData.to_date)],
-      ['Product', String(invoiceData.product_name || 'N/A')],
-      ['Product Type', String(invoiceData.product_type || 'N/A')],
-      ['Quantity', String(invoiceData.quantity || 'N/A')],
-    ];
-
-    let detailY = yPosition;
-    details.forEach((row, index) => {
-      if (index === 0) {
-        doc.setFont(undefined, 'bold');
-      } else {
-        doc.setFont(undefined, 'normal');
-      }
-      doc.text(String(row[0]), 20, detailY);
-      doc.text(String(row[1]), 120, detailY);
-      detailY += 7;
-    });
-
-    yPosition = detailY + 5;
-    doc.line(20, yPosition, pageWidth - 20, yPosition);
-    yPosition += 10;
-
-    doc.setFontSize(11);
-    doc.setFont(undefined, 'bold');
-    doc.text(String('Charges'), 20, yPosition);
-    yPosition += 8;
-
-    doc.setFont(undefined, 'normal');
-    doc.setFontSize(10);
-    const chargeY = yPosition;
-
-    doc.text(String('MRC Amount:'), 20, chargeY);
-    doc.text(String(formatCurrency(invoiceData.mrc_amount)), 120, chargeY);
-
-    doc.text(String('Usage Amount:'), 20, chargeY + 7);
-    doc.text(String(formatCurrency(invoiceData.usage_amount)), 120, chargeY + 7);
-
-    yPosition = chargeY + 17;
-    doc.line(20, yPosition, pageWidth - 20, yPosition);
-    yPosition += 8;
-
-    doc.setFont(undefined, 'bold');
+  const drawSectionTitle = (title) => {
     doc.setFontSize(12);
-    const totalAmount = parseFloat(invoiceData.amount || 0);
-    doc.text(String('Total Amount:'), 20, yPosition);
-    doc.text(String(formatCurrency(totalAmount)), 120, yPosition);
-
-    yPosition += 10;
+    doc.setFont(undefined, "bold");
+    doc.text(title, 20, y);
+    y += 8;
+    doc.setFont(undefined, "normal");
     doc.setFontSize(10);
-    doc.setFont(undefined, 'normal');
-    const statusText = String(`Status: ${invoiceData.status || 'N/A'}`);
-    doc.text(statusText, 20, yPosition);
-
-    if (invoiceData.paid_date) {
-      yPosition += 7;
-      doc.text(String(`Paid Date: ${formatDate(invoiceData.paid_date)}`), 20, yPosition);
-    }
-
-    if (invoiceData.notes) {
-      yPosition += 12;
-      doc.setFont(undefined, 'bold');
-      doc.text(String('Notes:'), 20, yPosition);
-      yPosition += 7;
-      doc.setFont(undefined, 'normal');
-      const noteLines = doc.splitTextToSize(String(invoiceData.notes), pageWidth - 40);
-      doc.text(noteLines, 20, yPosition);
-    }
-
-    const fileName = `Invoice_${invoiceData.invoice_number}_${new Date().toISOString().split('T')[0]}.pdf`;
-    doc.save(fileName);
   };
+
+  const drawLine = () => {
+    doc.setDrawColor(0);
+    doc.line(20, y, pageWidth - 20, y);
+    y += 10;
+  };
+
+  const drawRow = (label, value) => {
+    doc.setFont(undefined, "normal");
+    doc.text(label, 20, y);
+    doc.text(String(value), pageWidth - 90, y);
+    y += 7;
+  };
+
+  // -------------------------
+  // Header
+  // -------------------------
+  doc.setFontSize(20);
+  doc.setFont(undefined, "bold");
+  doc.text("INVOICE", pageWidth / 2, y, { align: "center" });
+  y += 15;
+
+  doc.setFontSize(10);
+  doc.setFont(undefined, "normal");
+  drawRow("Invoice Number:", invoiceData.invoice_number || "N/A");
+  drawRow("Invoice Date:", formatDate(invoiceData.invoice_date));
+  drawRow("Customer:", invoiceData.customer_name || "N/A");
+  drawRow("Due Date:", formatDate(invoiceData.due_date));
+
+  if (invoiceData.customer_email) drawRow("Email:", invoiceData.customer_email);
+  if (invoiceData.customer_phone) drawRow("Phone:", invoiceData.customer_phone);
+  if (invoiceData.country_name || invoiceData.area_code)
+    drawRow(
+      "Location:",
+      `${invoiceData.country_name || ""} ${invoiceData.area_code || ""}`.trim()
+    );
+
+  drawLine();
+
+  // -------------------------
+  // Invoice Details
+  // -------------------------
+  drawSectionTitle("Invoice Details");
+
+  const detailRows = [
+    ["Period", invoiceData.period || "N/A"],
+    ["From Date", formatDate(invoiceData.from_date)],
+    ["To Date", formatDate(invoiceData.to_date)],
+    ["Product", invoiceData.product_name || "N/A"],
+    ["Product Type", invoiceData.product_type || "N/A"],
+    ["Quantity", invoiceData.quantity || "N/A"],
+  ];
+
+  detailRows.forEach(([label, value]) => drawRow(label + ":", value));
+
+  drawLine();
+
+  // -------------------------
+  // Charges Section
+  // -------------------------
+  drawSectionTitle("Charges");
+
+  drawRow("MRC Amount:", currency(invoiceData.mrc_amount));
+  drawRow("Usage Amount:", currency(invoiceData.usage_amount));
+
+  drawLine();
+
+  // -------------------------
+  // Total Amount
+  // -------------------------
+  doc.setFont(undefined, "bold");
+  doc.setFontSize(12);
+  doc.text("Total Amount:", 20, y);
+  doc.text(currency(invoiceData.amount), pageWidth - 90, y);
+  y += 12;
+
+  // -------------------------
+  // Status & Paid Info
+  // -------------------------
+  doc.setFontSize(10);
+  doc.setFont(undefined, "normal");
+  drawRow("Status:", invoiceData.status || "N/A");
+
+  if (invoiceData.paid_date) drawRow("Paid Date:", formatDate(invoiceData.paid_date));
+
+  // -------------------------
+  // Notes
+  // -------------------------
+  if (invoiceData.notes) {
+    y += 8;
+    doc.setFont(undefined, "bold");
+    doc.text("Notes:", 20, y);
+    y += 7;
+
+    doc.setFont(undefined, "normal");
+
+    const wrapped = doc.splitTextToSize(String(invoiceData.notes), pageWidth - 40);
+    doc.text(wrapped, 20, y);
+  }
+
+  // -------------------------
+  // Save PDF
+  // -------------------------
+  const fileName = `Invoice_${invoiceData.invoice_number}_${new Date()
+    .toISOString()
+    .split("T")[0]}.pdf`;
+
+  doc.save(fileName);
+};
 
   const handleDownloadInvoice = async (invoiceNumber) => {
     try {

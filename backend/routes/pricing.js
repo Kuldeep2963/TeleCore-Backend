@@ -98,6 +98,76 @@ router.get('/product/:productId/country/:countryId', async (req, res) => {
   }
 });
 
+// Get pricing by product name and country name
+router.get('/by-names/:countryName/:productName', async (req, res) => {
+  try {
+    const { countryName, productName } = req.params;
+
+    const result = await query(`
+      SELECT pp.*, p.name as product_name, p.code as product_code,
+             c.countryname as country_name, c.phonecode, c.id as country_id, p.id as product_id
+      FROM pricing_plans pp
+      JOIN products p ON pp.product_id = p.id
+      JOIN countries c ON pp.country_id = c.id
+      WHERE LOWER(c.countryname) = LOWER($1)
+      AND LOWER(p.name) = LOWER($2)
+      AND pp.status = 'Active'
+      AND (pp.effective_to IS NULL OR pp.effective_to >= CURRENT_DATE)
+      ORDER BY pp.effective_from DESC
+      LIMIT 1
+    `, [countryName, productName]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Pricing plan not found for this product and country'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: result.rows[0]
+    });
+  } catch (error) {
+    console.error('Get pricing by names error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
+// Get all pricing for a specific country with product details
+router.get('/country/:countryName', async (req, res) => {
+  try {
+    const { countryName } = req.params;
+
+    const result = await query(`
+      SELECT pp.*, p.name as product_name, p.code as product_code,
+             c.countryname as country_name, c.phonecode
+      FROM pricing_plans pp
+      JOIN products p ON pp.product_id = p.id
+      JOIN countries c ON pp.country_id = c.id
+      WHERE LOWER(c.countryname) = LOWER($1)
+      AND pp.status = 'Active'
+      AND (pp.effective_to IS NULL OR pp.effective_to >= CURRENT_DATE)
+      ORDER BY p.name ASC
+    `, [countryName]);
+
+    res.json({
+      success: true,
+      data: result.rows,
+      count: result.rows.length
+    });
+  } catch (error) {
+    console.error('Get pricing by country error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
 // Create new pricing plan
 router.post('/', async (req, res) => {
   try {

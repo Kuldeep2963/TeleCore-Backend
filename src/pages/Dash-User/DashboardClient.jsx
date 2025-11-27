@@ -321,7 +321,7 @@ function Dashboard({ userId, userRole }) {
 
           {services.length > 0 ? (
             <Grid
-              templateColumns={{ base: "1fr", md: "repeat(2, 1fr)", lg: "repeat(6, 1fr)" }}
+              templateColumns={{ base: "1fr", md: "repeat(2, 1fr)", lg: "repeat(3, 1fr)" }}
               gap={6}
             >
               {services.map(service => (

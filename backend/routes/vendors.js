@@ -64,7 +64,7 @@ router.get('/:id', async (req, res) => {
 
 router.post('/', async (req, res) => {
   try {
-    const { name, email, phone, location, status, contact_person } = req.body;
+    const { name, email, phone, location, status } = req.body;
 
     if (!name || !email) {
       return res.status(400).json({
@@ -74,10 +74,10 @@ router.post('/', async (req, res) => {
     }
 
     const result = await query(`
-      INSERT INTO vendors (name, email, phone, location, status, contact_person)
-      VALUES ($1, $2, $3, $4, $5, $6)
+      INSERT INTO vendors (name, email, phone, location, status)
+      VALUES ($1, $2, $3, $4, $5)
       RETURNING *
-    `, [name, email, phone || null, location || null, status || 'Active', contact_person || null]);
+    `, [name, email, phone || null, location || null, status || 'Active']);
 
     res.status(201).json({
       success: true,
@@ -96,7 +96,7 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, email, phone, location, status, contact_person } = req.body;
+    const { name, email, phone, location, status } = req.body;
 
     const result = await query(`
       UPDATE vendors
@@ -105,11 +105,10 @@ router.put('/:id', async (req, res) => {
           phone = COALESCE($3, phone),
           location = COALESCE($4, location),
           status = COALESCE($5, status),
-          contact_person = COALESCE($6, contact_person),
           updated_at = CURRENT_TIMESTAMP
-      WHERE id = $7
+      WHERE id = $6
       RETURNING *
-    `, [name, email, phone, location, status, contact_person, id]);
+    `, [name, email, phone, location, status, id]);
 
     if (result.rows.length === 0) {
       return res.status(404).json({

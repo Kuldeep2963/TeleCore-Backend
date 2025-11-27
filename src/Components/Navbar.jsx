@@ -17,7 +17,7 @@ import {
   useColorModeValue,
   useDisclosure
 } from '@chakra-ui/react';
-import { FaFileExcel, FaShoppingCart, FaUser, FaCog, FaKey, FaSignOutAlt, FaWallet } from 'react-icons/fa';
+import { FaShoppingCart, FaUser, FaCog, FaKey, FaSignOutAlt, FaWallet,FaChartLine} from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import ChangePasswordModal from '../Modals/ChangePasswordModal';
 
@@ -41,9 +41,9 @@ function Navbar({ cartCount = 0, walletBalance = 0, profilePicture = null, onLog
     onLogout();
   };
 
-  // const handleRatesClick = () => {
-  //   navigate('/rates');
-  // };
+  const handleRatesClick = () => {
+    navigate('/rates');
+  };
 
   const handleWalletClick = () => {
     navigate('/billing-invoices?tab=topup');
@@ -80,9 +80,10 @@ function Navbar({ cartCount = 0, walletBalance = 0, profilePicture = null, onLog
         
         {/* Right Section - All items in a single row */}
         <HStack spacing={4}>
-          {/* Excel Icon
+          {userRole === 'Internal' &&(
+            <>
             <IconButton
-              icon={<FaFileExcel />}
+              icon={<FaChartLine/>}
               variant="ghost"
               color="#1a3a52"
               _hover={{ 
@@ -95,7 +96,10 @@ function Navbar({ cartCount = 0, walletBalance = 0, profilePicture = null, onLog
               transition="all 0.2s ease"
               onClick={handleRatesClick}
             />
-           */}
+            </>
+          )}
+            
+           
           {/* Cart and Wallet - Only for Clients */}
           {userRole === 'Client' && (
             <>
