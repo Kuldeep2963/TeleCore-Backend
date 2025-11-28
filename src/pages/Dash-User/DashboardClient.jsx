@@ -81,6 +81,18 @@ function Dashboard({ userId, userRole }) {
     try {
       setLoading(true);
 
+      // First, get the customer record for the current user
+      let customerId = null;
+      try {
+        const customerResponse = await api.customers.getMe();
+        if (customerResponse.success) {
+          customerId = customerResponse.data.id;
+          console.log('Customer ID:', customerId);
+        }
+      } catch (error) {
+        console.warn('Could not fetch customer:', error);
+      }
+
       // Calculate stats from individual API calls for accurate data
       const [ordersResponse, numbersResponse, invoicesResponse] = await Promise.all([
         api.orders.getAll({ user_id: userId }),
@@ -99,11 +111,11 @@ function Dashboard({ userId, userRole }) {
       let overdueInvoices = 0;
       let totalInvoices = 0;
 
-      if (invoicesResponse.success) {
+      if (invoicesResponse.success && customerId) {
         console.log('All invoices:', invoicesResponse.data.map(inv => ({ id: inv.id, customer_id: inv.customer_id, status: inv.status })));
-        console.log('Current userId:', userId);
+        console.log('Current customer ID:', customerId);
 
-        const userInvoices = invoicesResponse.data.filter(inv => inv.customer_id == userId);
+        const userInvoices = invoicesResponse.data.filter(inv => inv.customer_id === customerId);
         totalInvoices = userInvoices.length;
 
         // Debug: log invoice statuses
@@ -221,7 +233,7 @@ function Dashboard({ userId, userRole }) {
           <VStack align="start" spacing={5}>
           <HStack justify="space-between" align="center" w="full">
             <Heading
-              color="gray.800"
+              color="green"
               fontSize={{ base: "2xl", md: "3xl" }}
               fontWeight="bold"
               letterSpacing="-0.5px"
@@ -230,6 +242,7 @@ function Dashboard({ userId, userRole }) {
               Welcome Back!
             </Heading>
             <Button
+              borderRadius={"full"}
               leftIcon={<FiRefreshCw />}
               variant="outline"
               size="sm"
@@ -238,7 +251,7 @@ function Dashboard({ userId, userRole }) {
               isLoading={loading}
               loadingText="Refreshing..."
             >
-              Refresh Stats
+              Refresh
             </Button>
           </HStack>
           
@@ -310,7 +323,7 @@ function Dashboard({ userId, userRole }) {
         <Box w="full">
           <HStack justify="space-between" align="center" mb={6}>
             <Box>
-              <Heading size="lg" color="gray.800">
+              <Heading size="md" color="gray.800">
                 Available Services
               </Heading>
             </Box>

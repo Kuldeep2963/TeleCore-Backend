@@ -144,6 +144,7 @@ const DashboardInternal = ({ userId, userRole }) => {
              Dashboard
             </Heading>
             <Button
+              borderRadius={"full"}
               leftIcon={<FiRefreshCw />}
               variant="outline"
               size="sm"
@@ -152,7 +153,7 @@ const DashboardInternal = ({ userId, userRole }) => {
               isLoading={loading}
               loadingText="Refreshing..."
             >
-              Refresh Stats
+              Refresh
             </Button>
           </HStack>
 

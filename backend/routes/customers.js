@@ -30,15 +30,8 @@ router.get('/', requireInternal, async (req, res) => {
   }
 });
 
-router.get('/me', async (req, res) => {
+router.get('/me', authenticateToken, async (req, res) => {
   try {
-    if (!req.user) {
-      return res.status(401).json({
-        success: false,
-        message: 'Authentication required'
-      });
-    }
-
     const userId = req.user.id;
 
     const result = await query(`

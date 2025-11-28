@@ -401,8 +401,9 @@ function Profile({ profilePicture, onProfilePictureUpdate, userId, userProfile, 
                       </Heading>
                       <Button
                         leftIcon={<EditIcon />}
+                        borderRadius={"full"}
                         colorScheme={isEditing ? "gray" : "blue"}
-                        variant={isEditing ? "outline" : "solid"}
+                        variant={isEditing ? "outline" : "outline"}
                         size="sm"
                         onClick={() => setIsEditing(!isEditing)}
                       >
@@ -518,12 +519,14 @@ function Profile({ profilePicture, onProfilePictureUpdate, userId, userProfile, 
                     {isEditing && (
                       <HStack spacing={3} justify="flex-end" pt={4}>
                         <Button
+                          size={"sm"}
                           variant="outline"
                           onClick={handleCancelEdit}
                         >
                           Cancel
                         </Button>
                         <Button
+                          size={"sm"}
                           colorScheme="blue"
                           onClick={handleSaveChanges}
                         >

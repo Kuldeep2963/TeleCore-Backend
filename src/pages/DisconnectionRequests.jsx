@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Heading,
@@ -9,6 +8,7 @@ import {
   HStack,
   Icon,
   SimpleGrid,
+  Divider,
   Badge,
   Table,
   Thead,
@@ -24,10 +24,10 @@ import {
   useToast,
   Card,
   CardBody,
-  Divider,
   Tooltip,
   Spinner,
-  Center
+  Center,
+  useDisclosure
 } from '@chakra-ui/react';
 import {
   FiRefreshCw,
@@ -40,20 +40,22 @@ import {
   FiUser,
   FiCalendar
 } from 'react-icons/fi';
-import { FaQuestion } from 'react-icons/fa';
+import { FaQuestion, FaUnlink } from 'react-icons/fa';
 import api from '../services/api';
+import NumberDisconnectModal from '../Modals/NumberDisconnectModal';
 
 const DisconnectionRequests = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('All');
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { isOpen, onOpen, onClose } = useDisclosure();
 
   const toast = useToast();
-  const navigate = useNavigate();
 
   useEffect(() => {
     fetchDisconnectionRequests();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchDisconnectionRequests = async () => {
@@ -168,6 +170,14 @@ const DisconnectionRequests = () => {
     }
   };
 
+  const handleOpenDisconnectModal = () => {
+    onOpen();
+  };
+
+  const handleDisconnectSuccess = () => {
+    fetchDisconnectionRequests();
+  };
+
   const getStats = () => {
     const total = requests.length;
     const pending = requests.filter(r => r.status === 'Pending').length;
@@ -191,6 +201,7 @@ const DisconnectionRequests = () => {
     <Box
       flex={1}
       p={6}
+      pl={8}
       bg="#f8f9fa"
       height="calc(100vh - 76px)"
       overflowY="auto"
@@ -201,8 +212,20 @@ const DisconnectionRequests = () => {
           <Heading color="#1a3a52" fontSize="3xl" fontWeight="bold">
             Disconnection Requests
           </Heading>
+            <Button colorScheme='red' variant={"outline"} borderRadius={"full"} onClick={handleOpenDisconnectModal}>
+              <HStack spacing={2}>
+              <FaUnlink color='red'/>
+              <Text color={"red.500"}>Disconnect Number</Text>
+              </HStack>
+            </Button>
         </HStack>
-
+            <Divider
+                    pt={2}
+                    mb={2}
+                    borderRadius={"full"}
+                    border="0"
+                    bgGradient="linear(to-r, gray.400, gray.300, transparent)"
+                  />
         {/* Stats Cards */}
         <SimpleGrid columns={{ base: 2, md: 4 }} spacing={4}>
           <Card bg="white" borderRadius="12px" boxShadow="sm">
@@ -263,8 +286,6 @@ const DisconnectionRequests = () => {
         </SimpleGrid>
 
         {/* Filters */}
-        <Card bg="white" borderRadius="12px" boxShadow="sm">
-          <CardBody>
             <HStack spacing={4} wrap="wrap">
               <InputGroup maxW="300px">
                 <InputLeftElement pointerEvents="none">
@@ -274,7 +295,7 @@ const DisconnectionRequests = () => {
                   placeholder="Search by customer, number, or ID..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  bg="gray.50"
+                  bg="white"
                   border="1px solid"
                   borderColor="gray.200"
                   borderRadius="full"
@@ -286,7 +307,7 @@ const DisconnectionRequests = () => {
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
                 maxW="200px"
-                bg="gray.50"
+                bg="white"
                 border="1px solid"
                 borderColor="gray.200"
               >
@@ -296,8 +317,6 @@ const DisconnectionRequests = () => {
                 <option value="Rejected">Rejected</option>
               </Select>
             </HStack>
-          </CardBody>
-        </Card>
 
         {/* Requests Table */}
           <Box
@@ -386,6 +405,7 @@ const DisconnectionRequests = () => {
                         {request.status === 'Pending' ? (
                         <>
                          <Button
+                           borderRadius={"full"}
                            size="xs"
                            colorScheme="green"
                            variant="outline"
@@ -395,6 +415,7 @@ const DisconnectionRequests = () => {
                          Approve
                         </Button>
                         <Button
+                           borderRadius={"full"}
                           size="xs"
                           colorScheme="red"
                           variant="outline"
@@ -426,6 +447,12 @@ const DisconnectionRequests = () => {
             )}
           </Box>
       </VStack>
+
+      <NumberDisconnectModal
+        isOpen={isOpen}
+        onClose={onClose}
+        onSuccess={handleDisconnectSuccess}
+      />
     </Box>
   );
 };

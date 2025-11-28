@@ -26,12 +26,16 @@ router.get('/', async (req, res) => {
         c.countryname as country_name,
         p.name as product_name,
         o.order_number,
+        o.customer_id,
+        cust.company_name as customer_name,
+        cust.email as customer_email,
         dr.status as disconnection_status,
         dr.requested_at as disconnection_requested_at
       FROM numbers n
       LEFT JOIN countries c ON n.country_id = c.id
       LEFT JOIN products p ON n.product_id = p.id
       LEFT JOIN orders o ON n.order_id = o.id
+      LEFT JOIN customers cust ON o.customer_id = cust.id
       LEFT JOIN LATERAL (
         SELECT status, requested_at
         FROM disconnection_requests
@@ -230,6 +234,40 @@ router.put('/order/:orderId/user', requireInternal, async (req, res) => {
     });
   } catch (error) {
     console.error('Update numbers user_id error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Internal server error'
+    });
+  }
+});
+
+// Disconnect a number
+router.patch('/:id/disconnect', requireInternal, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const result = await query(
+      `UPDATE numbers
+       SET status = 'Disconnected', disconnection_date = CURRENT_DATE
+       WHERE id = $1
+       RETURNING *`,
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Number not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: result.rows[0],
+      message: 'Number disconnected successfully'
+    });
+  } catch (error) {
+    console.error('Disconnect number error:', error);
     res.status(500).json({
       success: false,
       message: error.message || 'Internal server error'

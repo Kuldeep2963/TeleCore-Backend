@@ -17,7 +17,7 @@ const InvoiceDetailsModal = ({ isOpen, onClose, invoice }) => {
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="2xl">
-      <ModalOverlay backdropFilter="blur(4px)" />
+      <ModalOverlay backdropFilter="blur(4px)"/>
       <ModalContent>
         <ModalHeader>Invoice Details - {invoice.id || invoice.invoiceNumber}</ModalHeader>
         <ModalCloseButton />

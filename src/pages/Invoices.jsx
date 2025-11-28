@@ -337,7 +337,13 @@ const Invoices = () => {
               Create Invoice
             </Button> 
           </HStack>
-
+              <Divider
+                      pt={2}
+                      mb={4}
+                      borderRadius={"full"}
+                      border="0"
+                      bgGradient="linear(to-r, gray.400, gray.300, transparent)"
+                    />
           {/* Stats Cards */}
           <SimpleGrid columns={{ base: 2, md: 4 }} spacing={4} w="full" mb={6}>
             <Box

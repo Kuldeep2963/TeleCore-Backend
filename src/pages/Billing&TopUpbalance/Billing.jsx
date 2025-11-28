@@ -586,6 +586,7 @@ const Billing = ({ walletBalance = 50.00, onUpdateBalance = () => {}, userId }) 
                       <Flex justify="space-between" align="center" mb={4}>
                         <Heading size="md">Pending Bills</Heading>
                         <Button
+                          borderRadius={"full"}
                           leftIcon={<FiRefreshCcw />}
                           size="sm"
                           variant="outline"
@@ -624,6 +625,7 @@ const Billing = ({ walletBalance = 50.00, onUpdateBalance = () => {}, userId }) 
                                     {service.status}
                                   </Badge>
                                   <Button
+                                    borderRadius={"full"}
                                     leftIcon={<FiDownload />}
                                     size="xs"
                                     colorScheme="blue"
@@ -639,7 +641,7 @@ const Billing = ({ walletBalance = 50.00, onUpdateBalance = () => {}, userId }) 
                               <Grid templateColumns={{ base: "repeat(2, 1fr)", md: "repeat(6, 1fr)" }} gap={3} w="full">
                                 <Box textAlign="center">
                                   <Text fontSize="xs" color="gray.600" fontWeight="medium" mb={1}>Country</Text>
-                                  <Badge variant="subtle" colorScheme="blue" justifyContent="center">
+                                  <Badge variant="subtle" borderRadius={"full"} colorScheme="blue" justifyContent="center">
                                     <Text fontWeight="bold" fontSize="sm">{service.countryName || '-'}</Text>
                                   </Badge>
                                 </Box>

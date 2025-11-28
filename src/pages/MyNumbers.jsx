@@ -156,13 +156,14 @@ function MyNumbers({ onRequestDisconnection, refreshTrigger }) {
   }, [searchTerm]);
 
   const handleExportToExcel = () => {
-    const headers = ['S. No.', 'Country', 'Product Type', 'Area Code', 'Number'];
+    const headers = ['S. No.', 'Country', 'Product Type', 'Area Code', 'Number', 'Status'];
     const rows = filteredNumbers.map((num, index) => [
       index + 1,
       num.country_name,
       num.product_name,
       num.area_code,
-      num.number
+      num.number,
+      num.status || 'N/A'
     ]);
     
     const csvContent = [
@@ -204,6 +205,18 @@ function MyNumbers({ onRequestDisconnection, refreshTrigger }) {
 
   const clearSearch = () => {
     setSearchTerm('');
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'Active':
+        return 'green';
+      case 'Inactive':
+        return 'gray';
+      case 'Disconnected':
+        return 'red';
+   
+    }
   };
 
   if (loading) {
@@ -276,7 +289,7 @@ function MyNumbers({ onRequestDisconnection, refreshTrigger }) {
           </HStack>
         </HStack>
 
-        {/* Search Results Info */}
+        {/* Search Results Info
         {searchTerm && (
           <Box
             bg="blue.50"
@@ -290,7 +303,7 @@ function MyNumbers({ onRequestDisconnection, refreshTrigger }) {
               {filteredNumbers.length === 0 && ' - Try a different search term'}
             </Text>
           </Box>
-        )}
+        )} */}
 
         {/* Allocation Summary */}
         <SimpleGrid columns={{ base: 1, md: 3 }} spacing={8}>
@@ -353,6 +366,7 @@ function MyNumbers({ onRequestDisconnection, refreshTrigger }) {
                 <Th>Product Type</Th>
                 <Th>Area Code</Th>
                 <Th>Number</Th>
+                <Th>Status</Th>
                 <Th width="20%">Action</Th>
               </Tr>
             </Thead>
@@ -368,6 +382,11 @@ function MyNumbers({ onRequestDisconnection, refreshTrigger }) {
                     <Td fontWeight={"semibold"} textAlign="center">{number.area_code}</Td>
                     <Td textAlign="center">{number.number}</Td>
                     <Td textAlign="center">
+                      <Badge px={2} colorScheme={getStatusColor(number.status)} borderRadius="full">
+                        {number.status || 'N/A'}
+                      </Badge>
+                    </Td>
+                    <Td textAlign="center">
                       <HStack spacing={2} justify="center">
                         <Button
                           size="sm"
@@ -378,19 +397,21 @@ function MyNumbers({ onRequestDisconnection, refreshTrigger }) {
                         >
                           View
                         </Button>
-                        <Button
-                          size="sm"
-                          colorScheme="red"
-                          variant="ghost"
-                          leftIcon={<Icon as={FaUnlink} />}
-                          onClick={() => handleDisconnectClick(number)}
-                          isDisabled={number.disconnection_status === 'Pending' || number.disconnection_status === 'Approved' || number.disconnection_status === 'Completed'}
-                        >
-                          {number.disconnection_status === 'Pending' ? 'Pending...' :
-                           number.disconnection_status === 'Approved' ? 'Approved' :
-                           number.disconnection_status === 'Rejected' ? 'Rejected' :
-                           number.disconnection_status === 'Completed' ? 'Disconnected' : 'Disconnect'}
-                        </Button>
+                        {number.status !== 'Disconnected' && (
+                          <Button
+                            size="sm"
+                            colorScheme="red"
+                            variant="ghost"
+                            leftIcon={<Icon as={FaUnlink} />}
+                            onClick={() => handleDisconnectClick(number)}
+                            isDisabled={number.disconnection_status === 'Pending' || number.disconnection_status === 'Approved' || number.disconnection_status === 'Completed'}
+                          >
+                            {number.disconnection_status === 'Pending' ? 'Pending...' :
+                             number.disconnection_status === 'Approved' ? 'Approved' :
+                             number.disconnection_status === 'Rejected' ? 'Rejected' :
+                             number.disconnection_status === 'Completed' ? 'Disconnected' : 'Disconnect'}
+                          </Button>
+                        )}
                       </HStack>
                     </Td>
                   </Tr>
@@ -398,7 +419,7 @@ function MyNumbers({ onRequestDisconnection, refreshTrigger }) {
               ) : (
                 <Tr>
   <Td 
-    colSpan={6}
+    colSpan={7}
     textAlign="center"
     color="gray.600"
     py={8}

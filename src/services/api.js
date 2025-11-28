@@ -122,6 +122,7 @@ const api = {
     create: (data) => apiCall('/numbers', { method: 'POST', body: JSON.stringify(data) }),
     getByOrder: (orderId) => apiCall(`/numbers/order/${orderId}`),
     updateUserForOrder: (orderId) => apiCall(`/numbers/order/${orderId}/user`, { method: 'PUT', body: JSON.stringify({}) }),
+    disconnect: (id) => apiCall(`/numbers/${id}/disconnect`, { method: 'PATCH', body: JSON.stringify({}) }),
     delete: (id) => apiCall(`/numbers/${id}`, { method: 'DELETE' }),
   },
 
@@ -130,6 +131,7 @@ const api = {
     getByProduct: (productId, countryId) => apiCall(`/pricing/product/${productId}/country/${countryId}`),
     getByNames: (countryName, productName) => apiCall(`/pricing/by-names/${encodeURIComponent(countryName)}/${encodeURIComponent(productName)}`),
     getByCountry: (countryName) => apiCall(`/pricing/country/${encodeURIComponent(countryName)}`),
+    create: (data) => apiCall('/pricing', { method: 'POST', body: JSON.stringify(data) }),
     update: (id, data) => apiCall(`/pricing/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   },
 
@@ -157,6 +159,9 @@ const api = {
   countries: {
     getAll: () => apiCall('/countries'),
     getById: (id) => apiCall(`/countries/${id}`),
+    create: (data) => apiCall('/countries', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id, data) => apiCall(`/countries/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete: (id) => apiCall(`/countries/${id}`, { method: 'DELETE' }),
   },
 
   products: {

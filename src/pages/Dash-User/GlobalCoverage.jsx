@@ -183,9 +183,9 @@ const GlobalCoverage = () => {
   if (loading) {
     return (
       <>
-        <Heading size="lg" color="gray.800">
+        <Text size="md" color="gray.800">
           Global Coverage
-        </Heading>
+        </Text>
         <Box w="full" bg="white" borderRadius="2xl" p={4} boxShadow="sm" border="1px solid" borderColor="gray.200">
           <Center h="400px">
             <Spinner size="lg" color="blue.500" />
@@ -198,9 +198,9 @@ const GlobalCoverage = () => {
   if (error) {
     return (
       <>
-        <Heading size="lg" color="gray.800">
+        <Text size="md" color="gray.800">
           Global Coverage
-        </Heading>
+        </Text>
         <Box w="full" bg="white" borderRadius="2xl" p={4} boxShadow="sm" border="1px solid" borderColor="gray.200">
           <Center h="400px">
             <Text color="red.500">Error loading coverage data: {error}</Text>
@@ -213,7 +213,7 @@ const GlobalCoverage = () => {
   return (
     <>
       {/* Global Coverage Section - Non-collapsible and after Available Services */}
-      <Heading size="lg" color="gray.800">
+      <Heading size="md" color="gray.800">
         Global Coverage
       </Heading>
 

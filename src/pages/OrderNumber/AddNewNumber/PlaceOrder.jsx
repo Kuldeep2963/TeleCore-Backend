@@ -351,7 +351,7 @@ const PlaceOrder = ({
   return (
     <Box
       flex={1}
-      p={6}
+      p={10}
       bg="#f8f9fa"
       height="calc(100vh - 76px)"
       overflowY="auto"
@@ -441,8 +441,8 @@ const PlaceOrder = ({
                 </Table>
               </Box>
             ) : (
-              <Box textAlign="center" py={8}>
-                <Text color="gray.500" fontSize="lg">
+              <Box textAlign="center" py={2} >
+                <Text color="gray.500" fontSize="md">
                   Your cart is empty. Please add items to proceed.
                 </Text>
               </Box>
@@ -453,6 +453,7 @@ const PlaceOrder = ({
         {/* Action Buttons */}
         <HStack spacing={4} justify="flex-end" >
           <Button
+            borderRadius={"full"}
             leftIcon={<FaArrowLeft />}
             variant="outline"
             colorScheme="blue"

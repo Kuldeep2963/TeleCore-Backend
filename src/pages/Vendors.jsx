@@ -15,6 +15,7 @@ import {
   Tbody,
   Tr,
   Th,
+  Divider,
   Td,
   Avatar,
   Input,
@@ -168,6 +169,13 @@ const Vendors = () => {
               Add Vendor
             </Button>
           </HStack>
+              <Divider
+                      pt={2}
+                      mb={4}
+                      borderRadius={"full"}
+                      border="0"
+                      bgGradient="linear(to-r, gray.400, gray.300, transparent)"
+                    />
 
           {/* Stats Cards */}
           <SimpleGrid columns={{ base: 2, md: 3 }} spacing={4} w="full" mb={6}>

@@ -236,29 +236,42 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const {
-      nrc, mrc, ppm, ppm_fix, ppm_mobile, ppm_payphone, arc, mo, mt,
-      incoming_ppm, outgoing_ppm_fix, outgoing_ppm_mobile, incoming_sms, outgoing_sms,
-      billing_pulse, estimated_lead_time, contract_term, disconnection_notice_term,
-      effective_to, status
-    } = req.body;
+
+    const allowedFields = [
+      'nrc', 'mrc', 'ppm', 'ppm_fix', 'ppm_mobile', 'ppm_payphone', 'arc', 'mo', 'mt',
+      'incoming_ppm', 'outgoing_ppm_fix', 'outgoing_ppm_mobile', 'incoming_sms', 'outgoing_sms',
+      'billing_pulse', 'estimated_lead_time', 'contract_term', 'disconnection_notice_term',
+      'effective_to', 'status'
+    ];
+
+    const updateFields = [];
+    const updateValues = [];
+    let paramIndex = 1;
+
+    allowedFields.forEach(field => {
+      if (req.body.hasOwnProperty(field) && req.body[field] !== undefined && req.body[field] !== null) {
+        updateFields.push(`${field} = $${paramIndex}`);
+        updateValues.push(req.body[field]);
+        paramIndex++;
+      }
+    });
+
+    if (updateFields.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No valid fields to update'
+      });
+    }
+
+    updateValues.push(id);
+    const idParamIndex = updateValues.length;
 
     const result = await query(`
       UPDATE pricing_plans SET
-        nrc = $1, mrc = $2, ppm = $3, ppm_fix = $4, ppm_mobile = $5, ppm_payphone = $6,
-        arc = $7, mo = $8, mt = $9, incoming_ppm = $10, outgoing_ppm_fix = $11,
-        outgoing_ppm_mobile = $12, incoming_sms = $13, outgoing_sms = $14,
-        billing_pulse = $15, estimated_lead_time = $16, contract_term = $17,
-        disconnection_notice_term = $18, effective_to = $19, status = $20,
-        updated_at = CURRENT_TIMESTAMP
-      WHERE id = $21
+        ${updateFields.join(', ')}
+      WHERE id = $${idParamIndex}
       RETURNING *
-    `, [
-      nrc, mrc, ppm, ppm_fix, ppm_mobile, ppm_payphone, arc, mo, mt,
-      incoming_ppm, outgoing_ppm_fix, outgoing_ppm_mobile, incoming_sms, outgoing_sms,
-      billing_pulse, estimated_lead_time, contract_term, disconnection_notice_term,
-      effective_to, status, id
-    ]);
+    `, updateValues);
 
     if (result.rows.length === 0) {
       return res.status(404).json({
@@ -273,10 +286,12 @@ router.put('/:id', async (req, res) => {
       data: result.rows[0]
     });
   } catch (error) {
-    console.error('Update pricing plan error:', error);
+    console.error('Update pricing plan error:', error.message);
+    console.error('Update pricing plan error details:', error);
     res.status(500).json({
       success: false,
-      message: 'Internal server error'
+      message: 'Internal server error',
+      error: error.message
     });
   }
 });

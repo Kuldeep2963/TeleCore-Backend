@@ -143,7 +143,7 @@ const Login = ({ onLogin = () => ({ success: false }), clientCredentials, intern
                   value={formData.email}
                   onChange={(e) => handleInputChange('email', e.target.value)}
                   placeholder="Enter your email"
-                  size="lg"
+                  size="md"
                   bg="white"
                   borderColor="gray.300"
                   _hover={{ borderColor: 'blue.400' }}
@@ -170,7 +170,7 @@ const Login = ({ onLogin = () => ({ success: false }), clientCredentials, intern
                     value={formData.password}
                     onChange={(e) => handleInputChange('password', e.target.value)}
                     placeholder="Enter your password"
-                    size="lg"
+                    size="md"
                     bg="white"
                     borderColor="gray.300"
                     _hover={{ borderColor: 'blue.400' }}

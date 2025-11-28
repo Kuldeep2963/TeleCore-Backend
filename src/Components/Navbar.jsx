@@ -17,7 +17,7 @@ import {
   useColorModeValue,
   useDisclosure
 } from '@chakra-ui/react';
-import { FaShoppingCart, FaUser, FaCog, FaKey, FaSignOutAlt, FaWallet,FaChartLine} from 'react-icons/fa';
+import { FaShoppingCart, FaUser, FaCog, FaKey, FaSignOutAlt, FaWallet, FaDollarSign} from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import ChangePasswordModal from '../Modals/ChangePasswordModal';
 
@@ -83,7 +83,7 @@ function Navbar({ cartCount = 0, walletBalance = 0, profilePicture = null, onLog
           {userRole === 'Internal' &&(
             <>
             <IconButton
-              icon={<FaChartLine/>}
+              icon={<FaDollarSign/>}
               variant="ghost"
               color="#1a3a52"
               _hover={{ 

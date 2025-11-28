@@ -150,10 +150,20 @@ router.patch('/:id/status', async (req, res) => {
       });
     }
 
+    const disconnectionRequest = result.rows[0];
+
+    if (status === 'Approved' && disconnectionRequest.number_id) {
+      await query(`
+        UPDATE numbers
+        SET status = 'Disconnected', disconnection_date = CURRENT_DATE
+        WHERE id = $1
+      `, [disconnectionRequest.number_id]);
+    }
+
     res.json({
       success: true,
       message: 'Disconnection request status updated successfully',
-      data: result.rows[0]
+      data: disconnectionRequest
     });
   } catch (error) {
     console.error('Update disconnection request status error:', error);
