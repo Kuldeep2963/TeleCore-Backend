@@ -135,13 +135,13 @@ const DashboardInternal = ({ userId, userRole }) => {
           <VStack align="start" spacing={5}>
           <HStack justify="space-between" align="center" w="full">
             <Heading
-              color="gray.800"
+              color="green"
               fontSize={{ base: "2xl", md: "3xl" }}
               fontWeight="bold"
               letterSpacing="-0.5px"
               textAlign="left"
             >
-             Dashboard
+             Welcome Back !
             </Heading>
             <Button
               borderRadius={"full"}

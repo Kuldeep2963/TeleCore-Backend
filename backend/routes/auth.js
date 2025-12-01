@@ -1,7 +1,6 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { body, validationResult } = require('express-validator');
 const { query } = require('../config/database');
 
 const router = express.Router();
@@ -85,6 +84,59 @@ router.post('/login', async (req, res) => {
 
   } catch (error) {
     console.error('Login error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
+// Register/Create user route
+router.post('/register', async (req, res) => {
+  try {
+    const { email, password, first_name, last_name, role } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email and password are required'
+      });
+    }
+
+    // Check if user already exists
+    const existingUser = await query(
+      'SELECT id FROM users WHERE email = $1',
+      [email]
+    );
+
+    if (existingUser.rows.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'User with this email already exists'
+      });
+    }
+
+    // Hash password
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+    // Create user
+    const result = await query(`
+      INSERT INTO users (email, password_hash, first_name, last_name, role, status)
+      VALUES ($1, $2, $3, $4, $5, 'Active')
+      RETURNING id, email, first_name, last_name, role, status
+    `, [email, hashedPassword, first_name || null, last_name || null, role || 'Client']);
+
+    const newUser = result.rows[0];
+
+    res.status(201).json({
+      success: true,
+      message: 'User created successfully',
+      data: newUser
+    });
+
+  } catch (error) {
+    console.error('Register error:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error'

@@ -1,5 +1,6 @@
 const express = require('express');
 const { query } = require('../config/database');
+const { authenticateToken, requireInternal } = require('../middleware/auth');
 const { generateMonthlyInvoices } = require('../jobs/invoiceScheduler');
 
 const router = express.Router();
@@ -22,22 +23,43 @@ router.post('/manual-trigger/generate', async (req, res) => {
   }
 });
 
-// Get all invoices
-router.get('/', async (req, res) => {
+// Get all invoices (with role-based filtering)
+router.get('/', authenticateToken, async (req, res) => {
   try {
-    const result = await query(`
-      SELECT i.*, 
-             c.company_name as customer_name,
-             o.area_code,
-             p.category as product_type,
-             co.countryname as country_name
-      FROM invoices i
-      LEFT JOIN customers c ON i.customer_id = c.id
-      LEFT JOIN orders o ON i.order_id = o.id
-      LEFT JOIN products p ON o.product_id = p.id
-      LEFT JOIN countries co ON o.country_id = co.id
-      ORDER BY i.created_at DESC
-    `);
+    let result;
+
+    if (req.user.role === 'Client') {
+      // For clients, only return their own invoices
+      result = await query(`
+        SELECT i.*, 
+               c.company_name as customer_name,
+               o.area_code,
+               p.category as product_type,
+               co.countryname as country_name
+        FROM invoices i
+        LEFT JOIN customers c ON i.customer_id = c.id
+        LEFT JOIN orders o ON i.order_id = o.id
+        LEFT JOIN products p ON o.product_id = p.id
+        LEFT JOIN countries co ON o.country_id = co.id
+        WHERE c.user_id = $1
+        ORDER BY i.created_at DESC
+      `, [req.user.id]);
+    } else {
+      // For internal/admin users, return all invoices
+      result = await query(`
+        SELECT i.*, 
+               c.company_name as customer_name,
+               o.area_code,
+               p.category as product_type,
+               co.countryname as country_name
+        FROM invoices i
+        LEFT JOIN customers c ON i.customer_id = c.id
+        LEFT JOIN orders o ON i.order_id = o.id
+        LEFT JOIN products p ON o.product_id = p.id
+        LEFT JOIN countries co ON o.country_id = co.id
+        ORDER BY i.created_at DESC
+      `);
+    }
 
     res.json({
       success: true,
@@ -53,7 +75,7 @@ router.get('/', async (req, res) => {
 });
 
 // Get detailed invoice with all related information for PDF generation (must come before /:id)
-router.get('/:id/details', async (req, res) => {
+router.get('/:id/details', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     
@@ -67,6 +89,7 @@ router.get('/:id/details', async (req, res) => {
                c.email as customer_email,
                c.phone as customer_phone,
                c.location as customer_address,
+               c.user_id,
                o.area_code,
                o.quantity,
                o.completed_date,
@@ -87,6 +110,7 @@ router.get('/:id/details', async (req, res) => {
                c.email as customer_email,
                c.phone as customer_phone,
                c.location as customer_address,
+               c.user_id,
                o.area_code,
                o.quantity,
                o.completed_date,
@@ -109,9 +133,19 @@ router.get('/:id/details', async (req, res) => {
       });
     }
 
+    const invoice = result.rows[0];
+
+    // Check access control for clients
+    if (req.user.role === 'Client' && invoice.user_id !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: 'You do not have permission to view this invoice'
+      });
+    }
+
     res.json({
       success: true,
-      data: result.rows[0]
+      data: invoice
     });
   } catch (error) {
     console.error('Get invoice details error:', error);
@@ -124,12 +158,12 @@ router.get('/:id/details', async (req, res) => {
 });
 
 // Get invoice by ID
-router.get('/:id', async (req, res) => {
+router.get('/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
 
     const result = await query(`
-      SELECT i.*, c.company_name as customer_name
+      SELECT i.*, c.company_name as customer_name, c.user_id
       FROM invoices i
       LEFT JOIN customers c ON i.customer_id = c.id
       WHERE i.id = $1
@@ -142,9 +176,19 @@ router.get('/:id', async (req, res) => {
       });
     }
 
+    const invoice = result.rows[0];
+
+    // Check access control for clients
+    if (req.user.role === 'Client' && invoice.user_id !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: 'You do not have permission to view this invoice'
+      });
+    }
+
     res.json({
       success: true,
-      data: result.rows[0]
+      data: invoice
     });
   } catch (error) {
     console.error('Get invoice error:', error);

@@ -92,19 +92,14 @@ const AddVendorCustomer = () => {
 
   // Customer form state
   const [customerForm, setCustomerForm] = useState({
-    firstName: '',
-    lastName: '',
+    company_name: '',
+    contact_person: '',
     email: '',
     phone: '',
-    company: '',
     location: '',
-    address: '',
-    industry: '',
-    jobTitle: '',
-    notes: '',
-    source: '',
-    budget: ''
+    status: 'Active'
   });
+  const [customerLoading, setCustomerLoading] = useState(false);
 
   const handleVendorChange = (field, value) => {
     setVendorForm(prev => ({
@@ -171,14 +166,13 @@ const AddVendorCustomer = () => {
     }
   };
 
-  const handleCustomerSubmit = (e) => {
+  const handleCustomerSubmit = async (e) => {
     e.preventDefault();
 
-    // Basic validation
-    if (!customerForm.firstName || !customerForm.lastName || !customerForm.email || !customerForm.phone) {
+    if (!customerForm.company_name || !customerForm.contact_person || !customerForm.email || !customerForm.phone || !customerForm.location) {
       toast({
         title: 'Validation Error',
-        description: 'Please fill in all required fields.',
+        description: 'Please fill in all required fields (Company Name, Contact Person, Email, Phone, Location).',
         status: 'error',
         duration: 3000,
         isClosable: true,
@@ -186,32 +180,68 @@ const AddVendorCustomer = () => {
       return;
     }
 
-    // Here you would typically send the data to your backend
-    console.log('Customer data:', customerForm);
+    try {
+      setCustomerLoading(true);
 
-    toast({
-      title: 'Customer Added',
-      description: `${customerForm.firstName} ${customerForm.lastName} has been successfully added.`,
-      status: 'success',
-      duration: 3000,
-      isClosable: true,
-    });
+      // Split contact_person into first and last name
+      const nameParts = customerForm.contact_person.trim().split(' ');
+      const firstName = nameParts[0];
+      const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
+      const password = `${firstName}@123`;
 
-    // Reset form
-    setCustomerForm({
-      firstName: '',
-      lastName: '',
-      email: '',
-      phone: '',
-      company: '',
-      location: '',
-      address: '',
-      industry: '',
-      jobTitle: '',
-      notes: '',
-      source: '',
-      budget: ''
-    });
+      // Create user first
+      const userResponse = await api.auth.register({
+        email: customerForm.email,
+        password: password,
+        first_name: firstName,
+        last_name: lastName,
+        role: 'Client'
+      });
+
+      if (!userResponse.success) {
+        throw new Error(userResponse.message || 'Failed to create user');
+      }
+
+      const userId = userResponse.data.id;
+
+      // Create customer with user_id
+      const customerResponse = await api.customers.create({
+        company_name: customerForm.company_name,
+        contact_person: customerForm.contact_person,
+        email: customerForm.email,
+        phone: customerForm.phone,
+        location: customerForm.location,
+        status: customerForm.status,
+        user_id: userId
+      });
+
+      if (customerResponse.success) {
+        toast({
+          title: 'Success',
+          description: `${customerForm.company_name} has been successfully added.`,
+          status: 'success',
+          duration: 2000,
+          isClosable: true,
+        });
+
+        setTimeout(() => {
+          navigate('/customers');
+        }, 1500);
+      } else {
+        throw new Error(customerResponse.message || 'Failed to create customer');
+      }
+    } catch (error) {
+      console.error('Error creating customer:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to add customer.',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    } finally {
+      setCustomerLoading(false);
+    }
   };
 
   return (
@@ -458,20 +488,20 @@ const AddVendorCustomer = () => {
 
                       <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} w="full">
                         <FormControl isRequired>
-                          <FormLabel>First Name</FormLabel>
+                          <FormLabel>Company Name</FormLabel>
                           <Input
-                            placeholder="Enter first name"
-                            value={customerForm.firstName}
-                            onChange={(e) => handleCustomerChange('firstName', e.target.value)}
+                            placeholder="Enter company name"
+                            value={customerForm.company_name}
+                            onChange={(e) => handleCustomerChange('company_name', e.target.value)}
                           />
                         </FormControl>
 
                         <FormControl isRequired>
-                          <FormLabel>Last Name</FormLabel>
+                          <FormLabel>Contact Person</FormLabel>
                           <Input
-                            placeholder="Enter last name"
-                            value={customerForm.lastName}
-                            onChange={(e) => handleCustomerChange('lastName', e.target.value)}
+                            placeholder="Enter contact person name"
+                            value={customerForm.contact_person}
+                            onChange={(e) => handleCustomerChange('contact_person', e.target.value)}
                           />
                         </FormControl>
 
@@ -494,24 +524,6 @@ const AddVendorCustomer = () => {
                           />
                         </FormControl>
 
-                        <FormControl>
-                          <FormLabel>Company</FormLabel>
-                          <Input
-                            placeholder="Company name"
-                            value={customerForm.company}
-                            onChange={(e) => handleCustomerChange('company', e.target.value)}
-                          />
-                        </FormControl>
-
-                        <FormControl>
-                          <FormLabel>Job Title</FormLabel>
-                          <Input
-                            placeholder="Job title/position"
-                            value={customerForm.jobTitle}
-                            onChange={(e) => handleCustomerChange('jobTitle', e.target.value)}
-                          />
-                        </FormControl>
-
                         <FormControl isRequired>
                           <FormLabel>Location</FormLabel>
                           <Input
@@ -521,72 +533,17 @@ const AddVendorCustomer = () => {
                           />
                         </FormControl>
 
-                        <FormControl>
-                          <FormLabel>Industry</FormLabel>
+                        <FormControl isRequired>
+                          <FormLabel>Status</FormLabel>
                           <Select
-                            placeholder="Select industry"
-                            value={customerForm.industry}
-                            onChange={(e) => handleCustomerChange('industry', e.target.value)}
+                            value={customerForm.status}
+                            onChange={(e) => handleCustomerChange('status', e.target.value)}
                           >
-                            <option value="technology">Technology</option>
-                            <option value="finance">Finance</option>
-                            <option value="healthcare">Healthcare</option>
-                            <option value="retail">Retail</option>
-                            <option value="manufacturing">Manufacturing</option>
-                            <option value="other">Other</option>
+                            <option value="Active">Active</option>
+                            <option value="Inactive">Inactive</option>
                           </Select>
                         </FormControl>
                       </SimpleGrid>
-
-                      <FormControl>
-                        <FormLabel>Address</FormLabel>
-                        <Textarea
-                          placeholder="Enter full address"
-                          value={customerForm.address}
-                          onChange={(e) => handleCustomerChange('address', e.target.value)}
-                        />
-                      </FormControl>
-
-                      <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} w="full">
-                        <FormControl>
-                          <FormLabel>Source</FormLabel>
-                          <Select
-                            placeholder="How did they find us?"
-                            value={customerForm.source}
-                            onChange={(e) => handleCustomerChange('source', e.target.value)}
-                          >
-                            <option value="website">Website</option>
-                            <option value="referral">Referral</option>
-                            <option value="social">Social Media</option>
-                            <option value="advertisement">Advertisement</option>
-                            <option value="other">Other</option>
-                          </Select>
-                        </FormControl>
-
-                        <FormControl>
-                          <FormLabel>Budget Range</FormLabel>
-                          <Select
-                            placeholder="Select budget range"
-                            value={customerForm.budget}
-                            onChange={(e) => handleCustomerChange('budget', e.target.value)}
-                          >
-                            <option value="under-1k">Under $1,000</option>
-                            <option value="1k-5k">$1,000 - $5,000</option>
-                            <option value="5k-10k">$5,000 - $10,000</option>
-                            <option value="10k-50k">$10,000 - $50,000</option>
-                            <option value="over-50k">Over $50,000</option>
-                          </Select>
-                        </FormControl>
-                      </SimpleGrid>
-
-                      <FormControl>
-                        <FormLabel>Notes</FormLabel>
-                        <Textarea
-                          placeholder="Additional notes about the customer"
-                          value={customerForm.notes}
-                          onChange={(e) => handleCustomerChange('notes', e.target.value)}
-                        />
-                      </FormControl>
 
                       <Divider />
 
@@ -595,19 +552,14 @@ const AddVendorCustomer = () => {
                           leftIcon={<FiX />}
                           variant="ghost"
                           onClick={() => setCustomerForm({
-                            firstName: '',
-                            lastName: '',
+                            company_name: '',
+                            contact_person: '',
                             email: '',
                             phone: '',
-                            company: '',
                             location: '',
-                            address: '',
-                            industry: '',
-                            jobTitle: '',
-                            notes: '',
-                            source: '',
-                            budget: ''
+                            status: 'Active'
                           })}
+                          isDisabled={customerLoading}
                         >
                           Clear
                         </Button>
@@ -615,6 +567,8 @@ const AddVendorCustomer = () => {
                           leftIcon={<FiSave />}
                           colorScheme="blue"
                           type="submit"
+                          isLoading={customerLoading}
+                          loadingText="Adding..."
                         >
                           Add Customer
                         </Button>

@@ -57,6 +57,7 @@ const api = {
   auth: {
     login: (data) => apiCall('/auth/login', { method: 'POST', body: JSON.stringify(data) }),
     logout: () => apiCall('/auth/logout', { method: 'POST' }),
+    register: (data) => apiCall('/auth/register', { method: 'POST', body: JSON.stringify(data) }),
     getProfile: () => apiCall('/auth/profile'),
     changePassword: (data) => apiCall('/auth/change-password', { method: 'PUT', body: JSON.stringify(data) }),
   },
