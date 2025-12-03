@@ -2,6 +2,7 @@ const express = require('express');
 const { query } = require('../config/database');
 const { authenticateToken, requireInternal } = require('../middleware/auth');
 const { generateMonthlyInvoices } = require('../jobs/invoiceScheduler');
+const PDFDocument = require('pdfkit');
 
 const router = express.Router();
 
@@ -74,89 +75,6 @@ router.get('/', authenticateToken, async (req, res) => {
   }
 });
 
-// Get detailed invoice with all related information for PDF generation (must come before /:id)
-router.get('/:id/details', authenticateToken, async (req, res) => {
-  try {
-    const { id } = req.params;
-    
-    let result;
-    const numericId = parseInt(id, 10);
-    
-    if (!isNaN(numericId)) {
-      result = await query(`
-        SELECT i.*,
-               c.company_name as customer_name,
-               c.email as customer_email,
-               c.phone as customer_phone,
-               c.location as customer_address,
-               c.user_id,
-               o.area_code,
-               o.quantity,
-               o.completed_date,
-               p.name as product_name,
-               p.category as product_type,
-               co.countryname as country_name
-        FROM invoices i
-        LEFT JOIN customers c ON i.customer_id = c.id
-        LEFT JOIN orders o ON i.order_id = o.id
-        LEFT JOIN products p ON o.product_id = p.id
-        LEFT JOIN countries co ON o.country_id = co.id
-        WHERE i.id = $1 OR i.invoice_number = $2
-      `, [numericId, id]);
-    } else {
-      result = await query(`
-        SELECT i.*,
-               c.company_name as customer_name,
-               c.email as customer_email,
-               c.phone as customer_phone,
-               c.location as customer_address,
-               c.user_id,
-               o.area_code,
-               o.quantity,
-               o.completed_date,
-               p.name as product_name,
-               p.category as product_type,
-               co.countryname as country_name
-        FROM invoices i
-        LEFT JOIN customers c ON i.customer_id = c.id
-        LEFT JOIN orders o ON i.order_id = o.id
-        LEFT JOIN products p ON o.product_id = p.id
-        LEFT JOIN countries co ON o.country_id = co.id
-        WHERE i.invoice_number = $1
-      `, [id]);
-    }
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'Invoice not found'
-      });
-    }
-
-    const invoice = result.rows[0];
-
-    // Check access control for clients
-    if (req.user.role === 'Client' && invoice.user_id !== req.user.id) {
-      return res.status(403).json({
-        success: false,
-        message: 'You do not have permission to view this invoice'
-      });
-    }
-
-    res.json({
-      success: true,
-      data: invoice
-    });
-  } catch (error) {
-    console.error('Get invoice details error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Internal server error',
-      error: error.message
-    });
-  }
-});
-
 // Get invoice by ID
 router.get('/:id', authenticateToken, async (req, res) => {
   try {
@@ -198,6 +116,67 @@ router.get('/:id', authenticateToken, async (req, res) => {
     });
   }
 });
+
+
+// Get detailed invoice with all related information for PDF generation (must come before /:id)
+router.get('/:id/details', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    let result;
+    
+    result = await query(`
+      SELECT i.*,
+             c.company_name as customer_name,
+             c.email as customer_email,
+             c.phone as customer_phone,
+             c.location as customer_address,
+             c.user_id,
+             o.area_code,
+             o.quantity,
+             o.completed_date,
+             p.name as product_name,
+             p.category as product_type,
+             co.countryname as country_name
+      FROM invoices i
+      LEFT JOIN customers c ON i.customer_id = c.id
+      LEFT JOIN orders o ON i.order_id = o.id
+      LEFT JOIN products p ON o.product_id = p.id
+      LEFT JOIN countries co ON o.country_id = co.id
+      WHERE i.id::text = $1 OR i.invoice_number = $1
+    `, [id])
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Invoice not found'
+      });
+    }
+
+    const invoice = result.rows[0];
+
+    // Check access control for clients
+    if (req.user.role === 'Client' && invoice.user_id !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: 'You do not have permission to view this invoice'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: invoice
+    });
+  } catch (error) {
+    console.error('Get invoice details error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message
+    });
+  }
+});
+
 
 // Generate monthly recurring invoice for an order
 router.post('/generate-recurring/:orderId', async (req, res) => {
@@ -459,6 +438,160 @@ router.patch('/:id/usage', async (req, res) => {
       success: false,
       message: 'Internal server error'
     });
+  }
+});
+
+router.get('/:id/pdf', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    let result;
+    
+    result = await query(`
+      SELECT i.*,
+             c.company_name as customer_name,
+             c.email as customer_email,
+             c.phone as customer_phone,
+             c.location as customer_address,
+             c.user_id,
+             o.area_code,
+             o.quantity,
+             o.completed_date,
+             p.name as product_name,
+             p.category as product_type,
+             co.countryname as country_name
+      FROM invoices i
+      LEFT JOIN customers c ON i.customer_id = c.id
+      LEFT JOIN orders o ON i.order_id = o.id
+      LEFT JOIN products p ON o.product_id = p.id
+      LEFT JOIN countries co ON o.country_id = co.id
+      WHERE i.id::text = $1 OR i.invoice_number = $1
+    `, [id])
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Invoice not found'
+      });
+    }
+
+    const invoice = result.rows[0];
+
+    if (req.user.role === 'Client' && invoice.user_id !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: 'You do not have permission to download this invoice'
+      });
+    }
+
+    const doc = new PDFDocument({ size: 'A4', margin: 50 });
+    const fileName = `Invoice_${invoice.invoice_number}_${new Date().toISOString().split('T')[0]}.pdf`;
+    
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+    
+    doc.pipe(res);
+
+    const pageWidth = 595;
+    let y = 20;
+
+    const formatDate = (date) => {
+      if (!date) return 'N/A';
+      const d = new Date(date);
+      return d.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    };
+
+    const currency = (amount) => `$${Number(amount || 0).toFixed(2)}`;
+
+    const drawSectionTitle = (title) => {
+      doc.fontSize(12).font('Helvetica-Bold').text(title, 50, y);
+      y += 8;
+      doc.font('Helvetica').fontSize(10);
+    };
+
+    const drawLine = () => {
+      doc.moveTo(50, y).lineTo(pageWidth - 50, y).stroke();
+      y += 10;
+    };
+
+    const drawRow = (label, value) => {
+      doc.fontSize(10).font('Helvetica');
+      doc.text(label, 50, y);
+      doc.text(String(value), pageWidth - 140, y);
+      y += 7;
+    };
+
+    doc.fontSize(20).font('Helvetica-Bold').text('INVOICE', { align: 'center' });
+    y += 15;
+
+    doc.fontSize(10).font('Helvetica');
+    drawRow('Invoice Number:', invoice.invoice_number || 'N/A');
+    drawRow('Invoice Date:', formatDate(invoice.created_at));
+    drawRow('Customer:', invoice.customer_name || 'N/A');
+    drawRow('Due Date:', formatDate(invoice.due_date));
+
+    if (invoice.customer_email) drawRow('Email:', invoice.customer_email);
+    if (invoice.customer_phone) drawRow('Phone:', invoice.customer_phone);
+    if (invoice.country_name || invoice.area_code) {
+      drawRow('Location:', `${invoice.country_name || ''} ${invoice.area_code || ''}`.trim());
+    }
+
+    drawLine();
+
+    drawSectionTitle('Invoice Details');
+
+    const detailRows = [
+      ['Period', invoice.period || 'N/A'],
+      ['From Date', formatDate(invoice.from_date)],
+      ['To Date', formatDate(invoice.to_date)],
+      ['Product', invoice.product_name || 'N/A'],
+      ['Product Type', invoice.product_type || 'N/A'],
+      ['Quantity', invoice.quantity || 'N/A']
+    ];
+
+    detailRows.forEach(([label, value]) => drawRow(label + ':', value));
+
+    drawLine();
+
+    drawSectionTitle('Charges');
+
+    drawRow('MRC Amount:', currency(invoice.mrc_amount));
+    drawRow('Usage Amount:', currency(invoice.usage_amount));
+
+    drawLine();
+
+    doc.font('Helvetica-Bold').fontSize(12);
+    doc.text('Total Amount:', 50, y);
+    doc.text(currency(invoice.amount), pageWidth - 140, y);
+    y += 12;
+
+    doc.fontSize(10).font('Helvetica');
+    drawRow('Status:', invoice.status || 'N/A');
+
+    if (invoice.paid_date) drawRow('Paid Date:', formatDate(invoice.paid_date));
+
+    if (invoice.notes) {
+      y += 8;
+      doc.font('Helvetica-Bold').text('Notes:', 50, y);
+      y += 7;
+      doc.font('Helvetica');
+      doc.text(String(invoice.notes), 50, y, { width: pageWidth - 100, wrap: true });
+    }
+
+    doc.end();
+  } catch (error) {
+    console.error('Generate invoice PDF error:', error);
+    if (!res.headersSent) {
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+        error: error.message
+      });
+    }
   }
 });
 

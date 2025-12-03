@@ -241,10 +241,7 @@
 
 // export default PlaceOrder;
 
-
-
-
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   Box,
   Container,
@@ -267,33 +264,39 @@ import {
   IconButton,
   useColorModeValue,
   useDisclosure,
-  Spinner
-} from '@chakra-ui/react';
-import { FaEdit, FaTrash, FaShoppingBag, FaArrowLeft, FaCheck } from 'react-icons/fa';
-import DeleteConfirmationModal from '../../../Modals/DeleteConfirmationModal';
+  Spinner,
+} from "@chakra-ui/react";
+import {
+  FaEdit,
+  FaTrash,
+  FaShoppingBag,
+  FaArrowLeft,
+  FaCheck,
+} from "react-icons/fa";
+import DeleteConfirmationModal from "../../../Modals/DeleteConfirmationModal";
 
-const PlaceOrder = ({ 
-  cartItems = [], 
-  formData = {}, 
-  onPlaceOrder = () => {}, 
-  onContinueShopping = () => {}, 
-  onRemoveFromCart = () => {}, 
-  onEditItem = () => {}, 
+const PlaceOrder = ({
+  cartItems = [],
+  formData = {},
+  onPlaceOrder = () => {},
+  onContinueShopping = () => {},
+  onRemoveFromCart = () => {},
+  onEditItem = () => {},
   isPlacingOrder = false,
-  initialStep = 4 
+  initialStep = 4,
 }) => {
-  const cardBg = useColorModeValue('white', 'gray.800');
-  const borderColor = useColorModeValue('gray.200', 'gray.600');
+  const cardBg = useColorModeValue("white", "gray.800");
+  const borderColor = useColorModeValue("gray.200", "gray.600");
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [itemToDelete, setItemToDelete] = useState(null);
 
   // Get country name from code
   const getCountryName = (countryCode) => {
     const countries = {
-      us: 'United States (+1)',
-      uk: 'United Kingdom (+44)',
-      ca: 'Canada (+1)',
-      au: 'Australia (+61)'
+      us: "United States (+1)",
+      uk: "United Kingdom (+44)",
+      ca: "Canada (+1)",
+      au: "Australia (+61)",
     };
     return countries[countryCode] || countryCode;
   };
@@ -302,12 +305,12 @@ const PlaceOrder = ({
   const displayItems = cartItems.map((item, index) => ({
     id: index + 1,
     itemId: item.id, // Keep the actual item ID for actions
-    productType: item.productType?.toUpperCase() || 'N/A',
+    productType: item.productType?.toUpperCase() || "N/A",
     countryName: getCountryName(item.country),
-    areaCode: item.areaCode || 'N/A',
+    areaCode: item.areaCode || "N/A",
     quantity: item.quantity || 0,
-    connectivity: item.connectivity || 'SIP',
-    prefix: item.prefix || 'E.164'
+    connectivity: item.connectivity || "SIP",
+    prefix: item.prefix || "E.164",
   }));
 
   // Use displayItems if cartItems exist, otherwise show empty state
@@ -315,7 +318,7 @@ const PlaceOrder = ({
 
   const handleEdit = (itemId) => {
     // Find the cart item to edit
-    const itemToEdit = cartItems.find(item => item.id === itemId);
+    const itemToEdit = cartItems.find((item) => item.id === itemId);
     if (itemToEdit && onEditItem) {
       onEditItem(itemToEdit);
     }
@@ -343,7 +346,7 @@ const PlaceOrder = ({
     if (onPlaceOrder) {
       onPlaceOrder({
         cartItems,
-        formData
+        formData,
       });
     }
   };
@@ -351,14 +354,14 @@ const PlaceOrder = ({
   return (
     <Box
       flex={1}
-      p={10}
+      p={{ base: 4, md: 10 }}
       bg="#f8f9fa"
       height="calc(100vh - 76px)"
       overflowY="auto"
     >
       <VStack spacing={6} align="stretch">
         {/* Page Header */}
-        <Box >
+        <Box>
           <Heading size="xl" color="gray.800" mb={2}>
             Cart
           </Heading>
@@ -368,16 +371,22 @@ const PlaceOrder = ({
         </Box>
 
         {/* Product Type Section */}
-        <Card bg={cardBg} border="1px solid" borderColor={borderColor}>
-          <CardBody>
+        
             {itemsToDisplay.length > 0 ? (
-              <Box overflow="hidden" borderRadius="md" border="1px solid" borderColor={borderColor}>
+              <Box
+                px={0}
+                overflow={{ base: "scroll", md: "hidden" }}
+                borderRadius="md"
+                border="1px solid"
+                borderColor={borderColor}
+                boxShadow={"sm"}
+              >
                 <Table variant="simple">
                   <Thead>
                     <Tr
                       sx={{
-                        '& > th': {
-                          bg: "gray.100",
+                        "& > th": {
+                          bg: "gray.200",
                           color: "gray.700",
                           fontWeight: "semibold",
                           fontSize: "sm",
@@ -385,25 +394,39 @@ const PlaceOrder = ({
                           borderBottom: "2px solid",
                           borderColor: "blue.400",
                           textAlign: "center",
-                          py: 3
-                        }
+                          // py: 3
+                        },
                       }}
                     >
-                      <Th w={"5%"}>No.</Th>
+                      <Th >No.</Th>
                       <Th>Product Type</Th>
                       <Th>Country Name</Th>
                       <Th>Area code (Prefix)</Th>
                       <Th>Quantity</Th>
-                      <Th width="20%">Action</Th>
+                      <Th >Action</Th>
                     </Tr>
                   </Thead>
                   <Tbody>
                     {itemsToDisplay.map((item) => (
-                      <Tr key={item.id} _hover={{ bg: 'gray.50' }}>
-                        <Td>{item.id}</Td>
-                        <Td>{item.productType}</Td>
+                      <Tr key={item.id} _hover={{ bg: "gray.50" }}>
+                        <Td color={"blue.500"} fontWeight={"bold"}>
+                          {item.id}
+                        </Td>
+                        <Td
+                          textAlign={"center"}
+                          fontWeight={"semibold"}
+                          color={"green"}
+                        >
+                          {item.productType}
+                        </Td>
                         <Td textAlign="center">
-                          <Badge borderRadius={"15px"} colorScheme="blue" fontSize="sm" px={3} py={1}>
+                          <Badge
+                            borderRadius={"15px"}
+                            colorScheme="blue"
+                            fontSize="sm"
+                            px={3}
+                            py={1}
+                          >
                             {item.countryName}
                           </Badge>
                         </Td>
@@ -441,17 +464,15 @@ const PlaceOrder = ({
                 </Table>
               </Box>
             ) : (
-              <Box textAlign="center" py={2} >
+              <Box textAlign="center" py={2}>
                 <Text color="gray.500" fontSize="md">
                   Your cart is empty. Please add items to proceed.
                 </Text>
               </Box>
             )}
-          </CardBody>
-        </Card>
 
         {/* Action Buttons */}
-        <HStack spacing={4} justify="flex-end" >
+        <HStack spacing={4} justify="flex-end">
           <Button
             borderRadius={"full"}
             leftIcon={<FaArrowLeft />}
@@ -459,27 +480,30 @@ const PlaceOrder = ({
             colorScheme="blue"
             size="md"
             onClick={handleContinueShoppingClick}
-            px={8}
+            px={{ base: 6, md: 4 }}
           >
             Continue Shopping
           </Button>
           {cartItems.length > 0 && (
             <Button
-              leftIcon={isPlacingOrder ? <Spinner size="sm" /> : <FaShoppingBag />}
+              leftIcon={
+                isPlacingOrder ? <Spinner size="sm" /> : <FaShoppingBag />
+              }
               colorScheme="green"
               size="md"
               onClick={handlePlaceOrder}
-              px={8}
+              borderRadius={"full"}
+              px={{ base: 6, md: 4 }}
               isLoading={isPlacingOrder}
               loadingText="Placing Order..."
               _hover={{
-                transform: 'translateY(-2px)',
-                shadow: 'lg'
+                transform: "translateY(-2px)",
+                shadow: "lg",
               }}
               transition="all 0.2s"
               disabled={isPlacingOrder}
             >
-              {isPlacingOrder ? 'Placing Order...' : 'Place Order'}
+              {isPlacingOrder ? "Placing Order..." : "Place Order"}
             </Button>
           )}
         </HStack>

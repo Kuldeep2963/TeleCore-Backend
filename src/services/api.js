@@ -109,6 +109,14 @@ const api = {
     getAll: () => apiCall('/invoices'),
     getById: (id) => apiCall(`/invoices/${id}`),
     getDetails: (id) => apiCall(`/invoices/${id}/details`),
+    downloadPDF: (id) => {
+      const token = getAuthToken();
+      return fetch(`${API_BASE_URL}/invoices/${id}/pdf`, {
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : '',
+        },
+      });
+    },
     create: (data) => apiCall('/invoices', { method: 'POST', body: JSON.stringify(data) }),
     update: (id, data) => apiCall(`/invoices/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     delete: (id) => apiCall(`/invoices/${id}`, { method: 'DELETE' }),
@@ -177,7 +185,7 @@ const api = {
   documents: {
     upload: (orderId, formData) => {
       const token = getAuthToken();
-      return fetch(`${API_BASE_URL}/orders/documents/upload/${orderId}`, {
+      return fetch(`${API_BASE_URL}/documents/upload/${orderId}`, {
         method: 'POST',
         headers: {
           'Authorization': token ? `Bearer ${token}` : '',
@@ -208,6 +216,20 @@ const api = {
       });
     },
     delete: (orderId, filename) => apiCall(`/documents/${orderId}/${filename}`, { method: 'DELETE' }),
+  },
+
+  serviceDetails: {
+    getAll: () => apiCall('/service-details'),
+    getByProductCountry: (productId, countryId) => apiCall(`/service-details/product/${productId}/country/${countryId}`),
+    create: (data) => apiCall('/service-details', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id, data) => apiCall(`/service-details/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  },
+
+  requiredDocuments: {
+    getAll: () => apiCall('/required-documents'),
+    getByProductCountry: (productId, countryId) => apiCall(`/required-documents/product/${productId}/country/${countryId}`),
+    create: (data) => apiCall('/required-documents', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id, data) => apiCall(`/required-documents/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   },
 };
 

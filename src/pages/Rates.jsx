@@ -368,7 +368,7 @@ const Rates = () => {
   }
 
   return (
-    <Box p={6} pl={8} bg="gray.50">
+    <Box p={6} px={6} bg="gray.50">
       <Tabs variant="soft-rounded" colorScheme="blue">
         <Box>
           <TabList gap={6} p={2}>
@@ -407,8 +407,8 @@ const Rates = () => {
           </TabList>
         </Box>
         <TabPanels>
-          <TabPanel p={0}>
-            <Box p={8}>
+          <TabPanel p={2}>
+            <Box mt={4} >
               <VStack spacing={6} align="stretch">
                 <Heading as="h1" size="lg" color={"blue.600"}>
                   Rates Management
@@ -517,7 +517,7 @@ const Rates = () => {
                       </HStack>
                     )}
                     {(pricingData.length > 0 || isCreatingNew) && (
-                      <Table variant="simple" size="sm">
+                      <Table variant="simple">
                         <Thead bg="gray.200">
                           <Tr>
                             {Object.entries(currentHeadings).map(
@@ -645,7 +645,7 @@ const Rates = () => {
                           </Heading>
                           <Grid
                             templateColumns={{
-                              base: "1fr",
+                              base: "2",
                               md: "2fr 2fr",
                               lg: "1fr",
                             }}

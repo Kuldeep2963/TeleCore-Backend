@@ -172,7 +172,7 @@ function NumberDisconnectModal({ isOpen, onClose, onSuccess }) {
 
   if (loadingData && !selectedCustomer && customers.length === 0) {
     return (
-      <Modal isOpen={isOpen} onClose={onClose} size="lg" isCentered>
+      <Modal isOpen={isOpen} onClose={onClose} size={{base:"sm",md:"lg"}} isCentered>
         <ModalOverlay backdropFilter="blur(4px)" />
         <ModalContent>
           <ModalHeader>
@@ -192,7 +192,7 @@ function NumberDisconnectModal({ isOpen, onClose, onSuccess }) {
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="lg" isCentered>
+    <Modal isOpen={isOpen} onClose={onClose} size={{base:"sm",md:"lg"}} isCentered>
       <ModalOverlay backdropFilter="blur(4px)" />
       <ModalContent>
         <ModalHeader>

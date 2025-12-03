@@ -23,7 +23,7 @@ import api from '../../services/api';
 
 const REGION_MAP = {
   'Africa': ['South Africa', 'Nigeria', 'Egypt'],
-  'Asia': ['Bahrain', 'Bangladesh', 'Brunei', 'Cambodia', 'China', 'Hong Kong', 'India', 'Japan', 'Malaysia', 'Philippines', 'Singapore', 'South Korea', 'Thailand', 'Vietnam'],
+  'Asia': ['Bahrain', 'Bangladesh', 'Brunei', 'Cambodia', 'China', 'Hong Kong','Pakistan', 'India', 'Japan', 'Malaysia', 'Philippines', 'Singapore', 'South Korea', 'Thailand', 'Vietnam'],
   'Europe': ['Albania', 'Austria', 'Belarus', 'Belgium', 'Bosnia And Herzegovina', 'Bulgaria', 'Croatia', 'Cyprus', 'Czech Republic', 'Denmark', 'Estonia', 'Finland', 'France', 'Germany', 'Greece', 'Hungary', 'Iceland', 'Ireland', 'Italy', 'Latvia', 'Lithuania', 'Luxembourg', 'Malta', 'Netherlands', 'Norway', 'Poland', 'Portugal', 'Romania', 'Russia', 'Serbia', 'Slovakia', 'Slovenia', 'Spain', 'Sweden', 'Switzerland', 'Turkey', 'Ukraine', 'United Kingdom'],
   'North America': ['Anguilla', 'Antigua & Barbuda', 'Bahamas', 'Barbados', 'Belize', 'Bermuda', 'Canada', 'Costa Rica', 'Dominican Republic', 'El Salvador', 'Grenada', 'Guatemala', 'Haiti', 'Honduras', 'Jamaica', 'Mexico', 'Nicaragua', 'Panama', 'Puerto Rico', 'Saint Lucia', 'Trinidad & Tobago', 'United States'],
   'Oceania': ['Australia', 'New Zealand', 'Fiji', 'Papua New Guinea', 'Samoa'],
@@ -217,8 +217,8 @@ const GlobalCoverage = () => {
         Global Coverage
       </Heading>
 
-      <Box w="full" bg="white" borderRadius="2xl" p={4} pt={2} boxShadow="sm" h={"400px"} overflow={"auto"} border="1px solid" borderColor="gray.200">
-        <VStack spacing={6} align="start">
+      <Box w="full" bg="white" borderRadius="2xl" p={{ base: 4, md: 4 }} pt={{ base: 2, md: 2 }} boxShadow="sm" h={{ base: "500px", md: "400px" }} overflow={"auto"} border="1px solid" borderColor="gray.200">
+        <VStack spacing={{ base: 3, md: 6 }} align="start">
           {/* Service Selector - Horizontal Bar with Icons - Sticky */}
           <Box
             w="full"
@@ -227,48 +227,51 @@ const GlobalCoverage = () => {
             position="sticky"
             top={0}
             zIndex={2}
+            py={{base:1,md:0}}
           >
-            <Flex flexWrap="wrap" justifyContent={"space-between"}>
+            <Flex flexWrap="wrap" justifyContent={{ base: "space-evenly", md: "space-between" }} gap={{ base: 1, md: 0 }}>
               <Badge
                 key="all"
                 colorScheme={selectedService === 'All' ? 'yellow' : ''}
-                fontSize="sm"
-                px={4}
-                py={3}
+                fontSize={{ base: 'xs', md: 'sm' }}
+                px={{ base: 2, md: 4 }}
+                py={{ base: 2, md: 3 }}
                 borderRadius="full"
                 variant={selectedService === 'All' ? 'solid' : 'subtle'}
                 cursor="pointer"
                 onClick={() => setSelectedService('All')}
                 _hover={{ transform: 'translateY(-1px)' }}
                 transition="all 0.2s ease"
+                whiteSpace="nowrap"
               >
-                <HStack spacing={2}>
-                  <Icon as={FiGlobe} boxSize={4} />
-                  <Text>All</Text>
+                <HStack spacing={{ base: 4, md: 2 }}>
+                  <Icon as={FiGlobe} boxSize={{ base: 4, md: 4 }} />
+                  <Text display={{ base: 'none', sm: 'block' }}>All</Text>
                 </HStack>
               </Badge>
               {services.map((service, index) => (
                 <Badge
                   key={service.name}
                   colorScheme={selectedService === service.name ? 'yellow' : 'beige'}
-                  fontSize="sm"
-                  px={4}
-                  py={3}
+                  fontSize={{ base: 'xs', md: 'sm' }}
+                  px={{ base: 2, md: 4 }}
+                  py={{ base: 2, md: 3 }}
                   borderRadius="full"
                   variant={selectedService === service.name ? 'solid' : 'subtle'}
                   cursor="pointer"
                   onClick={() => setSelectedService(service.name)}
                   _hover={{ transform: 'translateY(-1px)' }}
                   transition="all 0.2s ease"
+                  whiteSpace="nowrap"
                 >
-                  <HStack spacing={2}>
+                  <HStack spacing={{ base: 4, md: 2 }}>
                     <Icon
                       as={service.icon}
-                      boxSize={4}
+                      boxSize={{ base: 4, md: 4 }}
                       color={service.iconColor}
                       sx={{ 'path': { strokeWidth: selectedService === service.name ? 2.75 : 2.25 } }}
                     />
-                    <Text fontWeight="semibold" color={selectedService === service.name ? service.iconColor : 'gray.700'}>
+                    <Text fontWeight="semibold" color={selectedService === service.name ? service.iconColor : 'gray.700'} display={{ base: 'none', sm: 'block' }}>
                       {service.title}
                     </Text>
                   </HStack>
@@ -278,7 +281,7 @@ const GlobalCoverage = () => {
           </Box>
 
           {/* Regions Grid with Service Icons - Scrollable content */}
-          <SimpleGrid columns={{ base: 1, md: 3, lg: 6 }} spacing={5} w="full">
+          <SimpleGrid columns={{ base:1, md: 3, lg: 6 }} spacing={{ base: 3, md: 5 }} w="full">
             {globalCoverage.regions.map((region, index) => {
               const filteredCountries = getFilteredCountries(region);
 
@@ -287,27 +290,29 @@ const GlobalCoverage = () => {
                   {/* Sticky Region Heading */}
                   <Heading
                     fontWeight={"bold"}
-                    size="sm"
+                    size={"sm"}
                     color="red.600"
-                    mb={3}
+                    mb={2}
                     position="sticky"
-                    // top={"60px"}
                     zIndex={1}
                     textAlign={"center"}
                     bg="blackAlpha.200"
                     borderRadius={"full"}
-                    p={2}
+                    p={1}
+                    whiteSpace="nowrap"
+                    overflow="hidden"
+                    textOverflow="ellipsis"
                   >
                     {region.name}
                   </Heading>
-                  <VStack align="start" spacing={2}>
+                  <VStack align="start" spacing={1}>
                     {filteredCountries.length > 0 ? (
                       filteredCountries.map((country, countryIndex) => (
-                        <HStack key={countryIndex} spacing={3} w="full">
-                          <Text color="black" fontSize="sm" flex={1}>
+                        <HStack key={countryIndex} spacing={1} w="full">
+                          <Text color="black" fontSize="sm" flex={1} whiteSpace="nowrap" overflow="hidden" textOverflow="ellipsis">
                             {country.name}
                           </Text>
-                          <HStack spacing={1}>
+                          <HStack spacing={1} flexShrink={0}>
                             {selectedService === 'All'
                               ? country.services.map((service, serviceIndex) => {
                                   const serviceMeta = getServiceMeta(service);
@@ -316,7 +321,7 @@ const GlobalCoverage = () => {
                                     <Icon
                                       key={serviceIndex}
                                       as={IconComponent}
-                                      boxSize={4}
+                                      boxSize={{ base: 4, md: 4 }}
                                       color={serviceMeta?.iconColor || 'blue.500'}
                                       title={service}
                                       strokeWidth={3}
@@ -329,7 +334,7 @@ const GlobalCoverage = () => {
                                 ? (
                                     <Icon
                                       as={selectedServiceMeta.icon || FiPhone}
-                                      boxSize={4}
+                                      boxSize={{ base: 4, md: 4 }}
                                       color={selectedServiceMeta.iconColor || 'blue.500'}
                                       title={selectedService}
                                       strokeWidth={3}

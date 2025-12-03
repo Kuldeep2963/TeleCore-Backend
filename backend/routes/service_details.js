@@ -44,9 +44,26 @@ router.get('/product/:productId/country/:countryId', async (req, res) => {
     `, [productId, countryId]);
 
     if (result.rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'Service details not found for this product and country'
+      // Return default service details if none found
+      return res.json({
+        success: true,
+        data: {
+          id: null,
+          product_id: productId,
+          country_id: countryId,
+          restrictions: 'None',
+          channels: 'SMS, Voice',
+          portability: 'Yes',
+          fix_coverage: 'Supported',
+          mobile_coverage: 'Supported',
+          payphone_coverage: 'Not Supported',
+          default_channels: 2,
+          maximum_channels: 10,
+          extra_channel_price: 45.00,
+          status: 'Active',
+          product_name: '',
+          country_name: ''
+        }
       });
     }
 

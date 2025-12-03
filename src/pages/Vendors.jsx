@@ -165,6 +165,7 @@ const Vendors = () => {
               size="sm"
               onClick={() => navigate('/add-vendor-customer', { state: { activeTab: 0 } })}
               borderRadius="full"
+              px={{base:7, md:2}}
             >
               Add Vendor
             </Button>
@@ -182,6 +183,8 @@ const Vendors = () => {
             <Box
               bg="white"
               p={6}
+              px={{base:2,md:6}}
+
               borderRadius="xl"
               boxShadow="0 2px 4px rgba(0, 0, 0, 0.05)"
               border="1px solid"
@@ -210,6 +213,8 @@ const Vendors = () => {
             <Box
               bg="white"
               p={6}
+              px={{base:2,md:6}}
+
               borderRadius="xl"
               boxShadow="0 2px 4px rgba(0, 0, 0, 0.05)"
               border="1px solid"
@@ -238,6 +243,8 @@ const Vendors = () => {
             <Box
               bg="white"
               p={6}
+              px={{base:2,md:6}}
+
               borderRadius="xl"
               boxShadow="0 2px 4px rgba(0, 0, 0, 0.05)"
               border="1px solid"
@@ -297,7 +304,7 @@ const Vendors = () => {
             boxShadow="0 2px 4px rgba(0, 0, 0, 0.05)"
             border="1px solid"
             borderColor="gray.100"
-            overflow="hidden"
+            overflow={{base:"scroll",md:"hidden"}}
           >
             <Table variant="simple">
               <Thead bg="gray.200">

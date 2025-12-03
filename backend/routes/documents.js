@@ -112,7 +112,11 @@ router.post('/upload/:orderId', requireClient, upload.array('documents', 10), as
 
     // Get current documents array from the order
     const currentOrder = await query('SELECT documents FROM orders WHERE id = $1', [orderId]);
-    let documentsArray = currentOrder.rows[0].documents || [];
+    let documentsArray = [];
+    
+    if (currentOrder.rows[0].documents && Array.isArray(currentOrder.rows[0].documents)) {
+      documentsArray = currentOrder.rows[0].documents;
+    }
 
     // Add new documents to the array
     const newDocuments = req.files.map(file => [
@@ -125,7 +129,7 @@ router.post('/upload/:orderId', requireClient, upload.array('documents', 10), as
 
     documentsArray = [...documentsArray, ...newDocuments];
 
-    // Update the order with new documents array
+    // Update the order with new documents array (store as array in TEXT[][] field)
     await query('UPDATE orders SET documents = $1 WHERE id = $2', [documentsArray, orderId]);
 
     res.json({
@@ -177,7 +181,12 @@ router.get('/:orderId', requireClient, async (req, res) => {
       });
     }
 
-    const documents = orderCheck.rows[0].documents || [];
+    let documents = [];
+    const docsData = orderCheck.rows[0].documents;
+    
+    if (docsData && Array.isArray(docsData)) {
+      documents = docsData;
+    }
 
     res.json({
       success: true,
@@ -187,7 +196,7 @@ router.get('/:orderId', requireClient, async (req, res) => {
     console.error('Get documents error:', error);
     res.status(500).json({
       success: false,
-      message: 'Internal server error'
+      message: 'Internal server error hai bhai'
     });
   }
 });
@@ -269,12 +278,17 @@ router.delete('/:orderId/:filename', requireClient, async (req, res) => {
       });
     }
 
-    let documentsArray = orderCheck.rows[0].documents || [];
+    let documentsArray = [];
+    const docsData = orderCheck.rows[0].documents;
+    
+    if (docsData && Array.isArray(docsData)) {
+      documentsArray = docsData;
+    }
 
     // Remove the document from the array
     documentsArray = documentsArray.filter(doc => doc[0] !== filename);
 
-    // Update the order
+    // Update the order (store as array in TEXT[][] field)
     await query('UPDATE orders SET documents = $1 WHERE id = $2', [documentsArray, orderId]);
 
     // Delete the physical file

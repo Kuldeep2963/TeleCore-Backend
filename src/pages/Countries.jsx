@@ -303,7 +303,7 @@ const Countries = () => {
   }
 
   return (
-    <Box p={8} bg="gray.50" minH="100vh">
+    <Box p={{base:0, md:8}} pt={6} bg="gray.50" minH="100vh">
       <VStack spacing={6} align="stretch">
         <HStack justify="space-between" align="center">
           <Heading as="h1" size="lg">

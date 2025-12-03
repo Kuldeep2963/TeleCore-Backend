@@ -85,7 +85,7 @@ function DisconnectionModal({ isOpen, onClose, number, onSuccess }) {
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="lg" isCentered>
+    <Modal isOpen={isOpen} onClose={onClose} size={{base:"md",md:"lg"}} isCentered>
       <ModalOverlay backdropFilter="blur(4px)" />
       <ModalContent>
         <ModalHeader>

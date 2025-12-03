@@ -1,10 +1,10 @@
-import React, { useRef, useState, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { 
-  Box, 
-  Heading, 
-  Text, 
-  Button, 
+import React, { useRef, useState, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import {
+  Box,
+  Heading,
+  Text,
+  Button,
   VStack,
   HStack,
   FormControl,
@@ -28,14 +28,15 @@ import {
   NumberIncrementStepper,
   NumberDecrementStepper,
   Icon,
-  useToast
-} from '@chakra-ui/react';
-import NumberSelection, { defaultPricingData } from './NumberSelection';
-import AddCart from './AddCart';
-import PlaceOrder from './PlaceOrder';
-import Submitted from './Submitted';
-import { FaCheck } from 'react-icons/fa';
-import api from '../../../services/api';
+  useToast,
+} from "@chakra-ui/react";
+import NumberSelection, { defaultPricingData } from "./NumberSelection";
+import AddCart from "./AddCart";
+import PlaceOrder from "./PlaceOrder";
+import Submitted from "./Submitted";
+import { FaCheck } from "react-icons/fa";
+import api from "../../../services/api";
+import { FiSearch } from "react-icons/fi";
 
 function NewNumbers({ onAddToCart = () => {} }) {
   const location = useLocation();
@@ -46,18 +47,20 @@ function NewNumbers({ onAddToCart = () => {} }) {
   const [showSubmitted, setShowSubmitted] = useState(false);
   const [showPlaceOrder, setShowPlaceOrder] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
-  const [selectedProductType, setSelectedProductType] = useState('');
+  const [selectedProductType, setSelectedProductType] = useState("");
   const [selectedNumbers, setSelectedNumbers] = useState([]);
   const [selectedDocuments, setSelectedDocuments] = useState([]);
-  const [desiredPricingData, setDesiredPricingData] = useState(() => ({ ...defaultPricingData }));
+  const [desiredPricingData, setDesiredPricingData] = useState(() => ({
+    ...defaultPricingData,
+  }));
   const [countries, setCountries] = useState(null);
   const [areaCodes, setAreaCodes] = useState([]);
   const [availableProducts, setAvailableProducts] = useState([]);
   const [formData, setFormData] = useState({
-    country: '',
-    productType: '',
-    areaCode: '',
-    quantity: ''
+    country: "",
+    productType: "",
+    areaCode: "",
+    quantity: "",
   });
 
   // Removed showPlaceOrder logic since we now navigate to dedicated cart page
@@ -67,7 +70,7 @@ function NewNumbers({ onAddToCart = () => {} }) {
     const fetchData = async () => {
       try {
         const countriesResponse = await api.countries.getAll();
-        console.log('Fetched countries:', countriesResponse.data);
+        console.log("Fetched countries:", countriesResponse.data);
         if (countriesResponse.success) {
           setCountries(countriesResponse.data);
           // Initialize available products if a country is already selected
@@ -80,7 +83,7 @@ function NewNumbers({ onAddToCart = () => {} }) {
           setCountries([]);
         }
       } catch (error) {
-        console.error('Error fetching data:', error.message);
+        console.error("Error fetching data:", error.message);
         setCountries([]);
       }
     };
@@ -91,21 +94,24 @@ function NewNumbers({ onAddToCart = () => {} }) {
       // Product type will be set when countries are loaded
       // For now, store it temporarily
       setSelectedProductType(location.state.productType);
-      setFormData(prev => ({ ...prev, productType: location.state.productType }));
+      setFormData((prev) => ({
+        ...prev,
+        productType: location.state.productType,
+      }));
     }
 
     // Handle edit item from cart
     if (location.state?.editItem) {
       const editItem = location.state.editItem;
       const updatedFormData = {
-        country: editItem.country || '',
-        productType: editItem.productType || '',
-        areaCode: editItem.areaCode || '',
-        quantity: editItem.quantity || ''
+        country: editItem.country || "",
+        productType: editItem.productType || "",
+        areaCode: editItem.areaCode || "",
+        quantity: editItem.quantity || "",
       };
 
       setFormData(updatedFormData);
-      setSelectedProductType(editItem.productType || '');
+      setSelectedProductType(editItem.productType || "");
 
       // Clear any previous state
       setSelectedNumbers([]);
@@ -124,10 +130,14 @@ function NewNumbers({ onAddToCart = () => {} }) {
 
       // Update refs after a short delay to ensure DOM is ready
       setTimeout(() => {
-        if (countryRef.current) countryRef.current.value = editItem.country || '';
-        if (productTypeRef.current) productTypeRef.current.value = editItem.productType || '';
-        if (areaCodeRef.current) areaCodeRef.current.value = editItem.areaCode || '';
-        if (quantityRef.current) quantityRef.current.value = editItem.quantity || '';
+        if (countryRef.current)
+          countryRef.current.value = editItem.country || "";
+        if (productTypeRef.current)
+          productTypeRef.current.value = editItem.productType || "";
+        if (areaCodeRef.current)
+          areaCodeRef.current.value = editItem.areaCode || "";
+        if (quantityRef.current)
+          quantityRef.current.value = editItem.quantity || "";
       }, 100);
     }
   }, [location.state]);
@@ -140,25 +150,25 @@ function NewNumbers({ onAddToCart = () => {} }) {
 
   // Handle key down for arrow navigation
   const handleKeyDown = (e, nextRef) => {
-    if (e.key === 'ArrowDown' || e.key === 'Enter') {
+    if (e.key === "ArrowDown" || e.key === "Enter") {
       e.preventDefault();
       if (nextRef && nextRef.current) {
         nextRef.current.focus();
       }
-    } else if (e.key === 'ArrowUp') {
+    } else if (e.key === "ArrowUp") {
       e.preventDefault();
       // Focus previous element (you can implement this similarly)
     }
   };
 
   const handleInputChange = (field, value) => {
-    setFormData(prev => {
+    setFormData((prev) => {
       const newData = { ...prev, [field]: value };
 
       // Clear product type and area code when country changes
-      if (field === 'country' && prev.country !== value) {
-        newData.productType = '';
-        newData.areaCode = '';
+      if (field === "country" && prev.country !== value) {
+        newData.productType = "";
+        newData.areaCode = "";
         setDesiredPricingData(() => ({ ...defaultPricingData }));
         setAreaCodes([]);
         // Update available products for the new country
@@ -166,8 +176,8 @@ function NewNumbers({ onAddToCart = () => {} }) {
       }
 
       // Clear area code when product type changes
-      if (field === 'productType' && prev.productType !== value) {
-        newData.areaCode = '';
+      if (field === "productType" && prev.productType !== value) {
+        newData.areaCode = "";
         setDesiredPricingData(() => ({ ...defaultPricingData }));
         fetchAreaCodes(newData.country, value);
       }
@@ -184,22 +194,24 @@ function NewNumbers({ onAddToCart = () => {} }) {
 
     try {
       // Find country
-      const selectedCountry = countries.find(c => c.countryname === countryName);
+      const selectedCountry = countries.find(
+        (c) => c.countryname === countryName
+      );
       if (!selectedCountry || !selectedCountry.availableproducts) {
         setAreaCodes([]);
         return;
       }
 
       // Find the product in availableproducts
-      const productData = selectedCountry.availableproducts.find(p => {
+      const productData = selectedCountry.availableproducts.find((p) => {
         // Map product code back to name for comparison
         const productMappings = {
-          'did': 'DID',
-          'freephone': 'Freephone',
-          'universal-freephone': 'Universal Freephone',
-          'two-way-voice': 'Two Way Voice',
-          'two-way-sms': 'Two Way SMS',
-          'mobile': 'Mobile'
+          did: "DID",
+          freephone: "Freephone",
+          "universal-freephone": "Universal Freephone",
+          "two-way-voice": "Two Way Voice",
+          "two-way-sms": "Two Way SMS",
+          mobile: "Mobile",
         };
         return p.name === productMappings[productCode];
       });
@@ -210,7 +222,7 @@ function NewNumbers({ onAddToCart = () => {} }) {
         setAreaCodes([]);
       }
     } catch (error) {
-      console.error('Error fetching area codes:', error);
+      console.error("Error fetching area codes:", error);
       setAreaCodes([]);
     }
   };
@@ -218,14 +230,44 @@ function NewNumbers({ onAddToCart = () => {} }) {
   // Map product names to product objects with correct database IDs
   const mapProductNameToObject = (productName) => {
     const productMappings = {
-      'DID': { id: '2f9ce23d-4614-4f2b-b99a-2b825bdf354a', code: 'did', name: 'DID' },
-      'Freephone': { id: 'f23831d0-c8f9-42eb-ac67-1410ed110c37', code: 'freephone', name: 'Freephone' },
-      'Universal Freephone': { id: '9f1e02f8-f7c5-4723-b91f-52f7bad5327f', code: 'universal-freephone', name: 'Universal Freephone' },
-      'Two Way Voice': { id: 'b104201f-26bb-4f9e-b54c-c691e0670ecb', code: 'two-way-voice', name: 'Two Way Voice' },
-      'Two Way SMS': { id: '3420c4ae-3063-4611-8d9a-14c89183d2e1', code: 'two-way-sms', name: 'Two Way SMS' },
-      'Mobile': { id: 'cd0f1bc3-d51f-4492-b346-aef153d1c012', code: 'mobile', name: 'Mobile' }
+      DID: {
+        id: "2f9ce23d-4614-4f2b-b99a-2b825bdf354a",
+        code: "did",
+        name: "DID",
+      },
+      Freephone: {
+        id: "f23831d0-c8f9-42eb-ac67-1410ed110c37",
+        code: "freephone",
+        name: "Freephone",
+      },
+      "Universal Freephone": {
+        id: "9f1e02f8-f7c5-4723-b91f-52f7bad5327f",
+        code: "universal-freephone",
+        name: "Universal Freephone",
+      },
+      "Two Way Voice": {
+        id: "b104201f-26bb-4f9e-b54c-c691e0670ecb",
+        code: "two-way-voice",
+        name: "Two Way Voice",
+      },
+      "Two Way SMS": {
+        id: "3420c4ae-3063-4611-8d9a-14c89183d2e1",
+        code: "two-way-sms",
+        name: "Two Way SMS",
+      },
+      Mobile: {
+        id: "cd0f1bc3-d51f-4492-b346-aef153d1c012",
+        code: "mobile",
+        name: "Mobile",
+      },
     };
-    return productMappings[productName] || { id: 0, code: productName.toLowerCase().replace(/\s+/g, '-'), name: productName };
+    return (
+      productMappings[productName] || {
+        id: 0,
+        code: productName.toLowerCase().replace(/\s+/g, "-"),
+        name: productName,
+      }
+    );
   };
 
   // Update available products when country changes
@@ -237,7 +279,9 @@ function NewNumbers({ onAddToCart = () => {} }) {
     }
 
     // Find the selected country and return its available products
-    const selectedCountry = countries.find(country => country.countryname === countryName);
+    const selectedCountry = countries.find(
+      (country) => country.countryname === countryName
+    );
     if (!selectedCountry || !selectedCountry.availableproducts) {
       setAvailableProducts([]);
       setAreaCodes([]);
@@ -245,12 +289,16 @@ function NewNumbers({ onAddToCart = () => {} }) {
     }
 
     // availableproducts is JSONB array of objects: [{"name": "DID", "areaCodes": ["212", ...]}, ...]
-    const availableProductObjects = selectedCountry.availableproducts.map(productData => {
-      return mapProductNameToObject(productData.name);
-    }).filter(product => product.id !== 0); // Filter out unmapped products
+    const availableProductObjects = selectedCountry.availableproducts
+      .map((productData) => {
+        return mapProductNameToObject(productData.name);
+      })
+      .filter((product) => product.id !== 0); // Filter out unmapped products
 
     // Extract all area codes from all products
-    const allAreaCodes = selectedCountry.availableproducts.flatMap(productData => productData.areaCodes || []);
+    const allAreaCodes = selectedCountry.availableproducts.flatMap(
+      (productData) => productData.areaCodes || []
+    );
 
     setAvailableProducts(availableProductObjects);
     setAreaCodes(allAreaCodes);
@@ -261,32 +309,35 @@ function NewNumbers({ onAddToCart = () => {} }) {
     const numbers = [];
 
     // Find the country object to get the phone code
-    const countryObj = countries && countries.find(c => c.countryname === country);
-    const prefix = countryObj ? countryObj.phonecode : '1';
+    const countryObj =
+      countries && countries.find((c) => c.countryname === country);
+    const prefix = countryObj ? countryObj.phonecode : "1";
     const startNumber = parseInt(areaCode) || 555;
-    
+
     for (let i = 0; i < parseInt(quantity); i++) {
-      const number = `+${prefix} (${startNumber}) ${String(100000 + i).slice(-6)}`;
+      const number = `+${prefix} (${startNumber}) ${String(100000 + i).slice(
+        -6
+      )}`;
       numbers.push({
         id: `${country}-${startNumber}-${i}`,
         number: number,
-        status: 'Available',
+        status: "Available",
         areaCode: areaCode,
         country: country,
-        productType: productType
+        productType: productType,
       });
     }
-    
+
     return numbers;
   };
 
   const handleClear = () => {
     // Clear all form fields
     setFormData({
-      country: '',
-      productType: '',
-      areaCode: '',
-      quantity: ''
+      country: "",
+      productType: "",
+      areaCode: "",
+      quantity: "",
     });
 
     setSelectedNumbers([]);
@@ -294,10 +345,10 @@ function NewNumbers({ onAddToCart = () => {} }) {
     setAreaCodes([]);
     setAvailableProducts([]);
 
-    if (countryRef.current) countryRef.current.value = '';
-    if (productTypeRef.current) productTypeRef.current.value = '';
-    if (areaCodeRef.current) areaCodeRef.current.value = '';
-    if (quantityRef.current) quantityRef.current.value = '';
+    if (countryRef.current) countryRef.current.value = "";
+    if (productTypeRef.current) productTypeRef.current.value = "";
+    if (areaCodeRef.current) areaCodeRef.current.value = "";
+    if (quantityRef.current) quantityRef.current.value = "";
 
     setShowNumbers(false);
     setShowAddCart(false);
@@ -311,24 +362,25 @@ function NewNumbers({ onAddToCart = () => {} }) {
     // Validate required fields
     if (!formData.productType || !formData.areaCode || !formData.quantity) {
       toast({
-        title: 'Missing Fields',
-        description: 'Please fill all required fields (Product Type, Area Code, Quantity)',
-        status: 'warning',
+        title: "Missing Fields",
+        description:
+          "Please fill all required fields (Product Type, Area Code, Quantity)",
+        status: "warning",
         duration: 3,
         isClosable: true,
       });
       return;
     }
-    
+
     // Generate available numbers based on search criteria
     const generatedNumbers = generatePhoneNumbers(
-      formData.country || 'us',
+      formData.country || "us",
       formData.areaCode,
       formData.quantity,
       formData.productType
     );
-    
-    setSelectedNumbers(generatedNumbers.map(n => n.id));
+
+    setSelectedNumbers(generatedNumbers.map((n) => n.id));
     setShowNumbers(true);
     setShowAddCart(false);
     setCurrentStep(2);
@@ -345,11 +397,16 @@ function NewNumbers({ onAddToCart = () => {} }) {
     setShowAddCart(true);
     setCurrentStep(3);
     // Store documents for later use in order creation
-    const documents = configData.documents || (Array.isArray(configData) ? configData : []);
+    const documents =
+      configData.documents || (Array.isArray(configData) ? configData : []);
     setSelectedDocuments(documents);
     // Update desired pricing if provided
     const bargainData = configData.bargainData || configData;
-    if (bargainData && typeof bargainData === 'object' && !Array.isArray(bargainData)) {
+    if (
+      bargainData &&
+      typeof bargainData === "object" &&
+      !Array.isArray(bargainData)
+    ) {
       setDesiredPricingData(bargainData);
     }
   };
@@ -357,9 +414,9 @@ function NewNumbers({ onAddToCart = () => {} }) {
   const handleAddToCart = (cartConfig) => {
     if (!cartConfig) {
       toast({
-        title: 'Invalid Configuration',
-        description: 'Please complete the configuration',
-        status: 'error',
+        title: "Invalid Configuration",
+        description: "Please complete the configuration",
+        status: "error",
         duration: 3,
         isClosable: true,
       });
@@ -367,18 +424,22 @@ function NewNumbers({ onAddToCart = () => {} }) {
     }
 
     // Get country ID
-    const selectedCountry = countries?.find(c => c.countryname === formData.country);
+    const selectedCountry = countries?.find(
+      (c) => c.countryname === formData.country
+    );
     const countryId = selectedCountry?.id || null;
 
     // Get product ID
-    const selectedProduct = availableProducts?.find(p => p.code === formData.productType);
+    const selectedProduct = availableProducts?.find(
+      (p) => p.code === formData.productType
+    );
     const productId = selectedProduct?.id || null;
 
     // Calculate total amount based on pricing data (MRC * quantity)
     const quantity = parseInt(formData.quantity) || 1;
     const parsePricingValue = (value) => {
       if (!value) return 0;
-      const cleaned = value.replace('$', '');
+      const cleaned = value.replace("$", "");
       const parsed = parseFloat(cleaned);
       return isNaN(parsed) ? 0 : parsed;
     };
@@ -401,12 +462,12 @@ function NewNumbers({ onAddToCart = () => {} }) {
       desiredPricing: { ...desiredPricingData },
       pricing: { ...defaultPricingData },
       totalAmount: totalAmount,
-      orderStatus: 'In Progress'
+      orderStatus: "In Progress",
     };
 
     onAddToCart(item);
     // Navigate to cart page instead of showing inline
-    navigate('/order-numbers/place-order');
+    navigate("/order-numbers/place-order");
   };
 
   // handlePlaceOrder removed - now handled by dedicated cart page
@@ -419,15 +480,21 @@ function NewNumbers({ onAddToCart = () => {} }) {
 
   const renderSteps = () => {
     const steps = [
-      { number: 1, name: 'Search' },
-      { number: 2, name: 'Configure' },
-      { number: 3, name: 'Add to Cart' },
-      { number: 4, name: 'Place Order' },
-      { number: 5, name: 'Order Submitted' }
+      { number: 1, name: "Search" },
+      { number: 2, name: "Configure" },
+      { number: 3, name: "Add to Cart" },
+      { number: 4, name: "Place Order" },
+      { number: 5, name: "Order Submitted" },
     ];
 
     return (
-      <Card bg="white" borderRadius="12px" boxShadow="sm" border="1px solid" borderColor="gray.200">
+      <Card
+        bg="white"
+        borderRadius="12px"
+        boxShadow="sm"
+        border="1px solid"
+        borderColor="gray.200"
+      >
         <CardBody p={6}>
           <HStack justify="space-between" spacing={4}>
             {steps.map((step, index) => (
@@ -437,26 +504,35 @@ function NewNumbers({ onAddToCart = () => {} }) {
                   h="32px"
                   borderRadius="full"
                   bg={
-                    currentStep > step.number ? 'green.500' :
-                    currentStep === step.number ? 'blue.500' : 'gray.200'
+                    currentStep > step.number
+                      ? "green.500"
+                      : currentStep === step.number
+                      ? "blue.500"
+                      : "gray.200"
                   }
-                  color={
-                    currentStep >= step.number ? 'white' : 'gray.500'
-                  }
+                  color={currentStep >= step.number ? "white" : "gray.500"}
                   display="flex"
                   alignItems="center"
                   justifyContent="center"
                   fontSize="sm"
                   fontWeight="bold"
                 >
-                  {currentStep > step.number ? <Icon as={FaCheck} boxSize={3} /> : step.number}
+                  {currentStep > step.number ? (
+                    <Icon as={FaCheck} boxSize={3} />
+                  ) : (
+                    step.number
+                  )}
                 </Box>
                 <Text
+                  display={{base:"none",md:"block"}}
                   fontSize="sm"
                   fontWeight="medium"
                   color={
-                    currentStep > step.number ? 'green.600' :
-                    currentStep === step.number ? 'blue.600' : 'gray.500'
+                    currentStep > step.number
+                      ? "green.600"
+                      : currentStep === step.number
+                      ? "blue.600"
+                      : "gray.500"
                   }
                 >
                   {step.name}
@@ -465,8 +541,11 @@ function NewNumbers({ onAddToCart = () => {} }) {
                   <Divider
                     flex={1}
                     borderColor={
-                      currentStep > step.number ? 'green.500' :
-                      currentStep > step.number - 1 ? 'blue.500' : 'gray.200'
+                      currentStep > step.number
+                        ? "green.500"
+                        : currentStep > step.number - 1
+                        ? "blue.500"
+                        : "gray.200"
                     }
                   />
                 )}
@@ -496,159 +575,178 @@ function NewNumbers({ onAddToCart = () => {} }) {
 
         {/* Order Form - Only show until NumberSelection page */}
         {!(showAddCart || showPlaceOrder || showSubmitted) && (
-          <Card bg="white" borderRadius="12px" boxShadow="sm" border="1px solid" borderColor="gray.200">
-            <CardBody p={6}>
-              <Grid templateColumns={{ base: "1fr", md: "repeat(5, 1fr)" }} gap={6} alignItems="end">
-                {/* Country */}
-                <FormControl isRequired>
-                  <FormLabel color="#1a3a52" fontWeight="medium" fontSize="sm">
-                    Country
-                  </FormLabel>
-                  <Select
-                    ref={countryRef}
-                    placeholder="Select country"
-                    bg="white"
-                    borderColor="gray.300"
-                    _hover={{ borderColor: "blue.400" }}
-                    value={formData.country}
-                    onChange={(e) => handleInputChange('country', e.target.value)}
-                    onKeyDown={(e) => handleKeyDown(e, productTypeRef)}
-                    // isDisabled={!countries || countries.length === 0}
-                  >
-                    {countries && countries.length > 0 ? (
-                      countries.map(country => (
-                        <option key={country.countryname} value={country.countryname}>
-                          {country.countryname} ({country.phonecode})
-                        </option>
-                      ))
-                    ) : (
-                      <option value="" disabled>
-                        {countries === null ? 'Loading countries...' : 'No countries available'}
+          <Box px={4} mb={2}>
+            <Grid
+              templateColumns={{ base: "1fr", md: "repeat(5, 1fr)" }}
+              gap={6}
+              alignItems="end"
+            >
+              {/* Country */}
+              <FormControl isRequired>
+                <FormLabel color="#1a3a52" fontWeight="medium" fontSize="sm">
+                  Country
+                </FormLabel>
+                <Select
+                  ref={countryRef}
+                  placeholder="Select country"
+                  bg="white"
+                  borderRadius={"full"}
+                  borderColor="gray.300"
+                  _hover={{ borderColor: "blue.400" }}
+                  value={formData.country}
+                  onChange={(e) => handleInputChange("country", e.target.value)}
+                  onKeyDown={(e) => handleKeyDown(e, productTypeRef)}
+                  // isDisabled={!countries || countries.length === 0}
+                >
+                  {countries && countries.length > 0 ? (
+                    countries.map((country) => (
+                      <option
+                        key={country.countryname}
+                        value={country.countryname}
+                      >
+                        {country.countryname} ({country.phonecode})
                       </option>
-                    )}
-                  </Select>
-                </FormControl>
+                    ))
+                  ) : (
+                    <option value="" disabled>
+                      {countries === null
+                        ? "Loading countries..."
+                        : "No countries available"}
+                    </option>
+                  )}
+                </Select>
+              </FormControl>
 
-                {/* Product Type */}
-                <FormControl isRequired>
-                  <FormLabel color="#1a3a52" fontWeight="medium" fontSize="sm">
-                    Product Type
-                  </FormLabel>
-                  <Select
-                    ref={productTypeRef}
-                    placeholder="Select product type"
-                    bg="white"
-                    borderColor="gray.300"
-                    _hover={{ borderColor: "blue.400" }}
-                    value={formData.productType}
-                    onChange={(e) => handleInputChange('productType', e.target.value)}
-                    onKeyDown={(e) => handleKeyDown(e, areaCodeRef)}
-                    disabled={!formData.country}
+              {/* Product Type */}
+              <FormControl isRequired>
+                <FormLabel color="#1a3a52" fontWeight="medium" fontSize="sm">
+                  Product Type
+                </FormLabel>
+                <Select
+                  ref={productTypeRef}
+                  placeholder="Select product type"
+                  bg="white"
+                  borderColor="gray.300"
+                  borderRadius={"full"}
+                  _hover={{ borderColor: "blue.400" }}
+                  value={formData.productType}
+                  onChange={(e) =>
+                    handleInputChange("productType", e.target.value)
+                  }
+                  onKeyDown={(e) => handleKeyDown(e, areaCodeRef)}
+                  disabled={!formData.country}
+                >
+                  {availableProducts.map((product) => (
+                    <option key={product.code} value={product.code}>
+                      {product.name}
+                    </option>
+                  ))}
+                </Select>
+              </FormControl>
+
+              {/* Area Code */}
+              <FormControl isRequired>
+                <FormLabel color="#1a3a52" fontWeight="medium" fontSize="sm">
+                  Area Code (Prefix)
+                </FormLabel>
+                <Select
+                  ref={areaCodeRef}
+                  placeholder="Select area code"
+                  bg="white"
+                  borderColor="gray.300"
+                  borderRadius={"full"}
+                  _hover={{ borderColor: "blue.400" }}
+                  value={formData.areaCode}
+                  onChange={(e) =>
+                    handleInputChange("areaCode", e.target.value)
+                  }
+                  onKeyDown={(e) => handleKeyDown(e, quantityRef)}
+                  disabled={!formData.country || !formData.productType}
+                >
+                  {areaCodes.map((areaCode) => (
+                    <option key={areaCode} value={areaCode}>
+                      {areaCode}
+                    </option>
+                  ))}
+                </Select>
+              </FormControl>
+
+              {/* Quantity */}
+              <FormControl isRequired>
+                <FormLabel color="#1a3a52" fontWeight="medium" fontSize="sm">
+                  Quantity
+                </FormLabel>
+                <NumberInput
+                  min={1}
+                  bg="white"
+                  borderColor="gray.300"
+                  borderRadius={"full"}
+                  _hover={{ borderColor: "blue.400" }}
+                  value={formData.quantity}
+                  onChange={(value) => handleInputChange("quantity", value)}
+                >
+                  <NumberInputField
+                    ref={quantityRef}
+                    placeholder="Enter quantity"
+                    borderRadius={"full"}
+                    onKeyDown={(e) => handleKeyDown(e, null)}
+                  />
+                  <NumberInputStepper>
+                    <NumberIncrementStepper />
+                    <NumberDecrementStepper />
+                  </NumberInputStepper>
+                </NumberInput>
+              </FormControl>
+
+              {/* Buttons - Aligned with form fields */}
+              <FormControl>
+                <FormLabel color="transparent" fontSize="sm" userSelect="none">
+                  Actions
+                </FormLabel>
+                <HStack spacing={3}>
+                  <Button
+                    colorScheme="blue"
+                    size="md"
+                    flex={2}
+                    fontWeight="semibold"
+                    borderRadius={"full"}
+                    width="90px"
+                    boxShadow="0 2px 4px rgba(49, 130, 206, 0.25)"
+                    _hover={{
+                      boxShadow: "0 4px 8px rgba(49, 130, 206, 0.35)",
+                    }}
+                    transition="all 0.2s ease"
+                    onClick={handleShowNumbers}
+                    leftIcon={<FiSearch />}
                   >
-                    {availableProducts.map(product => (
-                      <option key={product.code} value={product.code}>
-                        {product.name}
-                      </option>
-                    ))}
-                  </Select>
-                </FormControl>
-
-                {/* Area Code */}
-                <FormControl isRequired>
-                  <FormLabel color="#1a3a52" fontWeight="medium" fontSize="sm">
-                    Area Code (Prefix)
-                  </FormLabel>
-                  <Select
-                    ref={areaCodeRef}
-                    placeholder="Select area code"
-                    bg="white"
+                    Search
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="md"
+                    flex={1}
+                    fontWeight="semibold"
                     borderColor="gray.300"
-                    _hover={{ borderColor: "blue.400" }}
-                    value={formData.areaCode}
-                    onChange={(e) => handleInputChange('areaCode', e.target.value)}
-                    onKeyDown={(e) => handleKeyDown(e, quantityRef)}
-                    disabled={!formData.country || !formData.productType}
+                    borderRadius={"full"}
+                    color="gray.600"
+                    _hover={{
+                      bg: "gray.50",
+                      borderColor: "gray.400",
+                    }}
+                    transition="all 0.2s ease"
+                    onClick={handleClear}
                   >
-                    {areaCodes.map(areaCode => (
-                      <option key={areaCode} value={areaCode}>
-                        {areaCode}
-                      </option>
-                    ))}
-                  </Select>
-                </FormControl>
-
-                {/* Quantity */}
-                <FormControl isRequired>
-                  <FormLabel color="#1a3a52" fontWeight="medium" fontSize="sm">
-                    Quantity 
-                  </FormLabel>
-                  <NumberInput 
-                    min={1}
-                    bg="white"
-                    borderColor="gray.300"
-                    _hover={{ borderColor: "blue.400" }}
-                    value={formData.quantity}
-                    onChange={(value) => handleInputChange('quantity', value)}
-                  >
-                    <NumberInputField 
-                      ref={quantityRef}
-                      placeholder="Enter quantity"
-                      onKeyDown={(e) => handleKeyDown(e, null)}
-                    />
-                    <NumberInputStepper>
-                      <NumberIncrementStepper />
-                      <NumberDecrementStepper />
-                    </NumberInputStepper>
-                  </NumberInput>
-                </FormControl>
-
-                {/* Buttons - Aligned with form fields */}
-                <FormControl>
-                  <FormLabel color="transparent" fontSize="sm" userSelect="none">
-                    Actions
-                  </FormLabel>
-                  <HStack spacing={3}>
-                    <Button
-                      colorScheme="blue"
-                      size="md"
-                      flex={2}
-                      fontWeight="semibold"
-                      width='90px'
-                      boxShadow="0 2px 4px rgba(49, 130, 206, 0.25)"
-                      _hover={{
-                        boxShadow: '0 4px 8px rgba(49, 130, 206, 0.35)'
-                      }}
-                      transition="all 0.2s ease"
-                      onClick={handleShowNumbers}
-                    >
-                      Show Numbers
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="md"
-                      flex={1}
-                      fontWeight="semibold"
-                      borderColor="gray.300"
-                      color="gray.600"
-                      _hover={{
-                        bg: "gray.50",
-                        borderColor: "gray.400"
-                      }}
-                      transition="all 0.2s ease"
-                      onClick={handleClear}
-                    >
-                      Clear
-                    </Button>
-                  </HStack>
-                </FormControl>
-              </Grid>
-            </CardBody>
-          </Card>
+                    Clear
+                  </Button>
+                </HStack>
+              </FormControl>
+            </Grid>
+          </Box>
         )}
 
         {/* Show Number Selection OR AddCart - Only one at a time */}
         {showNumbers && !showAddCart && (
-          <NumberSelection 
+          <NumberSelection
             formData={formData}
             selectedNumbers={selectedNumbers}
             onNumberSelectionChange={handleNumberSelectionChange}
@@ -670,9 +768,7 @@ function NewNumbers({ onAddToCart = () => {} }) {
         )}
 
         {/* Show Submitted when Place Order is clicked */}
-        {showSubmitted && (
-          <Submitted />
-        )}
+        {showSubmitted && <Submitted />}
       </VStack>
     </Box>
   );

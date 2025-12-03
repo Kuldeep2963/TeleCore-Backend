@@ -144,9 +144,7 @@ const Customers = () => {
   return (
     <Box
       flex={1}
-      p={8}
-      pr={5}
-      pb={5}
+      p={{base:4,md:8}}
       minH="calc(100vh - 76px)"
       overflowY="auto"
     >
@@ -171,6 +169,7 @@ const Customers = () => {
               leftIcon={<FiPlus />}
               colorScheme="blue"
               size="sm"
+              px={{base:7,md:2}}
               onClick={() => navigate('/add-vendor-customer', { state: { activeTab: 1 } })}
               borderRadius="full"
             >
@@ -189,6 +188,7 @@ const Customers = () => {
             <Box
               bg="white"
               p={6}
+              px={{base:2,md:6}}
               borderRadius="xl"
               boxShadow="0 2px 4px rgba(0, 0, 0, 0.05)"
               border="1px solid"
@@ -217,6 +217,8 @@ const Customers = () => {
             <Box
               bg="white"
               p={6}
+              px={{base:2,md:6}}
+
               borderRadius="xl"
               boxShadow="0 2px 4px rgba(0, 0, 0, 0.05)"
               border="1px solid"
@@ -245,6 +247,8 @@ const Customers = () => {
             <Box
               bg="white"
               p={6}
+              px={{base:2,md:6}}
+
               borderRadius="xl"
               boxShadow="0 2px 4px rgba(0, 0, 0, 0.05)"
               border="1px solid"
@@ -273,6 +277,7 @@ const Customers = () => {
             <Box
               bg="white"
               p={6}
+              px={{base:2,md:6}}
               borderRadius="xl"
               boxShadow="0 2px 4px rgba(0, 0, 0, 0.05)"
               border="1px solid"
@@ -280,7 +285,7 @@ const Customers = () => {
             >
               <HStack spacing={4}>
                 <Box
-                  p={3}
+                  px={2}
                   borderRadius="full"
                   bgGradient="linear(135deg, orange.50, orange.100)"
                   color="orange.600"
@@ -333,7 +338,7 @@ const Customers = () => {
             boxShadow="0 2px 4px rgba(0, 0, 0, 0.05)"
             border="1px solid"
             borderColor="gray.100"
-            overflow="hidden"
+            overflow={{base:"scroll",md:"hidden"}}
           >
             <Table variant="simple">
               <Thead bg="gray.200">

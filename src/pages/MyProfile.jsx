@@ -32,6 +32,7 @@ import {
 } from '@chakra-ui/react';
 import { EditIcon, PhoneIcon, EmailIcon, LockIcon } from '@chakra-ui/icons';
 import { FaUser, FaMapMarkerAlt, FaCamera, FaShieldAlt, FaWallet } from 'react-icons/fa';
+import { FiBriefcase } from 'react-icons/fi';
 import { MdSecurity, MdPerson } from 'react-icons/md';
 import api from '../services/api';
 
@@ -44,7 +45,8 @@ function Profile({ profilePicture, onProfilePictureUpdate, userId, userProfile, 
     lastName: '',
     email: '',
     phone: '',
-    address: ''
+    address: '',
+    companyName: ''
   });
   const toast = useToast();
   const fileInputRef = useRef(null);
@@ -61,32 +63,41 @@ function Profile({ profilePicture, onProfilePictureUpdate, userId, userProfile, 
         setLoading(true);
         try {
           if (userRole === 'Client') {
-            // Find customer by user_id
-            const customersResponse = await api.customers.getAll();
-            if (customersResponse.success) {
-              const customer = customersResponse.data.find(c => c.user_id === userId);
-              if (customer) {
-                setCustomerData(customer);
-              }
+            // Fetch customer data for current user
+            const customerResponse = await api.customers.getMe();
+            if (customerResponse.success) {
+              setCustomerData(customerResponse.data);
+              // Initialize form data with customer data
+              setFormData({
+                firstName: userProfile.firstName || '',
+                lastName: userProfile.lastName || '',
+                email: userProfile.email || '',
+                phone: customerResponse.data.phone || '',
+                address: customerResponse.data.location || '',
+                companyName: customerResponse.data.company_name || ''
+              });
             }
+          } else {
+            // Initialize form data for non-client users
+            setFormData({
+              firstName: userProfile.firstName || '',
+              lastName: userProfile.lastName || '',
+              email: userProfile.email || '',
+              phone: '',
+              address: '',
+              companyName: ''
+            });
           }
-
-          // Initialize form data
+        } catch (error) {
+          console.error('Failed to fetch profile data:', error);
+          // Initialize form data even if fetch fails
           setFormData({
             firstName: userProfile.firstName || '',
             lastName: userProfile.lastName || '',
             email: userProfile.email || '',
-            phone: customerData?.phone || '',
-            address: customerData?.location || ''
-          });
-        } catch (error) {
-          console.error('Failed to fetch profile data:', error);
-          toast({
-            title: 'Error loading profile',
-            description: 'Failed to load profile information',
-            status: 'error',
-            duration: 3000,
-            isClosable: true,
+            phone: '',
+            address: '',
+            companyName: ''
           });
         } finally {
           setLoading(false);
@@ -95,7 +106,7 @@ function Profile({ profilePicture, onProfilePictureUpdate, userId, userProfile, 
     };
 
     fetchCustomerData();
-  }, [userRole, userId, userProfile, customerData?.phone, customerData?.location, toast]);
+  }, [userRole, userId, userProfile, toast]);
 
   const handleProfilePictureChange = async (event) => {
     const file = event.target.files[0];
@@ -204,7 +215,8 @@ function Profile({ profilePicture, onProfilePictureUpdate, userId, userProfile, 
       lastName: userProfile.lastName || '',
       email: userProfile.email || '',
       phone: customerData?.phone || '',
-      address: customerData?.location || ''
+      address: customerData?.location || '',
+      companyName: customerData?.company_name || ''
     });
     setIsEditing(false);
   };
@@ -215,6 +227,7 @@ function Profile({ profilePicture, onProfilePictureUpdate, userId, userProfile, 
     email: formData.email || 'N/A',
     phone: formData.phone || 'Not available',
     address: formData.address || 'Not available',
+    companyName: formData.companyName || 'N/A',
     role: userRole || 'Client',
     joinDate: customerData?.join_date || new Date().toISOString().split('T')[0]
   };
@@ -338,6 +351,12 @@ function Profile({ profilePicture, onProfilePictureUpdate, userId, userProfile, 
                     <Divider />
 
                     <VStack spacing={2} align="stretch" width="100%">
+                      {userRole === 'Client' && (
+                        <HStack spacing={3}>
+                          <FiBriefcase color="gray.500"  />
+                          <Text fontSize="sm" color="gray.600">{userData.companyName}</Text>
+                        </HStack>
+                      )}
                       <HStack spacing={3}>
                         <EmailIcon color="gray.500" />
                         <Text fontSize="sm" color="gray.600">{userData.email}</Text>
@@ -363,6 +382,12 @@ function Profile({ profilePicture, onProfilePictureUpdate, userId, userProfile, 
                   <VStack spacing={4} align="stretch">
                     <Heading size="md" color="gray.800">Account Overview</Heading>
                     <VStack spacing={3} align="stretch">
+                      {userRole === 'Client' && (
+                        <HStack justify="space-between">
+                          <Text color="gray.600">Company</Text>
+                          <Text fontWeight="medium">{userData.companyName}</Text>
+                        </HStack>
+                      )}
                       <HStack justify="space-between">
                         <Text color="gray.600">Status</Text>
                         <Badge colorScheme="green" borderRadius="full">Active</Badge>
@@ -516,6 +541,29 @@ function Profile({ profilePicture, onProfilePictureUpdate, userId, userProfile, 
                       />
                     </FormControl>
 
+                    {userRole === 'Client' && (
+                      <FormControl>
+                        <FormLabel fontWeight="semibold" color="gray.700" display="flex" alignItems="center" gap={2}>
+                          <FiBriefcase color="#4A5568" />
+                          Company Name
+                        </FormLabel>
+                        <Input
+                          value={userData.companyName}
+                          bg={subtleBg}
+                          borderColor={borderColor}
+                          size="md"
+                          readOnly
+                          _readOnly={{
+                            bg: subtleBg,
+                            cursor: 'not-allowed'
+                          }}
+                        />
+                        <Text fontSize="sm" color="gray.500" mt={1}>
+                          Company information is managed separately
+                        </Text>
+                      </FormControl>
+                    )}
+
                     {isEditing && (
                       <HStack spacing={3} justify="flex-end" pt={4}>
                         <Button
@@ -539,7 +587,7 @@ function Profile({ profilePicture, onProfilePictureUpdate, userId, userProfile, 
               </Card>
 
               {/* Security & Preferences Card */}
-              <Card 
+              {/* <Card 
                 bg={cardBg}
                 border="1px solid"
                 borderColor={borderColor}
@@ -611,7 +659,7 @@ function Profile({ profilePicture, onProfilePictureUpdate, userId, userProfile, 
                     </SimpleGrid>
                   </VStack>
                 </CardBody>
-              </Card>
+              </Card> */}
             </VStack>
           </Grid>
         </VStack>

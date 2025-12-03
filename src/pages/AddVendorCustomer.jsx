@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   Box,
   Heading,
@@ -25,8 +25,8 @@ import {
   CardBody,
   Divider,
   Alert,
-  AlertIcon
-} from '@chakra-ui/react';
+  AlertIcon,
+} from "@chakra-ui/react";
 import {
   FiUsers,
   // FiBuilding,
@@ -36,11 +36,10 @@ import {
   FiPhone,
   FiMail,
   FiMapPin,
-  FiGlobe,
   FiPackage,
-  FiShoppingCart
-} from 'react-icons/fi';
-import api from '../services/api';
+  FiShoppingCart,
+} from "react-icons/fi";
+import api from "../services/api";
 
 const AddVendorCustomer = () => {
   const location = useLocation();
@@ -51,7 +50,7 @@ const AddVendorCustomer = () => {
     totalVendors: 0,
     totalCustomers: 0,
     activeProducts: 0,
-    totalOrders: 0
+    totalOrders: 0,
   });
   const [statsLoading, setStatsLoading] = useState(true);
 
@@ -64,11 +63,11 @@ const AddVendorCustomer = () => {
           setStats(response.data);
         }
       } catch (error) {
-        console.error('Failed to fetch stats:', error);
+        console.error("Failed to fetch stats:", error);
         toast({
-          title: 'Error',
-          description: 'Failed to load dashboard statistics',
-          status: 'error',
+          title: "Error",
+          description: "Failed to load dashboard statistics",
+          status: "error",
           duration: 3000,
           isClosable: true,
         });
@@ -82,47 +81,53 @@ const AddVendorCustomer = () => {
 
   // Vendor form state
   const [vendorForm, setVendorForm] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    location: '',
-    status: 'Active'
+    name: "",
+    email: "",
+    phone: "",
+    location: "",
+    status: "Active",
   });
   const [vendorLoading, setVendorLoading] = useState(false);
 
   // Customer form state
   const [customerForm, setCustomerForm] = useState({
-    company_name: '',
-    contact_person: '',
-    email: '',
-    phone: '',
-    location: '',
-    status: 'Active'
+    company_name: "",
+    contact_person: "",
+    email: "",
+    phone: "",
+    location: "",
+    status: "Active",
   });
   const [customerLoading, setCustomerLoading] = useState(false);
 
   const handleVendorChange = (field, value) => {
-    setVendorForm(prev => ({
+    setVendorForm((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
   };
 
   const handleCustomerChange = (field, value) => {
-    setCustomerForm(prev => ({
+    setCustomerForm((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
   };
 
   const handleVendorSubmit = async (e) => {
     e.preventDefault();
 
-    if (!vendorForm.name || !vendorForm.email || !vendorForm.phone || !vendorForm.location) {
+    if (
+      !vendorForm.name ||
+      !vendorForm.email ||
+      !vendorForm.phone ||
+      !vendorForm.location
+    ) {
       toast({
-        title: 'Validation Error',
-        description: 'Please fill in all required fields (Name, Email, Phone, Location).',
-        status: 'error',
+        title: "Validation Error",
+        description:
+          "Please fill in all required fields (Name, Email, Phone, Location).",
+        status: "error",
         duration: 3000,
         isClosable: true,
       });
@@ -136,28 +141,28 @@ const AddVendorCustomer = () => {
         email: vendorForm.email,
         phone: vendorForm.phone,
         location: vendorForm.location,
-        status: vendorForm.status
+        status: vendorForm.status,
       });
 
       if (response.success) {
         toast({
-          title: 'Success',
+          title: "Success",
           description: `${vendorForm.name} has been successfully added.`,
-          status: 'success',
+          status: "success",
           duration: 2000,
           isClosable: true,
         });
 
         setTimeout(() => {
-          navigate('/vendors');
+          navigate("/vendors");
         }, 1500);
       }
     } catch (error) {
-      console.error('Error creating vendor:', error);
+      console.error("Error creating vendor:", error);
       toast({
-        title: 'Error',
-        description: error.message || 'Failed to add vendor.',
-        status: 'error',
+        title: "Error",
+        description: error.message || "Failed to add vendor.",
+        status: "error",
         duration: 3000,
         isClosable: true,
       });
@@ -169,11 +174,18 @@ const AddVendorCustomer = () => {
   const handleCustomerSubmit = async (e) => {
     e.preventDefault();
 
-    if (!customerForm.company_name || !customerForm.contact_person || !customerForm.email || !customerForm.phone || !customerForm.location) {
+    if (
+      !customerForm.company_name ||
+      !customerForm.contact_person ||
+      !customerForm.email ||
+      !customerForm.phone ||
+      !customerForm.location
+    ) {
       toast({
-        title: 'Validation Error',
-        description: 'Please fill in all required fields (Company Name, Contact Person, Email, Phone, Location).',
-        status: 'error',
+        title: "Validation Error",
+        description:
+          "Please fill in all required fields (Company Name, Contact Person, Email, Phone, Location).",
+        status: "error",
         duration: 3000,
         isClosable: true,
       });
@@ -184,9 +196,9 @@ const AddVendorCustomer = () => {
       setCustomerLoading(true);
 
       // Split contact_person into first and last name
-      const nameParts = customerForm.contact_person.trim().split(' ');
+      const nameParts = customerForm.contact_person.trim().split(" ");
       const firstName = nameParts[0];
-      const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
+      const lastName = nameParts.length > 1 ? nameParts.slice(1).join(" ") : "";
       const password = `${firstName}@123`;
 
       // Create user first
@@ -195,11 +207,11 @@ const AddVendorCustomer = () => {
         password: password,
         first_name: firstName,
         last_name: lastName,
-        role: 'Client'
+        role: "Client",
       });
 
       if (!userResponse.success) {
-        throw new Error(userResponse.message || 'Failed to create user');
+        throw new Error(userResponse.message || "Failed to create user");
       }
 
       const userId = userResponse.data.id;
@@ -212,30 +224,32 @@ const AddVendorCustomer = () => {
         phone: customerForm.phone,
         location: customerForm.location,
         status: customerForm.status,
-        user_id: userId
+        user_id: userId,
       });
 
       if (customerResponse.success) {
         toast({
-          title: 'Success',
+          title: "Success",
           description: `${customerForm.company_name} has been successfully added.`,
-          status: 'success',
+          status: "success",
           duration: 2000,
           isClosable: true,
         });
 
         setTimeout(() => {
-          navigate('/customers');
+          navigate("/customers");
         }, 1500);
       } else {
-        throw new Error(customerResponse.message || 'Failed to create customer');
+        throw new Error(
+          customerResponse.message || "Failed to create customer"
+        );
       }
     } catch (error) {
-      console.error('Error creating customer:', error);
+      console.error("Error creating customer:", error);
       toast({
-        title: 'Error',
-        description: error.message || 'Failed to add customer.',
-        status: 'error',
+        title: "Error",
+        description: error.message || "Failed to add customer.",
+        status: "error",
         duration: 3000,
         isClosable: true,
       });
@@ -247,7 +261,7 @@ const AddVendorCustomer = () => {
   return (
     <Box
       flex={1}
-      p={8}
+      p={{base:5,md:8}}
       pr={5}
       pb={5}
       minH="calc(100vh - 76px)"
@@ -273,7 +287,7 @@ const AddVendorCustomer = () => {
         </Box>
 
         {/* Stats Overview */}
-        <SimpleGrid columns={{ base: 1, md: 4 }} spacing={4} w="full">
+        <SimpleGrid columns={{ base: 2, md: 4 }} spacing={4} w="full">
           <Card>
             <CardBody>
               <HStack spacing={4}>
@@ -283,11 +297,11 @@ const AddVendorCustomer = () => {
                   bgGradient="linear(135deg, blue.50, blue.100)"
                   color="blue.600"
                 >
-                  {/* <Icon as={FiBuilding} boxSize={6} /> */}
+                  <Icon as={FiUsers} boxSize={6} />
                 </Box>
                 <Box>
                   <Text fontSize="2xl" fontWeight="bold" color="gray.800">
-                    {statsLoading ? '...' : stats.totalVendors}
+                    {statsLoading ? "..." : stats.totalVendors}
                   </Text>
                   <Text color="gray.500" fontSize="sm">
                     Total Vendors
@@ -310,7 +324,7 @@ const AddVendorCustomer = () => {
                 </Box>
                 <Box>
                   <Text fontSize="2xl" fontWeight="bold" color="gray.800">
-                    {statsLoading ? '...' : stats.totalCustomers}
+                    {statsLoading ? "..." : stats.totalCustomers}
                   </Text>
                   <Text color="gray.500" fontSize="sm">
                     Total Customers
@@ -333,7 +347,7 @@ const AddVendorCustomer = () => {
                 </Box>
                 <Box>
                   <Text fontSize="2xl" fontWeight="bold" color="gray.800">
-                    {statsLoading ? '...' : stats.activeProducts}
+                    {statsLoading ? "..." : stats.activeProducts}
                   </Text>
                   <Text color="gray.500" fontSize="sm">
                     Active Products
@@ -356,7 +370,7 @@ const AddVendorCustomer = () => {
                 </Box>
                 <Box>
                   <Text fontSize="2xl" fontWeight="bold" color="gray.800">
-                    {statsLoading ? '...' : stats.totalOrders}
+                    {statsLoading ? "..." : stats.totalOrders}
                   </Text>
                   <Text color="gray.500" fontSize="sm">
                     Total Orders
@@ -374,7 +388,7 @@ const AddVendorCustomer = () => {
               <TabList>
                 <Tab>
                   <HStack spacing={2}>
-                    {/* <Icon as={FiBuilding} /> */}
+                    <Icon as={FiUsers} />
                     <Text>Add Vendor</Text>
                   </HStack>
                 </Tab>
@@ -391,54 +405,73 @@ const AddVendorCustomer = () => {
                 <TabPanel>
                   <form onSubmit={handleVendorSubmit}>
                     <VStack spacing={6} align="start">
-                      <Alert status="info" borderRadius="md">
+                      {/* <Alert status="info" borderRadius="md">
                         <AlertIcon />
                         Add a new vendor to your supplier network. All fields marked with * are required.
-                      </Alert>
+                      </Alert> */}
 
-                      <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} w="full">
+                      <SimpleGrid
+                        columns={{ base: 1, md: 2 }}
+                        spacing={4}
+                        w="full"
+                      >
                         <FormControl isRequired>
                           <FormLabel>Vendor Name</FormLabel>
                           <Input
+                            borderRadius={"full"}
                             placeholder="Enter vendor name"
                             value={vendorForm.name}
-                            onChange={(e) => handleVendorChange('name', e.target.value)}
+                            onChange={(e) =>
+                              handleVendorChange("name", e.target.value)
+                            }
                           />
                         </FormControl>
 
                         <FormControl isRequired>
                           <FormLabel>Email</FormLabel>
                           <Input
+                            borderRadius={"full"}
                             type="email"
                             placeholder="Enter email address"
                             value={vendorForm.email}
-                            onChange={(e) => handleVendorChange('email', e.target.value)}
+                            onChange={(e) =>
+                              handleVendorChange("email", e.target.value)
+                            }
                           />
                         </FormControl>
 
                         <FormControl isRequired>
                           <FormLabel>Phone</FormLabel>
                           <Input
+                            borderRadius={"full"}
                             placeholder="Enter phone number"
                             value={vendorForm.phone}
-                            onChange={(e) => handleVendorChange('phone', e.target.value)}
+                            onChange={(e) =>
+                              handleVendorChange("phone", e.target.value)
+                            }
                           />
                         </FormControl>
 
                         <FormControl isRequired>
                           <FormLabel>Location</FormLabel>
                           <Input
+                            borderRadius={"full"}
                             placeholder="City, Country"
                             value={vendorForm.location}
-                            onChange={(e) => handleVendorChange('location', e.target.value)}
+                            onChange={(e) =>
+                              handleVendorChange("location", e.target.value)
+                            }
                           />
                         </FormControl>
 
                         <FormControl isRequired>
                           <FormLabel>Status</FormLabel>
                           <Select
+                            borderRadius={"full"}
                             value={vendorForm.status}
-                            onChange={(e) => handleVendorChange('status', e.target.value)}
+                            onChange={(e) =>
+                              handleVendorChange("status", e.target.value)
+                            }
                           >
                             <option value="Active">Active</option>
                             <option value="Inactive">Inactive</option>
@@ -450,20 +483,24 @@ const AddVendorCustomer = () => {
 
                       <HStack spacing={4} w="full" justify="end">
                         <Button
+                          borderRadius={"full"}
                           leftIcon={<FiX />}
                           variant="ghost"
-                          onClick={() => setVendorForm({
-                            name: '',
-                            email: '',
-                            phone: '',
-                            location: '',
-                            status: 'Active'
-                          })}
+                          onClick={() =>
+                            setVendorForm({
+                              name: "",
+                              email: "",
+                              phone: "",
+                              location: "",
+                              status: "Active",
+                            })
+                          }
                           isDisabled={vendorLoading}
                         >
                           Clear
                         </Button>
                         <Button
+                          borderRadius={"full"}
                           leftIcon={<FiSave />}
                           colorScheme="blue"
                           type="submit"
@@ -481,63 +518,91 @@ const AddVendorCustomer = () => {
                 <TabPanel>
                   <form onSubmit={handleCustomerSubmit}>
                     <VStack spacing={6} align="start">
-                      <Alert status="info" borderRadius="md">
+                      {/* <Alert status="info" borderRadius="md">
                         <AlertIcon />
                         Add a new customer to your database. All fields marked with * are required.
-                      </Alert>
+                      </Alert> */}
 
-                      <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} w="full">
+                      <SimpleGrid
+                        columns={{ base: 1, md: 2 }}
+                        spacing={4}
+                        w="full"
+                      >
                         <FormControl isRequired>
                           <FormLabel>Company Name</FormLabel>
                           <Input
+                            borderRadius={"full"}
                             placeholder="Enter company name"
                             value={customerForm.company_name}
-                            onChange={(e) => handleCustomerChange('company_name', e.target.value)}
+                            onChange={(e) =>
+                              handleCustomerChange(
+                                "company_name",
+                                e.target.value
+                              )
+                            }
                           />
                         </FormControl>
 
                         <FormControl isRequired>
                           <FormLabel>Contact Person</FormLabel>
                           <Input
+                            borderRadius={"full"}
                             placeholder="Enter contact person name"
                             value={customerForm.contact_person}
-                            onChange={(e) => handleCustomerChange('contact_person', e.target.value)}
+                            onChange={(e) =>
+                              handleCustomerChange(
+                                "contact_person",
+                                e.target.value
+                              )
+                            }
                           />
                         </FormControl>
 
                         <FormControl isRequired>
                           <FormLabel>Email</FormLabel>
                           <Input
+                            borderRadius={"full"}
                             type="email"
                             placeholder="Enter email address"
                             value={customerForm.email}
-                            onChange={(e) => handleCustomerChange('email', e.target.value)}
+                            onChange={(e) =>
+                              handleCustomerChange("email", e.target.value)
+                            }
                           />
                         </FormControl>
 
                         <FormControl isRequired>
                           <FormLabel>Phone</FormLabel>
                           <Input
+                            borderRadius={"full"}
                             placeholder="Enter phone number"
                             value={customerForm.phone}
-                            onChange={(e) => handleCustomerChange('phone', e.target.value)}
+                            onChange={(e) =>
+                              handleCustomerChange("phone", e.target.value)
+                            }
                           />
                         </FormControl>
 
                         <FormControl isRequired>
                           <FormLabel>Location</FormLabel>
                           <Input
+                            borderRadius={"full"}
                             placeholder="City, Country"
                             value={customerForm.location}
-                            onChange={(e) => handleCustomerChange('location', e.target.value)}
+                            onChange={(e) =>
+                              handleCustomerChange("location", e.target.value)
+                            }
                           />
                         </FormControl>
 
                         <FormControl isRequired>
                           <FormLabel>Status</FormLabel>
                           <Select
+                            borderRadius={"full"}
                             value={customerForm.status}
-                            onChange={(e) => handleCustomerChange('status', e.target.value)}
+                            onChange={(e) =>
+                              handleCustomerChange("status", e.target.value)
+                            }
                           >
                             <option value="Active">Active</option>
                             <option value="Inactive">Inactive</option>
@@ -549,21 +614,25 @@ const AddVendorCustomer = () => {
 
                       <HStack spacing={4} w="full" justify="end">
                         <Button
+                          borderRadius={"full"}
                           leftIcon={<FiX />}
                           variant="ghost"
-                          onClick={() => setCustomerForm({
-                            company_name: '',
-                            contact_person: '',
-                            email: '',
-                            phone: '',
-                            location: '',
-                            status: 'Active'
-                          })}
+                          onClick={() =>
+                            setCustomerForm({
+                              company_name: "",
+                              contact_person: "",
+                              email: "",
+                              phone: "",
+                              location: "",
+                              status: "Active",
+                            })
+                          }
                           isDisabled={customerLoading}
                         >
                           Clear
                         </Button>
                         <Button
+                          borderRadius={"full"}
                           leftIcon={<FiSave />}
                           colorScheme="blue"
                           type="submit"

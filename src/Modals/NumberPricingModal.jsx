@@ -8,6 +8,7 @@ import {
   ModalCloseButton,
   Badge,
   Card,
+  Box,
   CardBody,
   Heading,
   Text,
@@ -103,7 +104,7 @@ function NumberPricingModal({ isOpen, onClose, selectedNumber }) {
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size={"5xl"} scrollBehavior="inside" isCentered isScrollable>
+    <Modal isOpen={isOpen} onClose={onClose} size={{base:"sm",md:"5xl"}} scrollBehavior="inside" isCentered isScrollable>
       <ModalOverlay backdropFilter="blur(4px)" />
       <ModalContent>
         <ModalHeader>
@@ -136,9 +137,7 @@ function NumberPricingModal({ isOpen, onClose, selectedNumber }) {
                   </Grid>
                 </CardBody>
               </Card>
-
-              <Card bg="white" borderRadius="12px" boxShadow="sm" border="1px solid" borderColor="gray.200">
-                <CardBody>
+                 <Box>
                   <Heading size="md" color="gray.800" mb={4}>Pricing</Heading>
                   {loading ? (
                     <Center py={8}>
@@ -191,8 +190,7 @@ function NumberPricingModal({ isOpen, onClose, selectedNumber }) {
                   ) : (
                     <Text color="gray.600" textAlign="center">No pricing data available</Text>
                   )}
-                </CardBody>
-              </Card>
+                  </Box>
             </VStack>
           )}
         </ModalBody>

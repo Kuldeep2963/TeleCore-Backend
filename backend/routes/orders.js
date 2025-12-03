@@ -89,64 +89,75 @@ router.get('/', async (req, res) => {
       ORDER BY o.created_at DESC
     `, params);
 
-    // Transform data to match frontend expectations
-    const transformedData = result.rows.map(order => ({
-      id: order.id,
-      orderNo: order.order_number,
-      country: order.country_name || 'N/A',
-      productType: order.product_category || 'N/A',
-      serviceName: order.product_name || 'N/A', // Using product name as service name
-      areaCode: order.area_code || 'N/A', // Area code from orders table
-      quantity: order.quantity,
-      orderStatus: order.status,
-      orderDate: order.order_date ? new Date(order.order_date).toISOString().split('T')[0] : null,
-      completedDate: order.completed_date ? new Date(order.completed_date).toISOString().split('T')[0] : null,
-      created_at: order.created_at,
-      totalAmount: order.total_amount,
-      companyName: order.company_name,
-      vendorName: order.vendor_name,
-      documents: order.documents || [],
-      pricing: order.nrc ? {
-        nrc: order.nrc,
-        mrc: order.mrc,
-        ppm: order.ppm,
-        ppm_fix: order.ppm_fix,
-        ppm_mobile: order.ppm_mobile,
-        ppm_payphone: order.ppm_payphone,
-        arc: order.arc,
-        mo: order.mo,
-        mt: order.mt,
-        incoming_ppm: order.incoming_ppm,
-        outgoing_ppm_fix: order.outgoing_ppm_fix,
-        outgoing_ppm_mobile: order.outgoing_ppm_mobile,
-        incoming_sms: order.incoming_sms,
-        outgoing_sms: order.outgoing_sms,
-        billing_pulse: order.billing_pulse,
-        estimated_lead_time: order.estimated_lead_time,
-        contract_term: order.contract_term,
-        disconnection_notice_term: order.disconnection_notice_term
-      } : null,
-      desiredPricing: order.nrc ? {
-        nrc: order.nrc,
-        mrc: order.mrc,
-        ppm: order.ppm,
-        ppm_fix: order.ppm_fix,
-        ppm_mobile: order.ppm_mobile,
-        ppm_payphone: order.ppm_payphone,
-        arc: order.arc,
-        mo: order.mo,
-        mt: order.mt,
-        incoming_ppm: order.incoming_ppm,
-        outgoing_ppm_fix: order.outgoing_ppm_fix,
-        outgoing_ppm_mobile: order.outgoing_ppm_mobile,
-        incoming_sms: order.incoming_sms,
-        outgoing_sms: order.outgoing_sms,
-        billing_pulse: order.billing_pulse,
-        estimated_lead_time: order.estimated_lead_time,
-        contract_term: order.contract_term,
-        disconnection_notice_term: order.disconnection_notice_term
-      } : null,
-      createdBy: order.first_name && order.last_name ? `${order.first_name} ${order.last_name}` : (order.user_email || 'Unknown User')
+    // Fetch order pricing for each order
+    const transformedData = await Promise.all(result.rows.map(async (order) => {
+      // Documents are stored as JSON strings in the TEXT[][] field
+      let parsedDocuments = [];
+      if (order.documents && Array.isArray(order.documents)) {
+        // Parse each document entry which may be stored as JSON string
+        parsedDocuments = order.documents.map(doc => {
+          if (typeof doc === 'string') {
+            try {
+              return JSON.parse(doc);
+            } catch (e) {
+              // If parsing fails, try to handle as array format
+              return doc;
+            }
+          }
+          return doc;
+        });
+      }
+
+      // Fetch order pricing data
+      let desiredPricingData = null;
+      try {
+        const pricingResult = await query(
+          'SELECT * FROM order_pricing WHERE order_id = $1 AND pricing_type = $2',
+          [order.id, 'desired']
+        );
+        if (pricingResult.rows.length > 0) {
+          const pricing = pricingResult.rows[0];
+          desiredPricingData = {
+            nrc: pricing.nrc,
+            mrc: pricing.mrc,
+            ppm: pricing.ppm,
+            ppm_fix: pricing.ppm_fix,
+            ppm_mobile: pricing.ppm_mobile,
+            ppm_payphone: pricing.ppm_payphone,
+            arc: pricing.arc,
+            mo: pricing.mo,
+            mt: pricing.mt,
+            incoming_ppm: pricing.incoming_ppm,
+            outgoing_ppm_fix: pricing.outgoing_ppm_fix,
+            outgoing_ppm_mobile: pricing.outgoing_ppm_mobile,
+            incoming_sms: pricing.incoming_sms,
+            outgoing_sms: pricing.outgoing_sms
+          };
+        }
+      } catch (err) {
+        console.error('Error fetching order pricing:', err);
+      }
+
+      return {
+        id: order.id,
+        orderNo: order.order_number,
+        country: order.country_name || 'N/A',
+        productType: order.product_category || 'N/A',
+        serviceName: order.product_name || 'N/A',
+        areaCode: order.area_code || 'N/A',
+        quantity: order.quantity,
+        orderStatus: order.status,
+        orderDate: order.order_date ? new Date(order.order_date).toISOString().split('T')[0] : null,
+        completedDate: order.completed_date ? new Date(order.completed_date).toISOString().split('T')[0] : null,
+        created_at: order.created_at,
+        totalAmount: order.total_amount,
+        companyName: order.company_name,
+        vendorName: order.vendor_name,
+        documents: parsedDocuments,
+        pricing: desiredPricingData,
+        desiredPricing: desiredPricingData,
+        createdBy: order.first_name && order.last_name ? `${order.first_name} ${order.last_name}` : (order.user_email || 'Unknown User')
+      };
     }));
 
     res.json({
@@ -253,10 +264,12 @@ router.post('/', requireClient, async (req, res) => {
       RETURNING *
     `, [orderNumber, customer_id, vendor_id || null, product_id || null, country_id || null, area_code || null, quantity || 1, total_amount || 0, status || 'In Progress', processedDocuments]);
 
+    const returnData = result.rows[0];
+
     res.status(201).json({
       success: true,
       message: 'Order created successfully',
-      data: result.rows[0]
+      data: returnData
     });
   } catch (error) {
     console.error('Create order error:', error.message);
@@ -376,9 +389,11 @@ router.get('/:id', async (req, res) => {
       });
     }
 
+    const orderData = result.rows[0];
+    
     res.json({
       success: true,
-      data: result.rows[0]
+      data: orderData
     });
   } catch (error) {
     console.error('Get order error:', error);
@@ -421,10 +436,12 @@ router.put('/:id', async (req, res) => {
       });
     }
 
+    const orderData = result.rows[0];
+
     res.json({
       success: true,
       message: 'Order updated successfully',
-      data: result.rows[0]
+      data: orderData
     });
   } catch (error) {
     console.error('Update order error:', error);

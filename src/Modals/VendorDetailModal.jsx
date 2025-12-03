@@ -105,7 +105,7 @@ const VendorDetailModal = ({ isOpen, onClose, vendor }) => {
 
   return (
     <Box>
-    <Modal isOpen={isOpen} onClose={onClose} size="6xl" scrollBehavior="inside">
+    <Modal isOpen={isOpen} onClose={onClose} size={{base:"sm",md:"6xl"}} scrollBehavior="inside">
       <ModalOverlay backdropFilter="blur(4px)" />
       <ModalContent>
         <ModalHeader>
@@ -254,7 +254,7 @@ const VendorDetailModal = ({ isOpen, onClose, vendor }) => {
                 boxShadow="0 2px 4px rgba(0, 0, 0, 0.05)"
                 border="1px solid"
                 borderColor="gray.100"
-                overflow="hidden"
+                overflow={{base:"scroll",md:"hidden"}}
               >
                 <Table variant="simple">
                   <Thead bg="gray.200">

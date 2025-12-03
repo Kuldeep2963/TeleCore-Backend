@@ -212,10 +212,10 @@ const DisconnectionRequests = () => {
           <Heading color="#1a3a52" fontSize="3xl" fontWeight="bold">
             Disconnection Requests
           </Heading>
-            <Button colorScheme='red' variant={"outline"} borderRadius={"full"} onClick={handleOpenDisconnectModal}>
+            <Button size={{base:"sm",md:"sm"}} colorScheme='red' variant={"outline"} borderRadius={"full"} onClick={handleOpenDisconnectModal}>
               <HStack spacing={2}>
               <FaUnlink color='red'/>
-              <Text color={"red.500"}>Disconnect Number</Text>
+              <Text display={{base:"none",md:"block"}} color={"red.500"}>Disconnect Number</Text>
               </HStack>
             </Button>
         </HStack>
@@ -325,7 +325,7 @@ const DisconnectionRequests = () => {
                       boxShadow="0 2px 4px rgba(0, 0, 0, 0.05)"
                       border="1px solid"
                       borderColor="gray.100"
-                      overflow="hidden"
+                      overflow={{base:"scroll",md:"hidden"}}
                     >
             <Table variant="simple">
               <Thead bg="gray.200">

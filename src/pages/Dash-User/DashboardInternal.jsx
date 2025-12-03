@@ -123,9 +123,9 @@ const DashboardInternal = ({ userId, userRole }) => {
   return (
     <Box
       flex={1}
-      p={8}
-      pr={5}
-      pb={5}
+      p={{base:4,md:8}}
+      pr={4}
+      pb={4}
       minH="calc(100vh - 76px)"
       overflowY="auto"
     >
@@ -158,13 +158,12 @@ const DashboardInternal = ({ userId, userRole }) => {
           </HStack>
 
             {/* Statistics Cards */}
-            <SimpleGrid columns={{ base: 2, md: 3}} spacing={6} w="full">
+            <SimpleGrid columns={{ base: 2, md: 3}} spacing={{base:3,md:6}} w="full">
               {statsData.map((stat, index) => (
                 <Box
                   key={index}
                   bg="white"
                   p={4}
-                  // pb={2}
                   h={"100%"}
                   borderRadius="xl"
                   boxShadow="0 2px 4px rgba(0, 0, 0, 0.05)"

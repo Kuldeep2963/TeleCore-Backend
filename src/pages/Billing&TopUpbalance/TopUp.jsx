@@ -32,11 +32,11 @@ import {
   FaWallet,
   FaCalendar,
   FaCreditCard,
-  FaMobile,
   FaBell,
   FaDollarSign,
   FaShieldAlt
 } from 'react-icons/fa';
+import { FiRefreshCw } from 'react-icons/fi';
 import {
   RiSecurePaymentFill,
   RiFlashlightFill
@@ -264,11 +264,11 @@ const TopUp = ({
   return (
     <VStack spacing={8} align="stretch" w={"full"} mx="auto">
       {/* Page Header */}
-      <Box textAlign="center" pt={4}>
-        <Heading size="xl" bgGradient="linear(to-r, blue.500, purple.500)" bgClip="text" mb={3}>
+      <Box textAlign="left" pt={4}>
+        <Heading size="lg" bgGradient="linear(to-r, blue.500, purple.500)" bgClip="text" mb={3}>
           Wallet Management
         </Heading>
-        <Text fontSize="lg" color="gray.600" maxW="2xl" mx="auto">
+        <Text fontSize="md" color="gray.600">
           Manage your balance, set up automatic notifications, and keep your account funded
         </Text>
       </Box>
@@ -308,7 +308,7 @@ const TopUp = ({
                       <Heading size="2xl" color={accentColor}>
                         ${typeof currentBalance === 'number' ? currentBalance.toFixed(2) : '0.00'}
                       </Heading>
-                      {isLoading && <Spinner size="sm" ml={2} />}
+                      {isLoading && <Spinner size="lg" ml={6} />}
                     </Flex>
                   </VStack>
                   <Icon as={FaWallet} w={12} h={12} color={accentColor} opacity={0.8} />
@@ -320,7 +320,7 @@ const TopUp = ({
                   onClick={fetchCurrentBalance}
                   isLoading={isLoading}
                   loadingText="Refreshing"
-                  leftIcon={<FaCalendar />}
+                  leftIcon={<FiRefreshCw />}
                   alignSelf="flex-start"
                 >
                   Refresh Balance

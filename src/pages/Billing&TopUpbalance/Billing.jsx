@@ -7,7 +7,9 @@ import {
 } from '@chakra-ui/react';
 import {
   FaSearch,FaEye, FaFileInvoice, FaCreditCard, FaWallet, FaChevronDown, FaChevronUp,
-  FaFilter, FaCalendarAlt, FaTimes
+  FaFilter, FaCalendarAlt, FaTimes,
+  FaChevronCircleRight,
+  FaChevronCircleLeft
 } from 'react-icons/fa';
 import { jsPDF } from 'jspdf';
 import TopUp from './TopUp';
@@ -560,7 +562,7 @@ const Billing = ({ walletBalance = 50.00, onUpdateBalance = () => {}, userId }) 
   }
 
   return (
-    <Box w="full" p={6}>
+    <Box w="full" px={{base:0,md:6}} py={3}>
       <VStack spacing={6} align="stretch">
         <Tabs variant="soft-rounded" colorScheme="blue" index={tabIndex} onChange={handleTabChange}>
           <TabList mb="1em" bg={useColorModeValue('gray.50', 'gray.900')} p={2} borderRadius="lg">
@@ -694,7 +696,7 @@ const Billing = ({ walletBalance = 50.00, onUpdateBalance = () => {}, userId }) 
                 </Grid>
 
                 {/* Invoice History */}
-                <Card borderRadius="12px" bg={cardBg} border="1px solid" borderColor={borderColor}>
+                <Card borderRadius="12px" bg={cardBg} overflow={{base:"scroll",md:"hidden"}} border="1px solid" borderColor={borderColor}>
                   <CardBody>
                     <Flex justify="space-between" align="center" mb={4}>
                       <Heading size="md">Invoice History</Heading>
@@ -859,9 +861,9 @@ const Billing = ({ walletBalance = 50.00, onUpdateBalance = () => {}, userId }) 
                         </HStack>
 
                         <HStack spacing={2}>
-                          <Button size="sm" variant="outline" onClick={() => handlePageChange(currentPage - 1)} isDisabled={currentPage === 1} borderRadius="md">&lt;</Button>
+                          <Button size="lg" variant="ghost" onClick={() => handlePageChange(currentPage - 1)} isDisabled={currentPage === 1} borderRadius="md"><FaChevronCircleLeft/></Button>
                           <Text fontSize="sm" color="gray.600" px={2}>Page {currentPage} of {totalPages}</Text>
-                          <Button size="sm" variant="outline" onClick={() => handlePageChange(currentPage + 1)} isDisabled={currentPage === totalPages} borderRadius="md">&gt;</Button>
+                          <Button size="lg" variant="ghost" onClick={() => handlePageChange(currentPage + 1)} isDisabled={currentPage === totalPages} borderRadius="md"><FaChevronCircleRight/></Button>
                         </HStack>
 
                         <Text fontSize="sm" color="gray.600">Results {startIndex + 1} - {endIndex} from {totalResults}</Text>

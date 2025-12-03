@@ -65,16 +65,65 @@ router.get('/area-codes/:countryId/:productId', async (req, res) => {
   try {
     const { countryId, productId } = req.params;
 
-    const result = await query(`
+    const numbersResult = await query(`
       SELECT DISTINCT n.area_code
       FROM numbers n
       WHERE n.country_id = $1 AND n.product_id = $2 AND n.area_code IS NOT NULL
       ORDER BY n.area_code ASC
     `, [countryId, productId]);
 
+    let areaCodes = numbersResult.rows.map(row => row.area_code);
+
+    if (areaCodes.length === 0) {
+      const countriesResult = await query(`
+        SELECT availableproducts, phonecode
+        FROM countries
+        WHERE id = $1
+      `, [countryId]);
+
+      if (countriesResult.rows.length > 0) {
+        const country = countriesResult.rows[0];
+        const availableProducts = country.availableproducts;
+
+        if (availableProducts) {
+          let productsArray = [];
+          
+          if (typeof availableProducts === 'string') {
+            try {
+              productsArray = JSON.parse(availableProducts);
+            } catch (e) {
+              productsArray = [];
+            }
+          } else if (Array.isArray(availableProducts)) {
+            productsArray = availableProducts;
+          } else if (typeof availableProducts === 'object') {
+            productsArray = [availableProducts];
+          }
+
+          const productResult = await query(
+            'SELECT name FROM products WHERE id = $1',
+            [productId]
+          );
+
+          if (productResult.rows.length > 0) {
+            const productName = productResult.rows[0].name;
+            const matchingProduct = productsArray.find(
+              p => (typeof p === 'string' ? p === productName : p.name === productName)
+            );
+
+            if (matchingProduct && typeof matchingProduct === 'object' && matchingProduct.areaCodes) {
+              areaCodes = Array.isArray(matchingProduct.areaCodes) 
+                ? matchingProduct.areaCodes 
+                : [matchingProduct.areaCodes];
+            }
+          }
+        }
+      }
+    }
+
     res.json({
       success: true,
-      data: result.rows.map(row => row.area_code)
+      data: areaCodes
     });
   } catch (error) {
     console.error('Get area codes error:', error);

@@ -11,8 +11,8 @@ import Invoices from './pages/Invoices';
 import DisconnectionRequests from './pages/DisconnectionRequests';
 import AddVendorCustomer from './pages/AddVendorCustomer';
 import NewNumber from './pages/OrderNumber/AddNewNumber/NewNumber';
-import PortNumber from './pages/OrderNumber/PortNumber';
-import VanityNumber from './pages/OrderNumber/VanityNumber';
+// import PortNumber from './pages/OrderNumber/PortNumber';
+// import VanityNumber from './pages/OrderNumber/VanityNumber';
 import MyNumbers from './pages/MyNumbers';
 import MyOrders from './pages/MyOrders';
 import ProductInfo from './pages/ProductInfo';
@@ -53,7 +53,23 @@ function App() {
   const [isDisconnectionModalOpen, setIsDisconnectionModalOpen] = useState(false);
   const [selectedNumberForDisconnection, setSelectedNumberForDisconnection] = useState(null);
   const [numbersRefreshTrigger, setNumbersRefreshTrigger] = useState(0);
-  const [walletRefreshTrigger, setWalletRefreshTrigger] = useState(0); // Add wallet refresh trigger
+  const [walletRefreshTrigger, setWalletRefreshTrigger] = useState(0);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowWidth(window.innerWidth);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
+    if (windowWidth < 768) {
+      setIsSidebarOpen(false);
+    }
+  }, [windowWidth]);
 
   // Load authentication state from sessionStorage on component mount
   useEffect(() => {
@@ -402,16 +418,23 @@ function App() {
             onLogout={handleLogout} 
             userRole={userRole} 
             userProfile={userProfile}
-            onRefreshWallet={handleRefreshWallet} // Pass refresh function to navbar
+            onRefreshWallet={handleRefreshWallet}
+            isSidebarOpen={isSidebarOpen}
+            onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
           />
           <div style={{
             display: 'flex',
             flex: 1,
             overflow: 'hidden',
             marginTop: '76px',
-            marginLeft: '200px'
+            marginLeft: windowWidth >= 768 && isSidebarOpen ? '200px' : '0px',
+            transition: 'margin-left 0.3s ease'
           }}>
-            <Sidebar userRole={userRole} />
+            <Sidebar userRole={userRole} isSidebarOpen={isSidebarOpen} onItemClick={() => {
+              if (windowWidth < 768) {
+                setIsSidebarOpen(false);
+              }
+            }} />
             <div style={{
               flex: 1,
               width: '100%',
@@ -421,8 +444,8 @@ function App() {
                 <Route path="/" element={userRole === 'Internal' ? <DashboardInternal userId={userId} userRole={userRole} /> : <Dashboard userId={userId} userRole={userRole} />} />
                 <Route path="/dashboard" element={userRole === 'Internal' ? <DashboardInternal userId={userId} userRole={userRole} /> : <Dashboard userId={userId} userRole={userRole} />} />
                 <Route path="/order-numbers/new" element={<NewNumber onAddToCart={handleAddToCart} />} />
-                <Route path="/order-numbers/vanity" element={<VanityNumber />} />
-                <Route path="/order-numbers/port" element={<PortNumber />} />
+                {/* <Route path="/order-numbers/vanity" element={<VanityNumber />} /> */}
+                {/* <Route path="/order-numbers/port" element={<PortNumber />} /> */}
                 <Route path="/order-numbers/place-order" element={<PlaceOrderPage cartItems={cartItems} onPlaceOrder={handlePlaceOrder} onRemoveFromCart={handleRemoveFromCart} />} />
                 <Route path="/order-numbers" element={<NewNumber onAddToCart={handleAddToCart} />} />
                 <Route

@@ -157,7 +157,7 @@ function ChangePasswordModal({ isOpen, onClose }) {
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} isCentered size="md" autoFocus={false} blockScrollOnMount={false}>
+    <Modal isOpen={isOpen} onClose={handleClose} isCentered size={{base:"sm",md:"md"}} autoFocus={false} blockScrollOnMount={false}>
       <ModalOverlay backdropFilter="blur(4px)" />
       <ModalContent borderRadius="12px" boxShadow="0 8px 32px rgba(0, 0, 0, 0.15)">
         <ModalHeader

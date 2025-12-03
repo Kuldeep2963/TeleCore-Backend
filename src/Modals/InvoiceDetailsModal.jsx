@@ -16,7 +16,7 @@ const InvoiceDetailsModal = ({ isOpen, onClose, invoice }) => {
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="2xl">
+    <Modal isOpen={isOpen} onClose={onClose} size={{base:"sm",md:"2xl"}}>
       <ModalOverlay backdropFilter="blur(4px)"/>
       <ModalContent>
         <ModalHeader>Invoice Details - {invoice.id || invoice.invoiceNumber}</ModalHeader>
@@ -24,7 +24,7 @@ const InvoiceDetailsModal = ({ isOpen, onClose, invoice }) => {
         <ModalBody pb={6}>
           <VStack spacing={4} align="stretch">
             {/* Basic Information */}
-            <Grid templateColumns="1fr 1fr" gap={4}>
+            <Grid templateColumns="1fr 1fr" gap={2}>
               <Box>
                 <Text fontWeight="semibold" color="gray.600">Customer:</Text>
                 <Text color={"purple"} fontWeight="semibold">{invoice.service || invoice.name}</Text>
@@ -35,7 +35,7 @@ const InvoiceDetailsModal = ({ isOpen, onClose, invoice }) => {
               </Box>
               <Box>
                 <Text fontWeight="semibold" color="gray.600">Due Date:</Text>
-                <Text fontWeight="500">{invoice.dueDate}</Text>
+                <Text fontWeight="500">{invoice.dueDate||"-"}</Text>
               </Box>
               <Box>
                 <Text fontWeight="semibold" color="gray.600">Period:</Text>
@@ -46,7 +46,7 @@ const InvoiceDetailsModal = ({ isOpen, onClose, invoice }) => {
             <Divider />
 
             {/* Billing Information */}
-            <Grid templateColumns="1fr 1fr" gap={4}>
+            <Grid templateColumns="1fr 1fr" gap={2}>
               <Box>
                 <Text fontWeight="semibold" color="gray.600">MRC Amount:</Text>
                 <Text fontWeight="500" color="blue.600">${Number(invoice.mrcAmount || invoice.price || 0).toFixed(2)}</Text>
@@ -68,7 +68,7 @@ const InvoiceDetailsModal = ({ isOpen, onClose, invoice }) => {
             <Divider />
 
             {/* Location and Product Information */}
-            <Grid templateColumns="1fr 1fr" gap={4}>
+            <Grid templateColumns="1fr 1fr" gap={2}>
               <Box>
                 <Text fontWeight="semibold" color="gray.600">Country:</Text>
                 <Text fontWeight="500">{invoice.countryName || '-'}</Text>
@@ -90,7 +90,7 @@ const InvoiceDetailsModal = ({ isOpen, onClose, invoice }) => {
             <Divider />
 
             {/* Additional Information */}
-            <Grid templateColumns="1fr 1fr" gap={4}>
+            <Grid templateColumns="1fr 1fr" gap={2}>
               <Box>
                 <Text fontWeight="semibold" color="gray.600">Billing Period:</Text>
                 <Text fontWeight="500">{invoice.period || '-'}</Text>

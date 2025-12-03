@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   Box, 
   Flex, 
@@ -14,14 +14,13 @@ import {
   MenuDivider,
   VStack,
   Badge,
-  useColorModeValue,
   useDisclosure
 } from '@chakra-ui/react';
-import { FaShoppingCart, FaUser, FaCog, FaKey, FaSignOutAlt, FaWallet, FaDollarSign} from 'react-icons/fa';
+import { FaShoppingCart, FaUser, FaKey, FaSignOutAlt, FaWallet, FaDollarSign} from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import ChangePasswordModal from '../Modals/ChangePasswordModal';
 
-function Navbar({ cartCount = 0, walletBalance = 0, profilePicture = null, onLogout = () => {}, userRole = 'Client', userProfile = {} }) {
+function Navbar({ cartCount = 0, walletBalance = 0, profilePicture = null, onLogout = () => {}, userRole = 'Client', userProfile = {}, onToggleSidebar = () => {} }) {
   const navigate = useNavigate();
   const { isOpen, onOpen, onClose } = useDisclosure();
 
@@ -69,13 +68,21 @@ function Navbar({ cartCount = 0, walletBalance = 0, profilePicture = null, onLog
       }}
     >
       <Flex justify="space-between" align="center" height="100%">
-        {/* Logo */}
+        {/* Logo - Clickable on Mobile */}
         <Image 
           src="/TeleCore.png" 
           alt="TeleCore Logo" 
           width="160px"
           height="100px"
           objectFit="contain"
+          display={{ base: 'block', md: 'block' }}
+          cursor={{ base: 'pointer', md: 'default' }}
+          onClick={() => {
+            if (window.innerWidth < 768) {
+              onToggleSidebar();
+            }
+          }}
+          _hover={{ base: { opacity: 0.8 }, md: {} }}
         />
         
         {/* Right Section - All items in a single row */}
@@ -178,7 +185,7 @@ function Navbar({ cartCount = 0, walletBalance = 0, profilePicture = null, onLog
                       height="30px"
                       fontSize="10px"
                     />
-                    <Text fontWeight="500" fontSize="14px" color="#1a3a52">
+                    <Text fontWeight="500" fontSize="14px" color="#1a3a52" display={{ base: 'none', md: 'block' }}>
                       {`${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim() || 'User'}
                     </Text>
                   </HStack>

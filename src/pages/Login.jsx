@@ -94,6 +94,7 @@ const Login = ({ onLogin = () => ({ success: false }), clientCredentials, intern
       alignItems="center"
       justifyContent="center"
       py={8}
+      px={{base:4,md:0}}
     >
       <Box w={{base:"100%", md:"50%"}} maxW="lg">
         <VStack spacing={8} align="stretch">

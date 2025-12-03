@@ -221,7 +221,7 @@ function Dashboard({ userId, userRole }) {
   return (
     <Box
       flex={1}
-      p={8}
+      p={{base:5,md:8}}
       pr={5}
       pb={5}
       minH="calc(100vh - 76px)"

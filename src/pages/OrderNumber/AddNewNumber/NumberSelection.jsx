@@ -46,7 +46,10 @@ function NumberSelection({
   onDesiredPricingChange = () => {},
   orderStatus,
   readOnly = false,
-  userRole
+  userRole,
+  documents: documentsFromOrder = [],
+  orderId = null,
+  hideDesiredPricing = false
 }) {
   const [documents, setDocuments] = useState([]);
   const [isDocumentsModalOpen, setIsDocumentsModalOpen] = useState(false);
@@ -69,6 +72,37 @@ function NumberSelection({
     fetchCountries();
     fetchProducts();
   }, []);
+
+  useEffect(() => {
+    // Load documents from order when in read-only mode
+    if (readOnly && Array.isArray(documentsFromOrder)) {
+      const loadedDocuments = documentsFromOrder.map((doc, index) => {
+        // doc can be an array [filename, originalname, mimetype, size, uploadDate] or an object
+        if (Array.isArray(doc)) {
+          const [filename, originalname, mimetype, size, uploadDate] = doc;
+          return {
+            id: `order-doc-${index}`,
+            name: originalname,
+            type: mimetype?.split('/')[1]?.toUpperCase() || 'UNKNOWN',
+            uploadedAt: uploadDate,
+            filename: filename,
+            size: size
+          };
+        } else if (typeof doc === 'object' && doc !== null) {
+          return {
+            id: `order-doc-${index}`,
+            name: doc.originalname || doc.name || 'Unknown',
+            type: doc.mimetype?.split('/')[1]?.toUpperCase() || doc.type || 'UNKNOWN',
+            uploadedAt: doc.uploadDate || doc.uploadedAt,
+            filename: doc.filename,
+            size: doc.size
+          };
+        }
+        return null;
+      }).filter(Boolean);
+      setDocuments(loadedDocuments);
+    }
+  }, [readOnly, documentsFromOrder]);
 
   useEffect(() => {
     console.log('Form data changed:', { productType: formData.productType, country: formData.country });
@@ -311,12 +345,15 @@ const desiredPricingHeading = ['confirmed', 'delivered', 'amount paid'].includes
     try {
       // Create FormData for file upload
       const formData = new FormData();
+
       Array.from(files).forEach(file => {
         formData.append('documents', file);
       });
 
       // Upload files to server
       const response = await api.documents.upload('temp', formData);
+           console.log("Response:", response);
+           console.log("Response:", formData);
 
       if (response.success) {
         // Update local state with uploaded file info
@@ -356,11 +393,23 @@ const desiredPricingHeading = ['confirmed', 'delivered', 'amount paid'].includes
   };
 
   const handleDeleteDocument = async (id) => {
+    if (readOnly) {
+      toast({
+        title: 'Access Denied',
+        description: 'Cannot delete documents in read-only mode',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
     const document = documents.find(doc => doc.id === id);
     if (document && document.filename) {
       try {
-        // Delete from server
-        await api.documents.delete('temp', document.filename);
+        // Use actual orderId if available (for existing orders), otherwise use 'temp' (for new orders)
+        const deleteOrderId = orderId || 'temp';
+        await api.documents.delete(deleteOrderId, document.filename);
       } catch (error) {
         console.error('Delete error:', error);
         // Continue with local deletion even if server delete fails
@@ -374,8 +423,9 @@ const desiredPricingHeading = ['confirmed', 'delivered', 'amount paid'].includes
   const handleViewDocument = async (document) => {
     if (document.filename) {
       try {
-        // Download file from server
-        const response = await api.documents.download('temp', document.filename);
+        // Use actual orderId if available (for existing orders), otherwise use 'temp' (for new orders)
+        const downloadOrderId = orderId || 'temp';
+        const response = await api.documents.download(downloadOrderId, document.filename);
 
         if (response.ok) {
           const blob = await response.blob();
@@ -482,40 +532,42 @@ const desiredPricingHeading = ['confirmed', 'delivered', 'amount paid'].includes
           )}
 
           {/* Bargain Card */}
-          <Card bg="white" borderRadius="12px" boxShadow="sm" border="1px solid" borderColor="gray.200">
-            <CardBody p={6}>
-              <Heading size="md" color="gray.800" mb={4}>{desiredPricingHeading}</Heading>
-              <Table variant="simple" mb={6}>
-                <Thead bg="gray.200">
-                  <Tr>
-                    {Object.keys(currentHeadings).map((key) => (
-                      <Th fontSize={"sm"} key={key} textAlign="center" color="gray.800" fontWeight="semibold">
-                        {currentHeadings[key]}
-                      </Th>
-                    ))}
-                  </Tr>
-                </Thead>
-                <Tbody>
-                  <Tr>
-                    {Object.keys(currentHeadings).map((key) => (
-                      <Td key={key} textAlign="center">
-                        <Input
-                          value={bargainData[key] || ''}
-                          onChange={(e) => handleDesiredPricingChange(key, e.target.value)}
-                          size="sm"
-                          textAlign="center"
-                          fontSize="lg"
-                          fontWeight="bold"
-                          color="green"
-                          isReadOnly={readOnly}
-                        />
-                      </Td>
-                    ))}
-                  </Tr>
-                </Tbody>
-              </Table>
-            </CardBody>
-          </Card>
+          {!hideDesiredPricing && (
+            <Card bg="white" borderRadius="12px" boxShadow="sm" border="1px solid" borderColor="gray.200">
+              <CardBody p={6}>
+                <Heading size="md" color="gray.800" mb={4}>{desiredPricingHeading}</Heading>
+                <Table variant="simple" mb={6}>
+                  <Thead bg="gray.200">
+                    <Tr>
+                      {Object.keys(currentHeadings).map((key) => (
+                        <Th fontSize={"sm"} key={key} textAlign="center" color="gray.800" fontWeight="semibold">
+                          {currentHeadings[key]}
+                        </Th>
+                      ))}
+                    </Tr>
+                  </Thead>
+                  <Tbody>
+                    <Tr>
+                      {Object.keys(currentHeadings).map((key) => (
+                        <Td key={key} textAlign="center">
+                          <Input
+                            value={bargainData[key] || ''}
+                            onChange={(e) => handleDesiredPricingChange(key, e.target.value)}
+                            size="sm"
+                            textAlign="center"
+                            fontSize="lg"
+                            fontWeight="bold"
+                            color="green"
+                            isReadOnly={readOnly}
+                          />
+                        </Td>
+                      ))}
+                    </Tr>
+                  </Tbody>
+                </Table>
+              </CardBody>
+            </Card>
+          )}
 
           {/* Documents Required */}
          <Card bg="white" borderRadius="12px" boxShadow="sm" border="1px solid" borderColor="gray.200">
@@ -533,33 +585,53 @@ const desiredPricingHeading = ['confirmed', 'delivered', 'amount paid'].includes
         </HStack>
         <Text fontSize="sm" color="gray.600" mb={2}>click the info icon for details</Text>
         </VStack>
-        <Box 
-          border="2px dashed" 
-          borderColor="gray.300" 
-          borderRadius="md" 
-          p={4} 
-          textAlign="center"
-          mb={4}
-          cursor="pointer"
-          _hover={{ bg: "gray.50" }}
-          onClick={handleChooseFile}
-          tabIndex={0}
-          role="button"
-          onKeyDown={(event) => {
-            if (event.key === 'Enter' || event.key === ' ') {
-              event.preventDefault();
-              handleChooseFile();
-            }
-          }}
-        >
-          <VStack spacing={2}>
-            <Text fontWeight="medium">Choose files</Text>
-            <Text fontSize="sm" color="gray.500">
-              Maximum file size: 10 MB<br />
-              File type: pdf, jpeg, png, doc, docx
-            </Text>
-          </VStack>
-        </Box>
+        {!readOnly ? (
+          <Box 
+            border="2px dashed" 
+            borderColor="gray.300" 
+            borderRadius="md" 
+            p={4} 
+            textAlign="center"
+            mb={4}
+            cursor="pointer"
+            _hover={{ bg: "gray.50" }}
+            onClick={handleChooseFile}
+            tabIndex={0}
+            role="button"
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                handleChooseFile();
+              }
+            }}
+          >
+            <VStack spacing={2}>
+              <Text fontWeight="medium">Choose files</Text>
+              <Text fontSize="sm" color="gray.500">
+                Maximum file size: 10 MB<br />
+                File type: pdf, jpeg, png, doc, docx
+              </Text>
+            </VStack>
+          </Box>
+        ) : (
+          <Box 
+            border="2px dashed" 
+            borderColor="gray.300" 
+            borderRadius="md" 
+            p={4} 
+            textAlign="center"
+            mb={4}
+            bg="gray.50"
+            opacity={0.6}
+          >
+            <VStack spacing={2}>
+              <Text fontWeight="medium" color="gray.500">Upload Disabled</Text>
+              <Text fontSize="sm" color="gray.500">
+                This order is in read-only mode
+              </Text>
+            </VStack>
+          </Box>
+        )}
         <Input
           type="file"
           multiple
@@ -595,7 +667,7 @@ const desiredPricingHeading = ['confirmed', 'delivered', 'amount paid'].includes
                     <Td textTransform="uppercase">{document.type}</Td>
                     <Td>{new Date(document.uploadedAt).toLocaleString()}</Td>
                     <Td>
-                      {userRole === 'Internal' ? (
+                      {readOnly || userRole === 'Internal' ? (
                         <IconButton
                           aria-label="View document"
                           icon={<FaEye />}
@@ -702,7 +774,6 @@ const desiredPricingHeading = ['confirmed', 'delivered', 'amount paid'].includes
             onClick={handleConfigureClick}
             colorScheme="green"
             size="md"
-            w="12%"
             borderRadius="full"
             fontWeight="semibold"
             boxShadow="0 2px 4px rgba(49, 130, 206, 0.25)"

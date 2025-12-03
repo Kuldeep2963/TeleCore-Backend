@@ -29,7 +29,7 @@ import {
   useToast
 } from '@chakra-ui/react';
 import { FiSearch, FiXCircle,FiCheck, FiClock, FiX, FiDollarSign,FiPackage } from 'react-icons/fi';
-import { FaEye } from 'react-icons/fa';
+import { FaChevronCircleLeft, FaChevronCircleRight, FaEye } from 'react-icons/fa';
 import api from '../services/api';
 import { transform } from 'framer-motion';
 function MyOrders({ userId, userRole }) {
@@ -266,16 +266,15 @@ function MyOrders({ userId, userRole }) {
         <Heading color="#1a3a52" fontSize="3xl" fontWeight="bold">
           My Orders
         </Heading>
-
-        <Card bg="white" borderRadius="12px" boxShadow="sm" border="1px solid" borderColor="gray.200">
-          <CardBody p={6}>
-            <Grid templateColumns={{ base: "1fr", md: "repeat(5, 1fr)" }} gap={4} alignItems="end" w="full">
+           <Box px={6} mb={2}>
+            <Grid templateColumns={{ base: "1fr", md: "repeat(4, 1fr)" }} gap={4} alignItems="end" w="full">
               <FormControl>
                 <FormLabel color="#1a3a52" fontWeight="medium" fontSize="sm">
                   Country
                 </FormLabel>
                 <Select
                   ref={countryRef}
+                  borderRadius={"full"}
                   placeholder="Select country"
                   value={filters.country}
                   onChange={(e) => setFilters({...filters, country: e.target.value})}
@@ -303,6 +302,7 @@ function MyOrders({ userId, userRole }) {
                   onChange={(e) => setFilters({...filters, productType: e.target.value})}
                   bg="white"
                   borderColor="gray.300"
+                  borderRadius={"full"}
                   _hover={{ borderColor: "blue.400" }}
                   onKeyDown={(e) => handleKeyDown(e, startDateRef)}
                 >
@@ -353,6 +353,7 @@ function MyOrders({ userId, userRole }) {
                   Status
                 </FormLabel>
                 <Select
+                  borderRadius={"full"}
                   ref={statusRef}
                   placeholder="Select status"
                   value={filters.status}
@@ -370,8 +371,8 @@ function MyOrders({ userId, userRole }) {
                 </Select>
               </FormControl>
 
-                <Button
-                  // variant={"ghost"}
+                {/* <Button
+                  variant={"ghost"}
                   colorScheme="blue"
                   size="md"
                   borderRadius="full"
@@ -385,7 +386,7 @@ function MyOrders({ userId, userRole }) {
                   onClick={handleSearch}
                 >
                   Search
-                </Button>
+                </Button> */}
 
                 <Button
                   variant="ghost"
@@ -405,8 +406,7 @@ function MyOrders({ userId, userRole }) {
                   Clear
                 </Button>
             </Grid>
-          </CardBody>
-        </Card>
+          </Box>
         <Box
           bg="white"
           borderRadius="12px"
@@ -519,7 +519,8 @@ function MyOrders({ userId, userRole }) {
             boxShadow="sm"
             border="1px solid"
             borderColor="gray.200"
-            p={4}
+            px={4}
+            py={2}
           >
             <Flex
               justify="space-between"
@@ -550,13 +551,13 @@ function MyOrders({ userId, userRole }) {
               {/* Pagination controls */}
               <HStack spacing={2}>
                 <Button
-                  size="sm"
-                  variant="outline"
+                  size="lg"
+                  variant="ghost"
                   onClick={() => handlePageChange(currentPage - 1)}
                   isDisabled={currentPage === 1}
                   borderRadius="md"
                 >
-                  &lt;
+                  <FaChevronCircleLeft/>
                 </Button>
                 
                 <Text fontSize="sm" color="gray.600" px={2}>
@@ -564,13 +565,13 @@ function MyOrders({ userId, userRole }) {
                 </Text>
 
                 <Button
-                  size="sm"
-                  variant="outline"
+                  size="lg"
+                  variant="ghost"
                   onClick={() => handlePageChange(currentPage + 1)}
                   isDisabled={currentPage === totalPages}
                   borderRadius="md"
                 >
-                  &gt;
+                  <FaChevronCircleRight/>
                 </Button>
               </HStack>
 

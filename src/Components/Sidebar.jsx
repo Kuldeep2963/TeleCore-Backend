@@ -26,7 +26,7 @@ import {
 
 
 // NavItem component with active state
-const NavItem = ({ to, children, icon, onClick, isActive, hasSubItems, isExpanded, onToggle }) => {
+const NavItem = ({ to, children, icon, onClick, isActive, hasSubItems, isExpanded, onToggle, onItemClick }) => {
   const activeBg = useColorModeValue("blue.50", "blue.900");
   const activeColor = useColorModeValue("blue.700", "blue.200");
   const hoverBg = useColorModeValue("gray.100", "gray.700");
@@ -44,6 +44,7 @@ const NavItem = ({ to, children, icon, onClick, isActive, hasSubItems, isExpande
       justifyContent="space-between"
       bg={isActive ? activeBg : "transparent"}
       color={isActive ? activeColor : "inherit"}
+      fontWeight={"semibold"}
       borderLeft={isActive ? "4px solid" : "4px solid transparent"}
       borderLeftColor={isActive ? "blue.500" : "transparent"}
       _hover={{ 
@@ -51,7 +52,12 @@ const NavItem = ({ to, children, icon, onClick, isActive, hasSubItems, isExpande
         textDecoration: "none"
       }}
       transition="all 0.2s ease"
-      onClick={onClick}
+      onClick={() => {
+        onClick?.();
+        if (!hasSubItems) {
+          onItemClick?.();
+        }
+      }}
       cursor="pointer"
     >
       <HStack spacing={3}>
@@ -79,7 +85,7 @@ const NavItem = ({ to, children, icon, onClick, isActive, hasSubItems, isExpande
 };
 
 // SubNavItem component for nested items
-const SubNavItem = ({ to, children, icon, isActive, onClick }) => {
+const SubNavItem = ({ to, children, icon, isActive, onClick, onItemClick }) => {
   const activeBg = useColorModeValue("blue.50", "blue.900");
   const activeColor = useColorModeValue("blue.700", "blue.200");
   const hoverBg = useColorModeValue("gray.100", "gray.700");
@@ -104,7 +110,10 @@ const SubNavItem = ({ to, children, icon, isActive, onClick }) => {
         textDecoration: "none"
       }}
       transition="all 0.2s ease"
-      onClick={onClick}
+      onClick={() => {
+        onClick?.();
+        onItemClick?.();
+      }}
     >
       <HStack spacing={5}>
         <Icon 
@@ -120,7 +129,7 @@ const SubNavItem = ({ to, children, icon, isActive, onClick }) => {
   );
 };
 
-function Sidebar({ userRole = 'Client' }) {
+function Sidebar({ userRole = 'Client', isSidebarOpen = true, onItemClick = () => {} }) {
   const location = useLocation();
   const sidebarBg = useColorModeValue("white", "gray.800");
   const borderColor = useColorModeValue("gray.200", "gray.700");
@@ -142,8 +151,8 @@ function Sidebar({ userRole = 'Client' }) {
         hasSubItems: true,
         subItems: [
           { label: 'New Number', path: '/order-numbers/new', icon: FiPlus },
-          { label: 'Vanity Number', path: '/order-numbers/vanity', icon: FiStar },
-          { label: 'Port Number', path: '/order-numbers/port', icon: FiRefreshCw }
+          // { label: 'Vanity Number', path: '/order-numbers/vanity', icon: FiStar },
+          // { label: 'Port Number', path: '/order-numbers/port', icon: FiRefreshCw }
         ]
       },
       { label: 'My Numbers', path: '/my-numbers', icon: FiPhone },
@@ -205,6 +214,9 @@ function Sidebar({ userRole = 'Client' }) {
       top="60px"
       height="calc(100vh - 60px)"
       overflowY="auto"
+      display={{ base: isSidebarOpen ? 'block' : 'none', md: 'block' }}
+      zIndex={{ base: 999, md: 'auto' }}
+      transition="all 0.3s ease"
     >
       <VStack spacing={4} align="stretch">
         {menuItems.map(item => {
@@ -221,6 +233,7 @@ function Sidebar({ userRole = 'Client' }) {
                 isExpanded={isExpanded}
                 onToggle={() => item.hasSubItems && handleToggle(item.label)}
                 onClick={() => item.hasSubItems && handleToggle(item.label)}
+                onItemClick={onItemClick}
               >
                 {item.label}
               </NavItem>
@@ -234,6 +247,7 @@ function Sidebar({ userRole = 'Client' }) {
                         to={subItem.path}
                         icon={subItem.icon}
                         isActive={isSubItemActive(subItem)}
+                        onItemClick={onItemClick}
                       >
                         {subItem.label}
                       </SubNavItem>

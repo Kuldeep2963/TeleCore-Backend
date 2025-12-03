@@ -45,9 +45,11 @@ import {
   FiCheckCircle,
   FiXCircle,
   FiClock,
-  FiFileText
+  FiFileText,
+  FiDownload
 } from 'react-icons/fi';
 import { FaEdit } from 'react-icons/fa';
+import { jsPDF } from 'jspdf';
 import api from '../services/api';
 
 const Invoices = () => {
@@ -263,6 +265,154 @@ const Invoices = () => {
     setNewUsageAmount('');
   };
 
+  const generateInvoicePDF = (invoiceData) => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    let y = 20;
+
+    const formatDate = (date) =>
+      date
+        ? new Date(date).toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+          })
+        : "N/A";
+
+    const currency = (amount) => `$${Number(amount || 0).toFixed(2)}`;
+
+    const drawSectionTitle = (title) => {
+      doc.setFontSize(12);
+      doc.setFont(undefined, "bold");
+      doc.text(title, 20, y);
+      y += 8;
+      doc.setFont(undefined, "normal");
+      doc.setFontSize(10);
+    };
+
+    const drawLine = () => {
+      doc.setDrawColor(0);
+      doc.line(20, y, pageWidth - 20, y);
+      y += 10;
+    };
+
+    const drawRow = (label, value) => {
+      doc.setFont(undefined, "normal");
+      doc.text(label, 20, y);
+      doc.text(String(value), pageWidth - 90, y);
+      y += 7;
+    };
+
+    doc.setFontSize(20);
+    doc.setFont(undefined, "bold");
+    doc.text("INVOICE", pageWidth / 2, y, { align: "center" });
+    y += 15;
+
+    doc.setFontSize(10);
+    doc.setFont(undefined, "normal");
+    drawRow("Invoice Number:", invoiceData.invoice_number || "N/A");
+    drawRow("Invoice Date:", formatDate(invoiceData.invoice_date || invoiceData.created_at));
+    drawRow("Customer:", invoiceData.customer_name || "N/A");
+    drawRow("Due Date:", formatDate(invoiceData.due_date));
+
+    if (invoiceData.customer_email) drawRow("Email:", invoiceData.customer_email);
+    if (invoiceData.customer_phone) drawRow("Phone:", invoiceData.customer_phone);
+    if (invoiceData.country_name || invoiceData.area_code)
+      drawRow(
+        "Location:",
+        `${invoiceData.country_name || ""} ${invoiceData.area_code || ""}`.trim()
+      );
+
+    drawLine();
+
+    drawSectionTitle("Invoice Details");
+
+    const detailRows = [
+      ["Period", invoiceData.period || "N/A"],
+      ["From Date", formatDate(invoiceData.from_date)],
+      ["To Date", formatDate(invoiceData.to_date)],
+      ["Product", invoiceData.product_name || "N/A"],
+      ["Product Type", invoiceData.product_type || "N/A"],
+      ["Quantity", invoiceData.quantity || "N/A"],
+    ];
+
+    detailRows.forEach(([label, value]) => drawRow(label + ":", value));
+
+    drawLine();
+
+    drawSectionTitle("Charges");
+
+    drawRow("MRC Amount:", currency(invoiceData.mrc_amount));
+    drawRow("Usage Amount:", currency(invoiceData.usage_amount));
+
+    drawLine();
+
+    doc.setFont(undefined, "bold");
+    doc.setFontSize(12);
+    doc.text("Total Amount:", 20, y);
+    doc.text(currency(invoiceData.amount), pageWidth - 90, y);
+    y += 12;
+
+    doc.setFontSize(10);
+    doc.setFont(undefined, "normal");
+    drawRow("Status:", invoiceData.status || "N/A");
+
+    if (invoiceData.paid_date) drawRow("Paid Date:", formatDate(invoiceData.paid_date));
+
+    if (invoiceData.notes) {
+      y += 8;
+      doc.setFont(undefined, "bold");
+      doc.text("Notes:", 20, y);
+      y += 7;
+
+      doc.setFont(undefined, "normal");
+
+      const wrapped = doc.splitTextToSize(String(invoiceData.notes), pageWidth - 40);
+      doc.text(wrapped, 20, y);
+    }
+
+    const fileName = `Invoice_${invoiceData.invoice_number}_${new Date()
+      .toISOString()
+      .split("T")[0]}.pdf`;
+
+    doc.save(fileName);
+  };
+
+  const handleDownloadPDF = async (invoiceId, invoiceNumber) => {
+    try {
+      const response = await api.invoices.getDetails(invoiceId);
+
+      if (response.success && response.data) {
+        generateInvoicePDF(response.data);
+        toast({
+          title: 'Success',
+          description: `Invoice ${invoiceNumber} downloaded successfully.`,
+          status: 'success',
+          duration: 2000,
+          isClosable: true
+        });
+      } else {
+        console.error('Response not successful:', response);
+        toast({
+          title: 'Error',
+          description: response?.message || 'Failed to fetch invoice details.',
+          status: 'error',
+          duration: 3000,
+          isClosable: true
+        });
+      }
+    } catch (error) {
+      console.error('Download invoice PDF error:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to download invoice PDF',
+        status: 'error',
+        duration: 3000,
+        isClosable: true
+      });
+    }
+  };
+
   const getStatusColor = (status) => {
     switch (status?.toLowerCase()) {
       case 'paid': return 'green';
@@ -296,7 +446,7 @@ const Invoices = () => {
     );
   }
 
-  const totalRevenue = invoices.reduce((sum, invoice) => sum + (invoice.amount || 0), 0);
+  const totalRevenue = invoices.reduce((sum, invoice) => sum + (parseFloat(invoice.amount) || 0), 0);
   const paidInvoices = invoices.filter(invoice => invoice.status === 'Paid').length;
   const pendingInvoices = invoices.filter(invoice => invoice.status === 'Pending').length;
   const overdueInvoices = invoices.filter(invoice => invoice.status === 'Overdue').length;
@@ -304,7 +454,7 @@ const Invoices = () => {
   return (
     <Box
       flex={1}
-      p={8}
+      p={{base:5,md:8}}
       pr={5}
       pb={5}
       minH="calc(100vh - 76px)"
@@ -327,7 +477,7 @@ const Invoices = () => {
                 Create and manage customer invoices
               </Text>
             </Box>
-            <Button
+            {/* <Button
               leftIcon={<FiPlus />}
               colorScheme="blue"
               size="sm"
@@ -335,7 +485,7 @@ const Invoices = () => {
               borderRadius="full"
             >
               Create Invoice
-            </Button> 
+            </Button>  */}
           </HStack>
               <Divider
                       pt={2}
@@ -349,6 +499,8 @@ const Invoices = () => {
             <Box
               bg="white"
               p={6}
+              px={{base:3,md:6}}
+
               borderRadius="xl"
               boxShadow="0 2px 4px rgba(0, 0, 0, 0.05)"
               border="1px solid"
@@ -377,6 +529,8 @@ const Invoices = () => {
             <Box
               bg="white"
               p={6}
+              px={{base:3,md:6}}
+
               borderRadius="xl"
               boxShadow="0 2px 4px rgba(0, 0, 0, 0.05)"
               border="1px solid"
@@ -405,6 +559,8 @@ const Invoices = () => {
             <Box
               bg="white"
               p={6}
+              px={{base:3,md:6}}
+
               borderRadius="xl"
               boxShadow="0 2px 4px rgba(0, 0, 0, 0.05)"
               border="1px solid"
@@ -433,6 +589,8 @@ const Invoices = () => {
             <Box
               bg="white"
               p={6}
+              px={{base:3,md:6}}
+
               borderRadius="xl"
               boxShadow="0 2px 4px rgba(0, 0, 0, 0.05)"
               border="1px solid"
@@ -493,7 +651,7 @@ const Invoices = () => {
             boxShadow="0 2px 4px rgba(0, 0, 0, 0.05)"
             border="1px solid"
             borderColor="gray.100"
-            overflow="hidden"
+            overflow={{base:"scroll",md:"hidden"}}
           >
             <Table variant="simple">
               <Thead bg="gray.200">
@@ -550,6 +708,15 @@ const Invoices = () => {
                         <Button
                           size="sm"
                           variant="ghost"
+                          colorScheme="blue"
+                          onClick={() => handleDownloadPDF(invoice.id, invoice.invoice_number)}
+                          title="Download PDF"
+                        >
+                          <Icon as={FiDownload} boxSize={4} />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
                           colorScheme="orange"
                           onClick={() => handleEditUsageAmount(invoice)}
                         >
@@ -574,7 +741,7 @@ const Invoices = () => {
           </Box>
         </Box>
       </VStack>
-       <Modal isOpen={isOpen} onClose={onClose} size="lg">
+       {/* <Modal isOpen={isOpen} onClose={onClose} size="lg">
         <ModalOverlay />
         <ModalContent>
           <ModalHeader>Create New Invoice</ModalHeader>
@@ -635,10 +802,10 @@ const Invoices = () => {
             </Button>
           </ModalFooter>
         </ModalContent>
-      </Modal>
+      </Modal> */}
 
       {/* Edit Usage Amount Modal */}
-      <Modal isOpen={!!editingUsage} onClose={handleCancelEditUsage} size="md">
+      <Modal isOpen={!!editingUsage} onClose={handleCancelEditUsage} size={{base:"sm",md:"md"}}>
         <ModalOverlay />
         <ModalContent>
           <ModalHeader>Edit Usage Amount - {editingUsage?.invoice_number || editingUsage?.id}</ModalHeader>

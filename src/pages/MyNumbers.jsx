@@ -27,7 +27,7 @@ import {
   Card,
   CardBody
 } from '@chakra-ui/react';
-import { FaFileExcel, FaEye, FaSearch, FaUnlink } from 'react-icons/fa';
+import { FaFileExcel, FaEye, FaSearch, FaUnlink, FaChevronCircleLeft, FaChevronCircleRight } from 'react-icons/fa';
 import { FiRefreshCw } from 'react-icons/fi';
 import NumberPricingModal from '../Modals/NumberPricingModal';
 import api from '../services/api';
@@ -230,7 +230,7 @@ function MyNumbers({ onRequestDisconnection, refreshTrigger }) {
   return (
     <Box
       flex={1}
-      p={6}
+      p={{base:4,md:6}}
       pb={2}
       bg="#f8f9fa"
       height="calc(100vh - 76px)"
@@ -309,7 +309,7 @@ function MyNumbers({ onRequestDisconnection, refreshTrigger }) {
         <SimpleGrid columns={{ base: 1, md: 3 }} spacing={8}>
           <Card bg="white" borderRadius="12px" boxShadow="sm" border="1px solid" borderColor="gray.200">
             <CardBody>
-              <HStack spacing={6}>
+              <HStack justify={"center"} spacing={12}>
                 <Text fontSize="sm" color="gray.600" fontWeight="medium">Total Quantity Required</Text>
                 <Text fontSize="2xl" color="blue.600" fontWeight="bold">{allocationSummary.totalRequired}</Text>
               </HStack>
@@ -318,7 +318,7 @@ function MyNumbers({ onRequestDisconnection, refreshTrigger }) {
 
           <Card bg="white" borderRadius="12px" boxShadow="sm" border="1px solid" borderColor="gray.200">
             <CardBody>
-              <HStack spacing={6}>
+              <HStack justify={"center"} spacing={12}>
                 <Text fontSize="sm" color="gray.600" fontWeight="medium">Total Quantity Allocated</Text>
                 <Text fontSize="2xl" color="green.600" fontWeight="bold">{allocationSummary.totalAllocated}</Text>
               </HStack>
@@ -327,7 +327,7 @@ function MyNumbers({ onRequestDisconnection, refreshTrigger }) {
 
           <Card bg="white" borderRadius="12px" boxShadow="sm" border="1px solid" borderColor="gray.200">
             <CardBody>
-              <HStack spacing={6}>
+              <HStack justify={"center"} spacing={12}>
                 <Text fontSize="sm" color="gray.600" fontWeight="medium">Pending Allocation</Text>
                 <Text fontSize="2xl" color={allocationSummary.pendingAllocation > 0 ? "orange.600" : "green.600"} fontWeight="bold">{allocationSummary.pendingAllocation}</Text>
               </HStack>
@@ -447,7 +447,8 @@ function MyNumbers({ onRequestDisconnection, refreshTrigger }) {
             boxShadow="sm"
             border="1px solid"
             borderColor="gray.200"
-            p={4}
+            px={4}
+            py={2}
           >
             <Flex
               justify="space-between"
@@ -478,13 +479,13 @@ function MyNumbers({ onRequestDisconnection, refreshTrigger }) {
               {/* Pagination controls */}
               <HStack spacing={2}>
                 <Button
-                  size="sm"
-                  variant="outline"
+                  size="lg"
+                  variant="ghost"
                   onClick={() => handlePageChange(currentPage - 1)}
                   isDisabled={currentPage === 1}
                   borderRadius="md"
                 >
-                  &lt;
+                  <FaChevronCircleLeft/>
                 </Button>
                 
                 <Text fontSize="sm" color="gray.600" px={2}>
@@ -492,13 +493,13 @@ function MyNumbers({ onRequestDisconnection, refreshTrigger }) {
                 </Text>
 
                 <Button
-                  size="sm"
-                  variant="outline"
+                  size="lg"
+                  variant="ghost"
                   onClick={() => handlePageChange(currentPage + 1)}
                   isDisabled={currentPage === totalPages}
                   borderRadius="md"
                 >
-                  &gt;
+                  <FaChevronCircleRight/>
                 </Button>
               </HStack>
 

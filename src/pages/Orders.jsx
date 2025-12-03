@@ -179,61 +179,28 @@ const Orders = () => {
     }
   };
 
-  const handleViewOrder = async (order) => {
-    try {
-      // Fetch pricing data for the order
-      const pricingResponse = await api.orders.getPricing(order.id);
-      const pricingData = pricingResponse.success ? pricingResponse.data : [];
-
-      // Transform order data to match OrderNumberView expected format
-      const transformedOrder = {
-        id: order.id,
-        orderNo: order.orderNo, // Use the proper order number from API
-        serviceName: order.serviceName || "N/A", // e.g., 'DID Numbers'
-        country: order.country || "United States (+1)", // Use actual country from API
-        productType: (order.serviceName || "").split(" ")[0], // e.g., 'DID' from 'DID Numbers'
-        areaCode: order.areaCode || "Toll Free (800)", // Use actual area code from API
-        countryId: order.country_id,
-        productId: order.product_id,
-        quantity: order.quantity,
-        orderStatus: order.orderStatus,
-        orderDate: order.created_at,
-        createdBy:
-          order.first_name && order.last_name
-            ? `${order.first_name} ${order.last_name}`
-            : "Unknown",
-        pricing: pricingData.length > 0 ? pricingData[0] : null, // Use first pricing entry
-        desiredPricing: pricingData.length > 0 ? pricingData[0] : null, // For now, use same as pricing
-      };
-      navigate("/order-number-view", {
-        state: { orderData: transformedOrder },
-      });
-    } catch (error) {
-      console.error("Error fetching order pricing:", error);
-      // Navigate without pricing data
-      const transformedOrder = {
-        id: order.id,
-        orderNo: order.orderNo,
-        serviceName: order.serviceName || "N/A",
-        country: order.country || "United States (+1)",
-        productType: (order.serviceName || "").split(" ")[0],
-        areaCode: order.areaCode || "Toll Free (800)",
-        countryId: order.country_id,
-        productId: order.product_id,
-        quantity: order.quantity,
-        orderStatus: order.orderStatus,
-        orderDate: order.created_at,
-        createdBy:
-          order.first_name && order.last_name
-            ? `${order.first_name} ${order.last_name}`
-            : "Unknown",
-        pricing: null,
-        desiredPricing: null,
-      };
-      navigate("/order-number-view", {
-        state: { orderData: transformedOrder },
-      });
-    }
+  const handleViewOrder = (order) => {
+    // Transform order data to match OrderNumberView expected format
+    const transformedOrder = {
+      id: order.id,
+      orderNo: order.orderNo,
+      serviceName: order.serviceName || "N/A",
+      country: order.country || "United States (+1)",
+      productType: order.productType || (order.serviceName || "").split(" ")[0],
+      areaCode: order.areaCode || "Toll Free (800)",
+      countryId: order.country_id,
+      productId: order.product_id,
+      quantity: order.quantity,
+      orderStatus: order.orderStatus,
+      orderDate: order.orderDate || order.created_at,
+      createdBy: order.createdBy || "Unknown",
+      pricing: order.pricing || null,
+      desiredPricing: order.desiredPricing || null,
+      documents: order.documents || [],
+    };
+    navigate("/order-number-view", {
+      state: { orderData: transformedOrder },
+    });
   };
 
   const formatCurrency = (amount) => {
@@ -252,7 +219,7 @@ const Orders = () => {
   }
 
   const totalRevenue = orders.reduce(
-    (sum, order) => sum + (order.totalAmount || 0),
+    (sum, order) => sum + (parseFloat(order.totalAmount) || 0),
     0
   );
   const deliveredOrders = orders.filter(
@@ -265,7 +232,7 @@ const Orders = () => {
   return (
     <Box
       flex={1}
-      p={8}
+      p={{base:5,md:8}}
       pr={5}
       pb={5}
       minH="calc(100vh - 76px)"
@@ -301,6 +268,8 @@ const Orders = () => {
             <Box
               bg="white"
               p={6}
+              px={{base:2,md:6}}
+
               borderRadius="xl"
               boxShadow="0 2px 4px rgba(0, 0, 0, 0.05)"
               border="1px solid"
@@ -329,6 +298,8 @@ const Orders = () => {
             <Box
               bg="white"
               p={6}
+              px={{base:2,md:6}}
+
               borderRadius="xl"
               boxShadow="0 2px 4px rgba(0, 0, 0, 0.05)"
               border="1px solid"
@@ -357,6 +328,8 @@ const Orders = () => {
             <Box
               bg="white"
               p={6}
+              px={{base:2,md:6}}
+
               borderRadius="xl"
               boxShadow="0 2px 4px rgba(0, 0, 0, 0.05)"
               border="1px solid"
@@ -385,6 +358,8 @@ const Orders = () => {
             <Box
               bg="white"
               p={6}
+              px={{base:2,md:6}}
+
               borderRadius="xl"
               boxShadow="0 2px 4px rgba(0, 0, 0, 0.05)"
               border="1px solid"
@@ -449,7 +424,7 @@ const Orders = () => {
             boxShadow="0 2px 4px rgba(0, 0, 0, 0.05)"
             border="1px solid"
             borderColor="gray.100"
-            overflow="hidden"
+            overflow={{base:"scroll",md:"hidden"}}
           >
             <Table variant="simple">
               <Thead bg="gray.200">
@@ -467,7 +442,7 @@ const Orders = () => {
                   <Th w={"11%"} color={"gray.700"}>
                     Order Date
                   </Th>
-                  <Th color={"gray.700"}>Vendor</Th>
+                  {/* <Th color={"gray.700"}>Vendor</Th> */}
                   <Th color={"gray.700"}>Actions</Th>
                 </Tr>
               </Thead>
@@ -522,9 +497,9 @@ const Orders = () => {
                           : "N/A"}
                       </Text>
                     </Td>
-                    <Td>
+                    {/* <Td>
                       <Text fontSize="sm">{order.vendorName || "N/A"}</Text>
-                    </Td>
+                    </Td> */}
                     <Td>
                       <HStack spacing={2}>
                         <Button
