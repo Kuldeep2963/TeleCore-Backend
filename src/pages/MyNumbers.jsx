@@ -307,7 +307,7 @@ function MyNumbers({ onRequestDisconnection, refreshTrigger }) {
 
         {/* Allocation Summary */}
         <SimpleGrid columns={{ base: 1, md: 3 }} spacing={8}>
-          <Card bg="white" borderRadius="12px" boxShadow="sm" border="1px solid" borderColor="gray.200">
+          <Card bg="white" borderRadius="12px" boxShadow="lg" border="1px solid" borderColor="gray.200">
             <CardBody>
               <HStack justify={"center"} spacing={12}>
                 <Text fontSize="sm" color="gray.600" fontWeight="medium">Total Quantity Required</Text>
@@ -316,7 +316,7 @@ function MyNumbers({ onRequestDisconnection, refreshTrigger }) {
             </CardBody>
           </Card>
 
-          <Card bg="white" borderRadius="12px" boxShadow="sm" border="1px solid" borderColor="gray.200">
+          <Card bg="white" borderRadius="12px" boxShadow="md" border="1px solid" borderColor="gray.200">
             <CardBody>
               <HStack justify={"center"} spacing={12}>
                 <Text fontSize="sm" color="gray.600" fontWeight="medium">Total Quantity Allocated</Text>
@@ -325,7 +325,7 @@ function MyNumbers({ onRequestDisconnection, refreshTrigger }) {
             </CardBody>
           </Card>
 
-          <Card bg="white" borderRadius="12px" boxShadow="sm" border="1px solid" borderColor="gray.200">
+          <Card bg="white" borderRadius="12px" boxShadow="md" border="1px solid" borderColor="gray.200">
             <CardBody>
               <HStack justify={"center"} spacing={12}>
                 <Text fontSize="sm" color="gray.600" fontWeight="medium">Pending Allocation</Text>
