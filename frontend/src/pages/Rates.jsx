@@ -368,7 +368,7 @@ const Rates = () => {
   }
 
   return (
-    <Box p={6} px={6} bg="gray.50">
+    <Box p={{base:4,md:6}} pt={6} bg="gray.50">
       <Tabs variant="soft-rounded" colorScheme="blue">
         <Box>
           <TabList gap={6} p={2}>
@@ -379,7 +379,7 @@ const Rates = () => {
                 color: "gray.600",
                 borderColor: "blue.500",
               }}
-              px={4}
+              px={2}
               py={1}
               fontWeight="semibold"
             >
@@ -419,7 +419,13 @@ const Rates = () => {
                   border="0"
                   bgGradient="linear(to-r, gray.300, gray.200, transparent)"
                 />
-                <HStack spacing={4} p={3}>
+                <Box
+                  display="flex"
+                  flexDirection={{ base: "column", md: "row" }}
+                  spacing={4}
+                  p={3}
+                  gap={4}
+                >
                   <VStack spacing={2} flex={1}>
                     <Text fontWeight="semibold" fontSize="sm">
                       Select Country
@@ -467,9 +473,9 @@ const Rates = () => {
                     </Select>
                   </VStack>
 
-                  <Spacer />
+                  <Spacer display={{ base: "none", md: "block" }} />
 
-                  <HStack spacing={5}>
+                  <HStack spacing={5} flexDirection={{ base: "column", md: "row" }} w={{ base: "full", md: "auto" }}>
                     <Button
                       variant="ghost"
                       borderRadius={"full"}
@@ -478,6 +484,7 @@ const Rates = () => {
                       onClick={handleSearch}
                       isLoading={searchLoading}
                       isDisabled={!selectedCountry}
+                      w={{ base: "full", md: "auto" }}
                     >
                       Search
                     </Button>
@@ -485,11 +492,12 @@ const Rates = () => {
                       borderRadius={"full"}
                       leftIcon={<FiXCircle />}
                       onClick={handleClear}
+                      w={{ base: "full", md: "auto" }}
                     >
                       Clear
                     </Button>
                   </HStack>
-                </HStack>
+                </Box>
                 
                 {(pricingData.length > 0 || (selectedCountry && selectedProductType && !searchLoading)) && (
                   <Box

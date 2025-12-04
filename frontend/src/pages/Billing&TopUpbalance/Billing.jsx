@@ -684,10 +684,10 @@ const Billing = ({ walletBalance = 50.00, onUpdateBalance = () => {}, userId }) 
                      <Divider my={4} />
 
                       <Flex justify="flex-end" gap={4}>
-                        <Button borderRadius={"full"} leftIcon={<FiDownload />} colorScheme="teal" variant="outline" minW="180px">
+                        <Button px={{base:10,md:4}} borderRadius={"full"} leftIcon={<FiDownload />} colorScheme="teal" variant="outline" >
                           Download All Invoices
                         </Button>
-                        <Button borderRadius={"full"} leftIcon={<FaCreditCard />} colorScheme="blue" minW="120px">
+                        <Button px={{base:6,md:4}} borderRadius={"full"} leftIcon={<FaCreditCard />} colorScheme="blue" >
                           Pay Now
                         </Button>
                       </Flex>

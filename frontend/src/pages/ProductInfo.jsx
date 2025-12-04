@@ -269,7 +269,7 @@ function Products() {
     <Box
       flex={1}
       py={6}
-      px={{ base: 4, md: 6 }}
+      px={{ base: 2, md: 6 }}
       bg={pageBg}
       height="calc(100vh - 76px)"
       overflowY="auto"
@@ -376,7 +376,9 @@ function Products() {
           border="1px solid"
           borderColor={borderColor}
           boxShadow="sm"
-          p={{ base: 5, md: 6 }}
+          p={{ base: 4, md: 6 }}
+          overflow={{base:"scroll",md:"hidden"}}
+
         >
           <HStack justify="space-between" align="center" mb={4} spacing={4}>
             <VStack align="flex-start" spacing={1}>
@@ -523,6 +525,7 @@ function Products() {
             borderColor={borderColor}
             px={4}
             py={2}
+            overflow={"auto"}
           >
             <Flex justify="space-between" align="center">
               {/* Results per page selector */}

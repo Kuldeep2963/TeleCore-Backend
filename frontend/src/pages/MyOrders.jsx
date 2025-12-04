@@ -257,7 +257,7 @@ function MyOrders({ userId, userRole }) {
   return (
     <Box
       flex={1}
-      p={6}
+      p={{base:4,md:6}}
       bg="#f8f9fa"
       height="calc(100vh - 76px)"
       overflowY="auto"
@@ -414,6 +414,7 @@ function MyOrders({ userId, userRole }) {
           boxShadow="sm"
           border="1px solid"
           borderColor="gray.200"
+          overflow={{base:"scroll",md:"hidden"}}
         >
           <Table variant="simple" h={"400px"}>
             <Thead>

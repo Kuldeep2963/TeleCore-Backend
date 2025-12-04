@@ -44,7 +44,7 @@ const AddCountryModal = ({
   const hoverBg = useColorModeValue("gray.50", "gray.600");
 
   return (
-    <Modal  isOpen={isOpen} onClose={onClose} size="xl">
+    <Modal  isOpen={isOpen} onClose={onClose} size={{base:"sm",md:"xl"}}>
       <ModalOverlay backdropFilter="blur(4px)"  />
       <ModalContent>
         <ModalHeader bg="blue.50" borderBottom="1px solid" borderColor="gray.200">

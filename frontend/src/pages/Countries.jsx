@@ -17,8 +17,10 @@ import {
   SimpleGrid,
   Badge,
   Divider,
+  Spacer,
 } from "@chakra-ui/react";
-import { FiEdit2, FiSave, FiX, FiPlus, FiTrash2 } from "react-icons/fi";
+import { FiEdit2, FiSave, FiX, FiPlus, FiTrash2, FiXCircle } from "react-icons/fi";
+import { FaSearch } from "react-icons/fa";
 import api from "../services/api";
 import AddCountryModal from "../Modals/AddCountryModal";
 
@@ -26,6 +28,7 @@ const Countries = () => {
   const [countries, setCountries] = useState([]);
   const [products, setProducts] = useState([]);
   const [selectedCountry, setSelectedCountry] = useState("");
+  const [viewedCountry, setViewedCountry] = useState("");
   const [loading, setLoading] = useState(true);
   const [editingCountry, setEditingCountry] = useState(null);
   const [editValues, setEditValues] = useState({});
@@ -35,6 +38,7 @@ const Countries = () => {
     phonecode: "",
     products: [],
   });
+  const [selectedProductForEdit, setSelectedProductForEdit] = useState("");
   const toast = useToast();
 
   useEffect(() => {
@@ -111,7 +115,7 @@ const Countries = () => {
   };
 
   const currentCountry = countries.find(
-    (c) => c.countryname === selectedCountry
+    (c) => c.countryname === viewedCountry
   );
   const currentProducts = currentCountry
     ? getCountryProducts(currentCountry)
@@ -129,6 +133,7 @@ const Countries = () => {
   const handleEditCancel = () => {
     setEditingCountry(null);
     setEditValues({});
+    setSelectedProductForEdit("");
   };
 
   const handleProductAreaCodeChange = (productIndex, areaCodeIndex, value) => {
@@ -193,6 +198,7 @@ const Countries = () => {
       });
 
       setEditingCountry(null);
+      setSelectedProductForEdit("");
       await fetchCountriesAndProducts();
     } catch (error) {
       console.error("Error updating country:", error);
@@ -328,70 +334,120 @@ const Countries = () => {
         
 
         {countries.length > 0 && (
-          <HStack spacing={4} p={1}>
-            <Text fontWeight="bold" fontSize="sm">
-              Select Country:
-            </Text>
-            <Select
-              bg={"white"}
-              placeholder="Select country"
-              value={selectedCountry}
-              onChange={(e) => {
-                setSelectedCountry(e.target.value);
-                setEditingCountry(null);
-              }}
-              maxW="300px"
-              borderRadius="full"
-            >
-              {countries.map((country) => (
-                <option key={country.id} value={country.countryname}>
-                  {country.countryname} ({country.phonecode})
-                </option>
-              ))}
-            </Select>
-          </HStack>
+          <Box
+            display="flex"
+            flexDirection={{ base: "column", md: "row" }}
+            p={1}
+            gap={4}
+            align={{ base: "stretch", md: "center" }}
+          >
+            <VStack spacing={2} flex={1}>
+              <Text fontWeight="bold" fontSize="sm" alignSelf="start">
+                Select Country:
+              </Text>
+              <Select
+                bg={"white"}
+                placeholder="Select country"
+                value={selectedCountry}
+                onChange={(e) => {
+                  setSelectedCountry(e.target.value);
+                  setEditingCountry(null);
+                }}
+                borderRadius="full"
+              >
+                {countries.map((country) => (
+                  <option key={country.id} value={country.countryname}>
+                    {country.countryname} ({country.phonecode})
+                  </option>
+                ))}
+              </Select>
+            </VStack>
+            
+            <Spacer display={{ base: "none", md: "block" }} />
+
+            <HStack spacing={5} flexDirection={{ base: "column", md: "row" }} w={{ base: "full", md: "auto" }}>
+              <Button
+                variant="ghost"
+                borderRadius={"full"}
+                leftIcon={<FaSearch />}
+                colorScheme="blue"
+                isDisabled={!selectedCountry}
+                onClick={() => setViewedCountry(selectedCountry)}
+                w={{ base: "full", md: "auto" }}
+              >
+                Search
+              </Button>
+              <Button
+                borderRadius={"full"}
+                leftIcon={<FiXCircle />}
+                onClick={() => {
+                  setSelectedCountry("");
+                  setViewedCountry("");
+                  setEditingCountry(null);
+                }}
+                w={{ base: "full", md: "auto" }}
+              >
+                Clear
+              </Button>
+            </HStack>
+          </Box>
         )}
 
         {currentCountry && (
           <Box bg="white" p={6} borderRadius="md" boxShadow="sm">
-            <HStack justify="space-between" align="center" mb={6}>
-              <VStack align="start" spacing={1}>
+            <HStack  align="center" mb={6}>
+              <VStack flex={{base:1,md:2}} align="start" spacing={1}>
                 <Heading size="md">{currentCountry.countryname}</Heading>
                 <Text fontSize="sm" color="gray.600">
                   Phone Code: {currentCountry.phonecode}
                 </Text>
               </VStack>
-              {products.length > 0 && (
-                <HStack spacing={3} align="center">
+              {editingCountry === currentCountry.id && products.length > 0 && (
+                <VStack flex={1} spacing={1} align="stretch" w="full">
                   <Text fontWeight="bold" color={"green"} fontSize="sm">
-                    Add Product:
+                    Add Product
                   </Text>
-                  <Select
-                    w={"300px"}
-                    placeholder="Select product to add"
-                    borderRadius="full"
-                    onChange={(e) => {
-                      const product = products.find(
-                        (p) => p.id === e.target.value
-                      );
-                      if (product) {
-                        handleAddProductToEdit(product);
-                      }
-                      e.target.value = "";
-                    }}
-                  >
-                    {products
-                      .filter(
-                        (p) =>
-                          !editValues.products?.some((ep) => ep.name === p.name)
-                      )
-                      .map((product) => (
-                        <option key={product.id} value={product.id}>
-                          {product.name} ({product.code})
-                        </option>
-                      ))}
-                  </Select>
-                </HStack>
+                  <HStack spacing={3} align="flex-end" flexDirection={{ base: "column", md: "row" }}>
+                    <Select
+                      w={{ base: "full", md: "400px" }}
+                      placeholder="Select product"
+                      borderRadius="full"
+                      value={selectedProductForEdit}
+                      onChange={(e) => {
+                        setSelectedProductForEdit(e.target.value);
+                      }}
+                    >
+                      {products
+                        .filter(
+                          (p) =>
+                            !editValues.products?.some((ep) => ep.name === p.name)
+                        )
+                        .map((product) => (
+                          <option key={product.id} value={product.id}>
+                            {product.name} ({product.code})
+                          </option>
+                        ))}
+                    </Select>
+                    <Button
+                      w="auto"
+                      leftIcon={<FiPlus />}
+                      colorScheme="green"
+                      size="sm"
+                      borderRadius="full"
+                      onClick={() => {
+                        const product = products.find(
+                          (p) => p.id === selectedProductForEdit
+                        );
+                        if (product) {
+                          handleAddProductToEdit(product);
+                          setSelectedProductForEdit("");
+                        }
+                      }}
+                    >
+                      Add
+                    </Button>
+                  </HStack>
+                </VStack>
               )}
 
               {editingCountry !== currentCountry.id && (
@@ -464,7 +520,7 @@ const Countries = () => {
                         />
                       </HStack>
 
-                      <SimpleGrid columns={5} spacing={3} w="full">
+                      <SimpleGrid columns={2} spacing={3} w="full">
                         {product.areaCodes?.map((areaCode, codeIndex) => (
                           <HStack key={codeIndex} spacing={2}>
                             <Input
