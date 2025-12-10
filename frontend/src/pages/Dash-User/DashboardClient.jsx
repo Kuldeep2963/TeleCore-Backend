@@ -262,6 +262,7 @@ function Dashboard({ userId, userRole }) {
               key={index}
               bg="white"
               p={4}
+              px={{base:2,md:4}}
               h={"65px"}
               borderRadius="xl"
               boxShadow="0 2px 4px rgba(0, 0, 0, 0.05)"

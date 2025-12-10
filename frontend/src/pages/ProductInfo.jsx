@@ -39,6 +39,10 @@ function Products() {
     country: "",
     productType: "",
   });
+  const [appliedFilters, setAppliedFilters] = useState({
+    country: "",
+    productType: "",
+  });
 
   useEffect(() => {
     fetchData();
@@ -182,14 +186,28 @@ function Products() {
     return regionMap[countryName] || "Unknown";
   };
 
-  // Filter products based on current filters
+  // Get available product types for selected country
+  const getAvailableProductTypes = () => {
+    if (!filters.country) {
+      return productTypes;
+    }
+    const availableTypes = new Set();
+    products.forEach((product) => {
+      if (product.country.toLowerCase().includes(filters.country.toLowerCase())) {
+        availableTypes.add(product.productType);
+      }
+    });
+    return productTypes.filter((pt) => availableTypes.has(pt.name));
+  };
+
+  // Filter products based on applied filters
   const filteredProducts = products.filter((product) => {
     if (
-      filters.country &&
-      !product.country.toLowerCase().includes(filters.country.toLowerCase())
+      appliedFilters.country &&
+      !product.country.toLowerCase().includes(appliedFilters.country.toLowerCase())
     )
       return false;
-    if (filters.productType && product.productType !== filters.productType)
+    if (appliedFilters.productType && product.productType !== appliedFilters.productType)
       return false;
     return true;
   });
@@ -226,12 +244,19 @@ function Products() {
   };
 
   const handleSearch = () => {
-    // Filter products based on current filters
+    setAppliedFilters({
+      country: filters.country,
+      productType: filters.productType,
+    });
     setCurrentPage(1);
   };
 
   const handleClear = () => {
     setFilters({
+      country: "",
+      productType: "",
+    });
+    setAppliedFilters({
       country: "",
       productType: "",
     });
@@ -334,8 +359,9 @@ function Products() {
                   color={textColor}
                   borderColor={borderColor}
                   focusBorderColor="blue.400"
+                  isDisabled={!filters.country}
                 >
-                  {productTypes.map((product) => (
+                  {getAvailableProductTypes().map((product) => (
                     <option key={product.code} value={product.name}>
                       {product.name}
                     </option>
@@ -369,19 +395,7 @@ function Products() {
             </SimpleGrid>
           </VStack>
         </Box>
-
-        <Box
-          bg={cardBg}
-          borderRadius="16px"
-          border="1px solid"
-          borderColor={borderColor}
-          boxShadow="sm"
-          p={{ base: 4, md: 6 }}
-          overflow={{base:"scroll",md:"hidden"}}
-
-        >
-          <HStack justify="space-between" align="center" mb={4} spacing={4}>
-            <VStack align="flex-start" spacing={1}>
+<HStack justify="space-between" align="center" mb={4} spacing={4}>
               <Heading
                 as="h2"
                 color={subheadingColor}
@@ -390,7 +404,7 @@ function Products() {
               >
                 Product Inventory
               </Heading>
-            </VStack>
+           
             <Button
               size={"sm"}
               leftIcon={<FiUpload />}
@@ -403,6 +417,15 @@ function Products() {
             </Button>
           </HStack>
 
+        <Box
+         bg="white"
+            borderRadius="xl"
+            boxShadow="0 2px 4px rgba(0, 0, 0, 0.05)"
+            border="1px solid"
+            borderColor="gray.100"
+            overflow={{base:"scroll",md:"hidden"}}
+        >
+          
           <Table variant="simple" size="md">
             <Thead bg={headerBg} borderTopRadius={"12px"}>
               <Tr>
@@ -439,7 +462,7 @@ function Products() {
                   color={subheadingColor}
                   fontWeight="semibold"
                 >
-                  Area Code (Prefix)
+                  Area Code
                 </Th>
                 <Th
                   fontSize={"sm"}
@@ -480,8 +503,8 @@ function Products() {
                         {product.productType}
                       </Badge>
                     </Td>
-                    <Td color={textColor}>{product.areaCode}</Td>
-                    <Td color={textColor}>{product.edt}</Td>
+                    <Td color={textColor}fontWeight={"medium"}>{product.areaCode}</Td>
+                    <Td color={"green"} >{product.edt}</Td>
                     {/* <Td color={textColor}>{product.inventoryCount}</Td> */}
                     <Td>
                       <Button

@@ -1,4 +1,5 @@
 import React, { useRef, useState, useEffect, useMemo } from 'react';
+import { PRICING_HEADINGS } from '../../../constants/pricingConstants';
 import {
   Box,
   Heading,
@@ -29,7 +30,7 @@ import {
   Center,
   useToast
 } from '@chakra-ui/react';
-import { FaInfoCircle, FaTrash, FaEye } from 'react-icons/fa';
+import { FaInfoCircle, FaTrash, FaEye, FaEdit, FaSave, FaTimes } from 'react-icons/fa';
 import DocumentRequiredModal from '../../../Modals/DocumentRequiredModal';
 import api from '../../../services/api';
 
@@ -65,6 +66,8 @@ function NumberSelection({
   const [coverageData, setCoverageData] = useState(null);
   const [channelDetails, setChannelDetails] = useState(null);
   const [loadingCoverageChannel, setLoadingCoverageChannel] = useState(false);
+  const [isEditingPricing, setIsEditingPricing] = useState(false);
+  const [isSavingPricing, setIsSavingPricing] = useState(false);
   const fileInputRef = useRef(null);
   const toast = useToast();
 
@@ -173,17 +176,17 @@ function NumberSelection({
             nrc: formatPrice(pricing.nrc),
             mrc: formatPrice(pricing.mrc),
             ppm: formatPrice(pricing.ppm),
-            ppmFix: formatPrice(pricing.ppm_fix),
-            ppmMobile: formatPrice(pricing.ppm_mobile),
-            ppmPayphone: formatPrice(pricing.ppm_payphone),
+            ppm_fix: formatPrice(pricing.ppm_fix),
+            ppm_mobile: formatPrice(pricing.ppm_mobile),
+            ppm_payphone: formatPrice(pricing.ppm_payphone),
             arc: formatPrice(pricing.arc),
             mo: formatPrice(pricing.mo),
             mt: formatPrice(pricing.mt),
-            Incomingppm: formatPrice(pricing.incoming_ppm),
-            Outgoingppmfix: formatPrice(pricing.outgoing_ppm_fix),
-            Outgoingppmmobile: formatPrice(pricing.outgoing_ppm_mobile),
-            incmongsms: formatPrice(pricing.incoming_sms),
-            outgoingsms: formatPrice(pricing.outgoing_sms),
+            incoming_ppm: formatPrice(pricing.incoming_ppm),
+            outgoing_ppm_fix: formatPrice(pricing.outgoing_ppm_fix),
+            outgoing_ppm_mobile: formatPrice(pricing.outgoing_ppm_mobile),
+            incoming_sms: formatPrice(pricing.incoming_sms),
+            outgoing_sms: formatPrice(pricing.outgoing_sms),
             billingPulse: pricing.billing_pulse || '',
             estimatedLeadTime: pricing.estimated_lead_time || '',
             contractTerm: pricing.contract_term || '',
@@ -274,17 +277,7 @@ function NumberSelection({
     }
   };
 
-  // Define pricing headings based on product type
-  const pricingHeadings = {
-    did: { nrc: 'NRC', mrc: 'MRC', ppm: 'PPM' },
-    freephone: { nrc: 'NRC', mrc: 'MRC', ppmFix: 'PPM Fix', ppmMobile: 'PPM Mobile', ppmPayphone: 'PPM Payphone' },
-    universal: { nrc: 'NRC', mrc: 'MRC', ppmFix: 'PPM Fix', ppmMobile: 'PPM Mobile', ppmPayphone: 'PPM Payphone' },
-    'two-way-voice': { nrc: 'NRC', mrc: 'MRC', ppmIncoming: 'Incoming PPM', ppmOutgoingfix: 'Outgoing Fix PPM', ppmOutgoingmobile: 'Outgoing Mobile PPM' },
-    'two-way-sms': { nrc: 'NRC', mrc: 'MRC', arc: 'ARC', mo: 'MO', mt: 'MT' },
-    mobile: { nrc: 'NRC', mrc: 'MRC', Incomingppm: 'Incoming PPM', Outgoingppmfix: 'Outgoing Fix PPM', Outgoingppmmobile: 'Outgoing Mobile PPM', incmongsms: 'Incoming SMS', outgoingsms: 'Outgoing SMS' }
-  };
-
-  const currentHeadings = pricingHeadings[formData.productType] || pricingHeadings.did;
+  const currentHeadings = PRICING_HEADINGS[formData.productType?.toLowerCase()] || PRICING_HEADINGS.did;
 
   const mergedPricingData = useMemo(() => ({
     ...defaultPricingData,
@@ -306,8 +299,32 @@ function NumberSelection({
     setBargainData(desiredPricingMap);
   }, [desiredPricingMap]);
 
+const statusKey = orderStatus ? orderStatus.toLowerCase() : '';
+
+const shouldShowDesiredPricing = () => {
+  if (hideDesiredPricing) return false;
+  
+  // Show desired pricing if it exists (from order_pricing table), regardless of user role
+  const hasDesiredPricing = desiredPricingData && Object.values(desiredPricingData).some(val => val);
+  if (hasDesiredPricing) {
+    return true;
+  }
+  
+  // Fall back to role-based logic for new orders without pricing data
+  if (userRole === 'Internal') {
+    return ['in progress', 'confirmed', 'delivered', 'amount paid'].includes(statusKey);
+  }
+  
+  return false;
+};
+
+const isDesiredPricingEditable = () => {
+  if (readOnly) return false;
+  return userRole === 'Internal' && statusKey === 'in progress';
+};
+
   const handleDesiredPricingChange = (key, value) => {
-    if (readOnly) {
+    if (readOnly || !isDesiredPricingEditable()) {
       return;
     }
     setBargainData((prev) => {
@@ -317,9 +334,36 @@ function NumberSelection({
     });
   };
 
-const statusKey = orderStatus ? orderStatus.toLowerCase() : '';
-const showBasePricing = !['confirmed', 'delivered', 'amount paid'].includes(statusKey);
-const desiredPricingHeading = ['confirmed', 'delivered', 'amount paid'].includes(statusKey) ? 'Pricing' : 'Desired Pricings';
+  const handleSavePricingChanges = async () => {
+    try {
+      setIsSavingPricing(true);
+      await onDesiredPricingChange(bargainData);
+      setIsEditingPricing(false);
+      toast({
+        title: 'Success',
+        description: 'Pricing changes saved successfully',
+        status: 'success',
+        duration: 2000,
+        isClosable: true,
+      });
+    } catch (error) {
+      console.error('Error saving pricing:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to save pricing changes',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    } finally {
+      setIsSavingPricing(false);
+    }
+  };
+
+  const handleCancelPricingEdit = () => {
+    setBargainData(desiredPricingMap);
+    setIsEditingPricing(false);
+  };
 
   const formatDocumentType = (file) => {
     if (file.type) {
@@ -372,7 +416,7 @@ const desiredPricingHeading = ['confirmed', 'delivered', 'amount paid'].includes
           title: 'Documents uploaded',
           description: `${files.length} document(s) uploaded successfully`,
           status: 'success',
-          duration: 3000,
+          duration: 1000,
           isClosable: true,
         });
       } else {
@@ -459,6 +503,11 @@ const desiredPricingHeading = ['confirmed', 'delivered', 'amount paid'].includes
 
 
   const handleConfigureClick = () => {
+    if (documents.length === 0) {
+      alert('please upload at least one document before proceeding');
+      return;
+    }
+
     if (onConfigure) {
       onConfigure({
         documents,
@@ -483,73 +532,66 @@ const desiredPricingHeading = ['confirmed', 'delivered', 'amount paid'].includes
       <Grid templateColumns={{ base: "1fr", lg: "1fr" }} gap={6}>
         {/* Left Column - Numbers and Documents */}
         <VStack spacing={6} align="stretch">
-          {/* Pricing Card */}
-          {showBasePricing && (
-            <Card bg="white" borderRadius="12px" boxShadow="sm" border="1px solid" borderColor="gray.200">
-              <CardBody p={6}>
-                <Heading size="md" color="gray.800" mb={4}>Pricing</Heading>
-                <Table variant="simple" mb={6}>
-                  <Thead bg="gray.200">
-                    <Tr>
-                      {Object.keys(currentHeadings).map((key) => (
-                        <Th fontSize={"sm"} key={key} textAlign="center" color="gray.800" fontWeight="semibold">
-                          {currentHeadings[key]}
-                        </Th>
-                      ))}
-                    </Tr>
-                  </Thead>
-                  <Tbody>
-                    <Tr>
-                      {Object.keys(currentHeadings).map((key) => (
-                        <Td key={key} textAlign="center" fontSize="lg" color="green" fontWeight="bold">
-                          {pricingData[key] ?? '—'}
-                        </Td>
-                      ))}
-                    </Tr>
-                  </Tbody>
-                </Table>
-                <Divider mb={6} />
-                <Grid px={2} templateColumns="repeat(4, 1fr)" gap={6}>
-                  <VStack spacing={1} align="start">
-                    <Text fontSize="sm" color="gray.600" fontWeight="medium">Billing Pulse</Text>
-                    <Text fontSize="md" color="gray.800" fontWeight="semibold">{pricingData.billingPulse ?? '—'}</Text>
-                  </VStack>
-                  <VStack spacing={1} align="start">
-                    <Text fontSize="sm" color="gray.600" fontWeight="medium">Estimated Lead Time</Text>
-                    <Text fontSize="md" color="gray.800" fontWeight="semibold">{pricingData.estimatedLeadTime ?? '—'}</Text>
-                  </VStack>
-                  <VStack spacing={1} align="start">
-                    <Text fontSize="sm" color="gray.600" fontWeight="medium">Contract Term</Text>
-                    <Text fontSize="md" color="green" fontWeight="bold">{pricingData.contractTerm ?? '—'}</Text>
-                  </VStack>
-                  <VStack spacing={1} align="start">
-                    <Text fontSize="sm" color="gray.600" fontWeight="medium">Disconnection Notice Term</Text>
-                    <Text fontSize="md" color="red.500" fontWeight="bold">{pricingData.disconnectionNoticeTerm ?? '—'}</Text>
-                  </VStack>
-                </Grid>
-              </CardBody>
-            </Card>
-          )}
-
-          {/* Bargain Card */}
-          {!hideDesiredPricing && (
-            <Card bg="white" borderRadius="12px" boxShadow="sm" border="1px solid" borderColor="gray.200">
-              <CardBody p={6}>
-                <Heading size="md" color="gray.800" mb={4}>{desiredPricingHeading}</Heading>
-                <Table variant="simple" mb={6}>
-                  <Thead bg="gray.200">
-                    <Tr>
-                      {Object.keys(currentHeadings).map((key) => (
-                        <Th fontSize={"sm"} key={key} textAlign="center" color="gray.800" fontWeight="semibold">
-                          {currentHeadings[key]}
-                        </Th>
-                      ))}
-                    </Tr>
-                  </Thead>
-                  <Tbody>
-                    <Tr>
-                      {Object.keys(currentHeadings).map((key) => (
-                        <Td key={key} textAlign="center">
+          {/* Pricing Card - Always show, editable for internal on in-progress orders */}
+          <Card bg="white" borderRadius="12px" boxShadow="sm" border="1px solid" borderColor="gray.200">
+            <CardBody p={6}>
+              <HStack justify="space-between" align="center" mb={4}>
+                <Heading size="md" color="gray.800">Pricing</Heading>
+                {shouldShowDesiredPricing() && isDesiredPricingEditable() && (
+                  <HStack spacing={2}>
+                    {!isEditingPricing && (
+                      <IconButton
+                        aria-label="Edit pricing"
+                        icon={<FaEdit />}
+                        variant="ghost"
+                        colorScheme="blue"
+                        size="sm"
+                        onClick={() => setIsEditingPricing(true)}
+                        title="Edit pricing"
+                      />
+                    )}
+                    {isEditingPricing && (
+                      <>
+                        <IconButton
+                          aria-label="Save pricing"
+                          icon={<FaSave />}
+                          variant="ghost"
+                          colorScheme="green"
+                          size="sm"
+                          onClick={handleSavePricingChanges}
+                          isLoading={isSavingPricing}
+                          title="Save changes"
+                        />
+                        <IconButton
+                          aria-label="Cancel editing"
+                          icon={<FaTimes />}
+                          variant="ghost"
+                          colorScheme="red"
+                          size="sm"
+                          onClick={handleCancelPricingEdit}
+                          isDisabled={isSavingPricing}
+                          title="Cancel editing"
+                        />
+                      </>
+                    )}
+                  </HStack>
+                )}
+              </HStack>
+              <Table variant="simple" mb={6}>
+                <Thead bg="gray.200">
+                  <Tr>
+                    {Object.keys(currentHeadings).map((key) => (
+                      <Th fontSize={"sm"} key={key} textAlign="center" color="gray.800" fontWeight="semibold">
+                        {currentHeadings[key]}
+                      </Th>
+                    ))}
+                  </Tr>
+                </Thead>
+                <Tbody>
+                  <Tr>
+                    {Object.keys(currentHeadings).map((key) => (
+                      <Td key={key} textAlign="center">
+                        {isEditingPricing && shouldShowDesiredPricing() ? (
                           <Input
                             value={bargainData[key] || ''}
                             onChange={(e) => handleDesiredPricingChange(key, e.target.value)}
@@ -558,16 +600,38 @@ const desiredPricingHeading = ['confirmed', 'delivered', 'amount paid'].includes
                             fontSize="lg"
                             fontWeight="bold"
                             color="green"
-                            isReadOnly={readOnly}
                           />
-                        </Td>
-                      ))}
-                    </Tr>
-                  </Tbody>
-                </Table>
-              </CardBody>
-            </Card>
-          )}
+                        ) : (
+                          <Text fontSize="lg" color="green" fontWeight="bold">
+                            {(shouldShowDesiredPricing() ? bargainData[key] : pricingData[key]) ?? '—'}
+                          </Text>
+                        )}
+                      </Td>
+                    ))}
+                  </Tr>
+                </Tbody>
+              </Table>
+              <Divider mb={6} />
+              <Grid px={2} templateColumns="repeat(4, 1fr)" gap={6}>
+                <VStack spacing={1} align="start">
+                  <Text fontSize="sm" color="gray.600" fontWeight="medium">Billing Pulse</Text>
+                  <Text fontSize="md" color="gray.800" fontWeight="semibold">{pricingData.billingPulse ?? '—'}</Text>
+                </VStack>
+                <VStack spacing={1} align="start">
+                  <Text fontSize="sm" color="gray.600" fontWeight="medium">Estimated Lead Time</Text>
+                  <Text fontSize="md" color="gray.800" fontWeight="semibold">{pricingData.estimatedLeadTime ?? '—'}</Text>
+                </VStack>
+                <VStack spacing={1} align="start">
+                  <Text fontSize="sm" color="gray.600" fontWeight="medium">Contract Term</Text>
+                  <Text fontSize="md" color="green" fontWeight="bold">{pricingData.contractTerm ?? '—'}</Text>
+                </VStack>
+                <VStack spacing={1} align="start">
+                  <Text fontSize="sm" color="gray.600" fontWeight="medium">Disconnection Notice Term</Text>
+                  <Text fontSize="md" color="red.500" fontWeight="bold">{pricingData.disconnectionNoticeTerm ?? '—'}</Text>
+                </VStack>
+              </Grid>
+            </CardBody>
+          </Card>
 
           {/* Documents Required */}
          <Card bg="white" borderRadius="12px" boxShadow="sm" border="1px solid" borderColor="gray.200">
@@ -585,12 +649,13 @@ const desiredPricingHeading = ['confirmed', 'delivered', 'amount paid'].includes
         </HStack>
         <Text fontSize="sm" color="gray.600" mb={2}>click the info icon for details</Text>
         </VStack>
-        {!readOnly ? (
+        {!readOnly || userRole === 'Client' ? (
           <Box 
             border="2px dashed" 
             borderColor="gray.300" 
             borderRadius="md" 
-            p={4} 
+            p={1}
+            px={3} 
             textAlign="center"
             mb={4}
             cursor="pointer"
@@ -607,7 +672,7 @@ const desiredPricingHeading = ['confirmed', 'delivered', 'amount paid'].includes
           >
             <VStack spacing={2}>
               <Text fontWeight="medium">Choose files</Text>
-              <Text fontSize="sm" color="gray.500">
+              <Text fontSize="xs" color="gray.500">
                 Maximum file size: 10 MB<br />
                 File type: pdf, jpeg, png, doc, docx
               </Text>

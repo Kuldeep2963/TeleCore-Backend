@@ -56,6 +56,7 @@ function NewNumbers({ onAddToCart = () => {} }) {
   const [countries, setCountries] = useState(null);
   const [areaCodes, setAreaCodes] = useState([]);
   const [availableProducts, setAvailableProducts] = useState([]);
+  const [allProducts, setAllProducts] = useState([]);
   const [formData, setFormData] = useState({
     country: "",
     productType: "",
@@ -66,11 +67,15 @@ function NewNumbers({ onAddToCart = () => {} }) {
   // Removed showPlaceOrder logic since we now navigate to dedicated cart page
 
   useEffect(() => {
-    // Fetch countries from API (availableproducts are included)
+    // Fetch countries and products from API
     const fetchData = async () => {
       try {
         const countriesResponse = await api.countries.getAll();
+        const productsResponse = await api.products.getAll();
+        
         console.log("Fetched countries:", countriesResponse.data);
+        console.log("Fetched products:", productsResponse.data);
+        
         if (countriesResponse.success) {
           setCountries(countriesResponse.data);
           // Initialize available products if a country is already selected
@@ -81,6 +86,10 @@ function NewNumbers({ onAddToCart = () => {} }) {
           }
         } else {
           setCountries([]);
+        }
+        
+        if (productsResponse.success && productsResponse.data) {
+          setAllProducts(productsResponse.data);
         }
       } catch (error) {
         console.error("Error fetching data:", error.message);
@@ -202,18 +211,13 @@ function NewNumbers({ onAddToCart = () => {} }) {
         return;
       }
 
-      // Find the product in availableproducts
+      // Find product from allProducts to get the actual name
+      const productFromDb = allProducts.find(p => p.code === productCode);
+      const productName = productFromDb ? productFromDb.name : productCode;
+
+      // Find the product in availableproducts by name
       const productData = selectedCountry.availableproducts.find((p) => {
-        // Map product code back to name for comparison
-        const productMappings = {
-          did: "DID",
-          freephone: "Freephone",
-          "universal-freephone": "Universal Freephone",
-          "two-way-voice": "Two Way Voice",
-          "two-way-sms": "Two Way SMS",
-          mobile: "Mobile",
-        };
-        return p.name === productMappings[productCode];
+        return p.name === productName;
       });
 
       if (productData && productData.areaCodes) {
@@ -227,47 +231,30 @@ function NewNumbers({ onAddToCart = () => {} }) {
     }
   };
 
-  // Map product names to product objects with correct database IDs
+  // Map product names to product objects from database
   const mapProductNameToObject = (productName) => {
-    const productMappings = {
-      DID: {
-        id: "2f9ce23d-4614-4f2b-b99a-2b825bdf354a",
-        code: "did",
-        name: "DID",
-      },
-      Freephone: {
-        id: "f23831d0-c8f9-42eb-ac67-1410ed110c37",
-        code: "freephone",
-        name: "Freephone",
-      },
-      "Universal Freephone": {
-        id: "9f1e02f8-f7c5-4723-b91f-52f7bad5327f",
-        code: "universal-freephone",
-        name: "Universal Freephone",
-      },
-      "Two Way Voice": {
-        id: "b104201f-26bb-4f9e-b54c-c691e0670ecb",
-        code: "two-way-voice",
-        name: "Two Way Voice",
-      },
-      "Two Way SMS": {
-        id: "3420c4ae-3063-4611-8d9a-14c89183d2e1",
-        code: "two-way-sms",
-        name: "Two Way SMS",
-      },
-      Mobile: {
-        id: "cd0f1bc3-d51f-4492-b346-aef153d1c012",
-        code: "mobile",
-        name: "Mobile",
-      },
-    };
-    return (
-      productMappings[productName] || {
+    if (!allProducts || allProducts.length === 0) {
+      return {
         id: 0,
-        code: productName.toLowerCase().replace(/\s+/g, "-"),
+        code: productName,
         name: productName,
-      }
-    );
+      };
+    }
+    
+    const product = allProducts.find(p => p.name === productName);
+    if (product) {
+      return {
+        id: product.id,
+        code: product.code,
+        name: product.name,
+      };
+    }
+    
+    return {
+      id: 0,
+      code: productName,
+      name: productName,
+    };
   };
 
   // Update available products when country changes
@@ -634,7 +621,7 @@ function NewNumbers({ onAddToCart = () => {} }) {
                     handleInputChange("productType", e.target.value)
                   }
                   onKeyDown={(e) => handleKeyDown(e, areaCodeRef)}
-                  disabled={!formData.country}
+                  // disabled={!formData.country}
                 >
                   {availableProducts.map((product) => (
                     <option key={product.code} value={product.code}>

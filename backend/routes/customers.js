@@ -9,7 +9,8 @@ router.get('/', requireInternal, async (req, res) => {
     const result = await query(`
       SELECT c.*, u.email as user_email, u.first_name, u.last_name,
              COUNT(o.id) as total_orders,
-             SUM(o.total_amount) as total_spent
+             SUM(o.total_amount) as total_spent,
+             MAX(o.order_date) as last_order_date
       FROM customers c
       LEFT JOIN users u ON c.user_id = u.id
       LEFT JOIN orders o ON c.id = o.customer_id

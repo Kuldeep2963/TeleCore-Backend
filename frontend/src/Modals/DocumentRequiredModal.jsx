@@ -40,7 +40,7 @@ function DocumentRequiredModal({ isOpen, onClose, documents = [], title = "Requi
   const displayDocuments = documents.length > 0 ? documents : defaultDocuments;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="lg">
+    <Modal isOpen={isOpen} onClose={onClose} size={{base:"sm",md:"lg"}}>
       <ModalOverlay backdropFilter="blur(4px)" />
       <ModalContent>
         <ModalHeader>{title}</ModalHeader>

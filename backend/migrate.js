@@ -20,6 +20,15 @@ async function runMigration() {
 
     // Drop and recreate database
     try {
+      // Terminate existing connections first
+      await tempPool.query(`
+        SELECT pg_terminate_backend(pg_stat_activity.pid)
+        FROM pg_stat_activity
+        WHERE pg_stat_activity.datname = 'telecore_db'
+        AND pid <> pg_backend_pid()
+      `);
+      console.log('✓ Terminated existing connections');
+      
       await tempPool.query('DROP DATABASE IF EXISTS telecore_db');
       console.log('✓ Dropped existing database telecore_db');
     } catch (error) {
@@ -49,53 +58,41 @@ async function runMigration() {
     const schemaSQL = fs.readFileSync(schemaPath, 'utf8');
 
     // Remove problematic lines
-    const lines = schemaSQL.split('\n');
-    const cleanLines = lines.filter(line =>
-      !line.includes('CREATE DATABASE') &&
-      !line.includes('\\c telecore_db') &&
-      !line.trim().startsWith('-- TeleCore Database Schema')
-    );
-
-    // Join back and execute as one big query
-    const cleanSchemaSQL = cleanLines.join('\n');
+    let cleanSchemaSQL = schemaSQL
+      .split('\n')
+      .filter(line => {
+        const trimmed = line.trim();
+        return !trimmed.includes('CREATE DATABASE') &&
+               !trimmed.includes('\\c telecore_db');
+      })
+      .join('\n');
 
     console.log('Executing schema...');
 
+    // Try bulk execution first
     try {
       await pool.query(cleanSchemaSQL);
       console.log('✓ Schema executed successfully');
     } catch (error) {
-      // If it fails, try to execute individual statements
-      console.log('Bulk execution failed, trying individual statements...');
-
+      // If bulk fails, execute line by line
+      console.log('⚠ Bulk execution failed, executing line by line...');
+      
       const statements = cleanSchemaSQL
         .split(';')
-        .map(stmt => stmt.trim())
-        .filter(stmt => stmt.length > 0);
+        .map(s => s.trim())
+        .filter(s => s && !s.startsWith('--'));
 
       for (let i = 0; i < statements.length; i++) {
-        const statement = statements[i];
-        if (!statement || statement.startsWith('--')) continue;
-
-        const fullStatement = statement + ';';
-        console.log(`Executing statement ${i + 1}/${statements.length}: ${fullStatement.substring(0, 60)}...`);
-
+        const stmt = statements[i] + ';';
         try {
-          await pool.query(fullStatement);
-          console.log('✓ Executed successfully');
-        } catch (error) {
-          // Skip errors for already existing objects or syntax errors in complex statements
-          if (error.code === '42P07' || // already exists
-              error.code === '23505' || // unique violation
-              error.code === '42710' || // already exists
-              error.code === '42601' || // syntax error (for broken statements)
-              error.message.includes('already exists') ||
-              error.message.includes('syntax error')) {
-            console.log(`⚠ Skipping (already exists or syntax error): ${error.message.split('\n')[0]}`);
-            continue;
+          await pool.query(stmt);
+        } catch (err) {
+          // Skip non-critical errors
+          if (err.code === '42P07' || err.code === '42710' || err.code === '42P01' || err.code === '42703') {
+            console.log(`⚠ Skipped: ${err.message.split('\n')[0]}`);
+          } else {
+            throw err;
           }
-          console.error('Error executing statement:', fullStatement);
-          throw error;
         }
       }
     }

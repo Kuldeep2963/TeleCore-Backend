@@ -21,6 +21,7 @@ import {
   Td,
   IconButton,
   useToast,
+  Spacer,
 } from "@chakra-ui/react";
 import { FaArrowLeft, FaPlus, FaTrash } from "react-icons/fa";
 import NumberSelection, {
@@ -30,14 +31,53 @@ import api from "../services/api";
 
 function OrderNumberView({ userRole }) {
   const location = useLocation();
-  const orderData = location.state?.orderData;
-  const [selectedNumbers, setSelectedNumbers] = useState([]);
+  let initialOrderData = location.state?.orderData;
+  const [orderData, setOrderData] = useState(initialOrderData);
   const [allocatedNumbers, setAllocatedNumbers] = useState([]);
   const [newNumber, setNewNumber] = useState("");
+  const [orderPricing, setOrderPricing] = useState(null);
   const toast = useToast();
 
-  // Check if this is opened from ProductInfo page
-  const isFromProductInfo = orderData?.orderNo?.startsWith("PROD-");
+  // Check if this is opened from ProductInfo page (use initialOrderData to avoid changes)
+  const isFromProductInfo = initialOrderData?.orderNo?.startsWith("PROD-");
+
+  // Load order data from API to ensure we have the latest pricing
+  useEffect(() => {
+    const loadOrderData = async () => {
+      if (initialOrderData?.id && !isFromProductInfo) {
+        try {
+          const response = await api.orders.getById(initialOrderData.id);
+          if (response.success) {
+            setOrderData(response.data);
+            // Set pricing if available
+            if (response.data.pricing) {
+              const transformedPricing = {
+                nrc: response.data.pricing.nrc ? `$${parseFloat(response.data.pricing.nrc).toFixed(4)}` : "",
+                mrc: response.data.pricing.mrc ? `$${parseFloat(response.data.pricing.mrc).toFixed(4)}` : "",
+                ppm: response.data.pricing.ppm ? `$${parseFloat(response.data.pricing.ppm).toFixed(4)}` : "",
+                ppm_fix: response.data.pricing.ppm_fix ? `$${parseFloat(response.data.pricing.ppm_fix).toFixed(4)}` : "",
+                ppm_mobile: response.data.pricing.ppm_mobile ? `$${parseFloat(response.data.pricing.ppm_mobile).toFixed(4)}` : "",
+                ppm_payphone: response.data.pricing.ppm_payphone ? `$${parseFloat(response.data.pricing.ppm_payphone).toFixed(4)}` : "",
+                arc: response.data.pricing.arc ? `$${parseFloat(response.data.pricing.arc).toFixed(4)}` : "",
+                mo: response.data.pricing.mo ? `$${parseFloat(response.data.pricing.mo).toFixed(4)}` : "",
+                mt: response.data.pricing.mt ? `$${parseFloat(response.data.pricing.mt).toFixed(4)}` : "",
+                incoming_ppm: response.data.pricing.incoming_ppm ? `$${parseFloat(response.data.pricing.incoming_ppm).toFixed(4)}` : "",
+                outgoing_ppm_fix: response.data.pricing.outgoing_ppm_fix ? `$${parseFloat(response.data.pricing.outgoing_ppm_fix).toFixed(4)}` : "",
+                outgoing_ppm_mobile: response.data.pricing.outgoing_ppm_mobile ? `$${parseFloat(response.data.pricing.outgoing_ppm_mobile).toFixed(4)}` : "",
+                incoming_sms: response.data.pricing.incoming_sms ? `$${parseFloat(response.data.pricing.incoming_sms).toFixed(4)}` : "",
+                outgoing_sms: response.data.pricing.outgoing_sms ? `$${parseFloat(response.data.pricing.outgoing_sms).toFixed(4)}` : "",
+              };
+              setOrderPricing(transformedPricing);
+            }
+          }
+        } catch (error) {
+          console.error("Error loading order data:", error);
+        }
+      }
+    };
+
+    loadOrderData();
+  }, [initialOrderData?.id, isFromProductInfo]);
 
   // Load allocated numbers from database
   useEffect(() => {
@@ -73,6 +113,14 @@ function OrderNumberView({ userRole }) {
   const canEditAllocatedNumbers =
     userRole === "Internal" &&
     orderData?.orderStatus?.toLowerCase() === "amount paid";
+
+  // Check if pricing is editable (only for internal users)
+  const canEditPricing =
+    userRole === "Internal" &&
+    orderData?.orderStatus?.toLowerCase() === "in progress";
+
+  // Pricing should be visible to both internal and client
+  const showPricing = true;
 
   // Add allocated number
   const handleAddAllocatedNumber = async () => {
@@ -216,31 +264,31 @@ function OrderNumberView({ userRole }) {
       nrc: rawPricing.nrc ? `$${parseFloat(rawPricing.nrc).toFixed(4)}` : "",
       mrc: rawPricing.mrc ? `$${parseFloat(rawPricing.mrc).toFixed(4)}` : "",
       ppm: rawPricing.ppm ? `$${parseFloat(rawPricing.ppm).toFixed(4)}` : "",
-      ppmFix: rawPricing.ppm_fix
+      ppm_fix: rawPricing.ppm_fix
         ? `$${parseFloat(rawPricing.ppm_fix).toFixed(4)}`
         : "",
-      ppmMobile: rawPricing.ppm_mobile
+      ppm_mobile: rawPricing.ppm_mobile
         ? `$${parseFloat(rawPricing.ppm_mobile).toFixed(4)}`
         : "",
-      ppmPayphone: rawPricing.ppm_payphone
+      ppm_payphone: rawPricing.ppm_payphone
         ? `$${parseFloat(rawPricing.ppm_payphone).toFixed(4)}`
         : "",
       arc: rawPricing.arc ? `$${parseFloat(rawPricing.arc).toFixed(4)}` : "",
       mo: rawPricing.mo ? `$${parseFloat(rawPricing.mo).toFixed(4)}` : "",
       mt: rawPricing.mt ? `$${parseFloat(rawPricing.mt).toFixed(4)}` : "",
-      Incomingppm: rawPricing.incoming_ppm
+      incoming_ppm: rawPricing.incoming_ppm
         ? `$${parseFloat(rawPricing.incoming_ppm).toFixed(4)}`
         : "",
-      Outgoingppmfix: rawPricing.outgoing_ppm_fix
+      outgoing_ppm_fix: rawPricing.outgoing_ppm_fix
         ? `$${parseFloat(rawPricing.outgoing_ppm_fix).toFixed(4)}`
         : "",
-      Outgoingppmmobile: rawPricing.outgoing_ppm_mobile
+      outgoing_ppm_mobile: rawPricing.outgoing_ppm_mobile
         ? `$${parseFloat(rawPricing.outgoing_ppm_mobile).toFixed(4)}`
         : "",
-      incmongsms: rawPricing.incoming_sms
+      incoming_sms: rawPricing.incoming_sms
         ? `$${parseFloat(rawPricing.incoming_sms).toFixed(4)}`
         : "",
-      outgoingsms: rawPricing.outgoing_sms
+      outgoing_sms: rawPricing.outgoing_sms
         ? `$${parseFloat(rawPricing.outgoing_sms).toFixed(4)}`
         : "",
       billingPulse: rawPricing.billing_pulse || "",
@@ -259,13 +307,92 @@ function OrderNumberView({ userRole }) {
   // For desired pricing, use order-specific pricing from order_pricing table
   const desiredPricingData = transformPricingData(orderData.pricing);
 
-  const handleNumberSelectionChange = (selection) => {
-    setSelectedNumbers(selection.selectedIds || []);
+  const handleNumberSelectionChange = () => {
   };
 
   const handleConfigure = (numbers) => {
     // Handle configure action - could navigate to next step or show modal
     console.log("Configure clicked with numbers:", numbers);
+  };
+
+  const handleDesiredPricingChange = async (pricingData) => {
+    if (!canEditPricing || !orderData?.id) {
+      return;
+    }
+
+    try {
+      const pricingPayload = {};
+      Object.keys(pricingData).forEach((key) => {
+        const value = pricingData[key];
+        if (value && typeof value === 'string' && value.startsWith('$')) {
+          pricingPayload[key] = parseFloat(value.replace('$', ''));
+        } else {
+          pricingPayload[key] = value;
+        }
+      });
+
+      const response = await api.orders.createPricing(orderData.id, pricingPayload);
+      
+      if (response.success) {
+        setOrderPricing(pricingData);
+        toast({
+          title: 'Pricing Updated',
+          description: 'Order pricing has been saved successfully',
+          status: 'success',
+          duration: 2000,
+          isClosable: true,
+        });
+      } else {
+        throw new Error(response.message || 'Failed to save pricing');
+      }
+    } catch (error) {
+      console.error('Error saving pricing:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to save pricing',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
+
+  const handleConfirmOrder = async () => {
+    if (!orderData?.id) {
+      return;
+    }
+
+    try {
+      const response = await api.orders.confirm(orderData.id);
+      
+      if (response.success) {
+        // Update local order data with the confirmed order
+        setOrderData({
+          ...orderData,
+          ...response.data,
+          status: 'Confirmed'
+        });
+
+        toast({
+          title: 'Order Confirmed',
+          description: `Order confirmed successfully. Total Amount: $${response.data.total_amount?.toFixed(2) || '0.00'}`,
+          status: 'success',
+          duration: 3000,
+          isClosable: true,
+        });
+      } else {
+        throw new Error(response.message || 'Failed to confirm order');
+      }
+    } catch (error) {
+      console.error('Error confirming order:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to confirm order',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    }
   };
 
   return (
@@ -290,6 +417,16 @@ function OrderNumberView({ userRole }) {
             {isFromProductInfo ? "Product Details" : "Order Details"} -{" "}
             {orderData.orderNo}
           </Heading>
+          <Spacer/>
+          {canEditPricing && (
+                <Button
+                  colorScheme="green"
+                  size="sm"
+                  onClick={handleConfirmOrder}
+                >
+                  Confirm & Calculate Amount
+                </Button>
+              )}
         </HStack>
 
         {/* Order/Product Details Box */}
@@ -301,9 +438,12 @@ function OrderNumberView({ userRole }) {
           borderColor="gray.200"
         >
           <CardBody p={6}>
-            <Heading size="md" color="gray.800" mb={4}>
-              {isFromProductInfo ? "Basic Information" : "Order Information"}
-            </Heading>
+            <HStack justify="space-between" mb={4} align="center">
+              <Heading size="md" color="gray.800">
+                {isFromProductInfo ? "Basic Information" : "Order Information"}
+              </Heading>
+              
+            </HStack>
             {isFromProductInfo ? (
               // Product Information Layout
               <Grid
@@ -378,19 +518,6 @@ function OrderNumberView({ userRole }) {
                 <GridItem>
                   <VStack spacing={1} align="start">
                     <Text fontSize="sm" color="gray.600" fontWeight="medium">
-                      Service Name
-                    </Text>
-                    <Badge bg="blue.100" borderRadius={"full"} px={2} py={0}>
-                      <Text fontSize="sm" color="gray.800" fontWeight="bold">
-                        {orderData.serviceName}
-                      </Text>
-                    </Badge>
-                  </VStack>
-                </GridItem>
-
-                <GridItem>
-                  <VStack spacing={1} align="start">
-                    <Text fontSize="sm" color="gray.600" fontWeight="medium">
                       Country
                     </Text>
                     <Text fontSize="md" color="gray.800" fontWeight="semibold">
@@ -404,9 +531,11 @@ function OrderNumberView({ userRole }) {
                     <Text fontSize="sm" color="gray.600" fontWeight="medium">
                       Product Type
                     </Text>
-                    <Text fontSize="md" color="gray.800" fontWeight="semibold">
+                    <Badge borderRadius={"full"} px={2} colorScheme="blue">
+                    <Text >
                       {orderData.productType}
                     </Text>
+                    </Badge>
                   </VStack>
                 </GridItem>
 
@@ -417,6 +546,17 @@ function OrderNumberView({ userRole }) {
                     </Text>
                     <Text fontSize="md" color="gray.800" fontWeight="semibold">
                       {orderData.areaCode}
+                    </Text>
+                  </VStack>
+                </GridItem>
+
+                <GridItem>
+                  <VStack spacing={1} align="start">
+                    <Text fontSize="sm" color="gray.600" fontWeight="medium">
+                      Quantity
+                    </Text>
+                    <Text fontSize="md" color="gray.800" fontWeight="semibold">
+                      {orderData.quantity}
                     </Text>
                   </VStack>
                 </GridItem>
@@ -458,7 +598,7 @@ function OrderNumberView({ userRole }) {
                       Order Date
                     </Text>
                     <Text fontSize="md" color="gray.800" fontWeight="semibold">
-                      {orderData.orderDate.split("T")[0]}
+                      {orderData.orderDate ? orderData.orderDate.split("T")[0] : "N/A"}
                     </Text>
                   </VStack>
                 </GridItem>
@@ -645,20 +785,23 @@ function OrderNumberView({ userRole }) {
           </Card>
         )}
 
-        <NumberSelection
-          formData={formData}
-          onNumberSelectionChange={handleNumberSelectionChange}
-          onConfigure={handleConfigure}
-          showConfigureButton={false}
-          pricingData={pricingData}
-          desiredPricingData={isFromProductInfo ? {} : desiredPricingData}
-          orderStatus={orderData.orderStatus}
-          readOnly
-          userRole={userRole}
-          documents={orderData.documents}
-          orderId={orderData.id}
-          hideDesiredPricing={isFromProductInfo}
-        />
+        {showPricing && (
+          <NumberSelection
+            formData={formData}
+            onNumberSelectionChange={handleNumberSelectionChange}
+            onConfigure={handleConfigure}
+            showConfigureButton={false}
+            pricingData={pricingData}
+            desiredPricingData={isFromProductInfo ? {} : (orderPricing || desiredPricingData)}
+            onDesiredPricingChange={canEditPricing ? handleDesiredPricingChange : undefined}
+            orderStatus={orderData.orderStatus}
+            readOnly={!canEditPricing}
+            userRole={userRole}
+            documents={orderData.documents}
+            orderId={orderData.id}
+            hideDesiredPricing={isFromProductInfo}
+          />
+        )}
       </VStack>
     </Box>
   );

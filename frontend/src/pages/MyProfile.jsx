@@ -261,7 +261,7 @@ function Profile({ profilePicture, onProfilePictureUpdate, userId, userProfile, 
   return (
     <Box 
       flex={1} 
-      p={6} 
+      p={{base:0,md:6}} 
       bg="#f8f9fa"
       minHeight="calc(100vh - 76px)"
       overflowY="auto"
@@ -279,7 +279,7 @@ function Profile({ profilePicture, onProfilePictureUpdate, userId, userProfile, 
             >
               Profile Settings
             </Heading>
-            <Text color="gray.600" fontSize="lg">
+            <Text color="gray.600" fontSize="md">
               Manage your personal information and account settings
             </Text>
           </Box>
@@ -307,7 +307,6 @@ function Profile({ profilePicture, onProfilePictureUpdate, userId, userProfile, 
                         fontSize="2xl"
                         fontWeight="bold"
                       />
-                      <Tooltip label="Change profile picture">
                         <IconButton
                           aria-label="Change profile picture"
                           icon={<FaCamera />}
@@ -324,7 +323,6 @@ function Profile({ profilePicture, onProfilePictureUpdate, userId, userProfile, 
                           }}
                           transition="all 0.2s"
                         />
-                      </Tooltip>
                     </Box>
 
                     <VStack spacing={3} textAlign="center">
@@ -343,7 +341,7 @@ function Profile({ profilePicture, onProfilePictureUpdate, userId, userProfile, 
                       >
                         {userData.role}
                       </Badge>
-                      <Text color="gray.600" fontSize="sm">
+                      <Text fontWeight={"semibold"} color="gray.600" fontSize="sm">
                         Member since {new Date(userData.joinDate).toLocaleDateString()}
                       </Text>
                     </VStack>

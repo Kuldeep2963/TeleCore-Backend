@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   Box,
   Container,
@@ -15,51 +15,60 @@ import {
   IconButton,
   Image,
   Select,
-  HStack
-} from '@chakra-ui/react';
-import { ViewIcon, ViewOffIcon } from '@chakra-ui/icons';
-import { useNavigate } from 'react-router-dom';
+  HStack,
+} from "@chakra-ui/react";
+import { ViewIcon, ViewOffIcon } from "@chakra-ui/icons";
+import { useNavigate } from "react-router-dom";
+import { HiArrowRight } from "react-icons/hi";
 
-const Login = ({ onLogin = () => ({ success: false }), clientCredentials, internalCredentials }) => {
+
+const Login = ({
+  onLogin = () => ({ success: false }),
+  clientCredentials,
+  internalCredentials,
+}) => {
   const navigate = useNavigate();
-  const [showPassword, setShowPassword] = useState(false);
+  const [showPassword, setShowPassword] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
-    email: '',
-    password: ''
+    email: "",
+    password: "",
   });
-  const [errorMessage, setErrorMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState("");
 
-  const bgColor = useColorModeValue('gray.50', 'gray.900');
-  const cardBg = useColorModeValue('white', 'gray.800');
-  const borderColor = useColorModeValue('gray.200', 'gray.600');
-  const hintBg = useColorModeValue('gray.50', 'gray.700');
-  const hintBorder = useColorModeValue('gray.200', 'gray.500');
-  const hintText = useColorModeValue('gray.600', 'gray.100');
+  const bgColor = useColorModeValue("gray.50", "gray.900");
+  const cardBg = useColorModeValue("white", "gray.800");
+  const borderColor = useColorModeValue("gray.200", "gray.600");
 
   const handleInputChange = (field, value) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
   };
 
   const handleLogin = async () => {
-    setErrorMessage('');
-    const result = await onLogin({
-      email: formData.email,
-      password: formData.password
-    });
+    setErrorMessage("");
+    setIsLoading(true);
+    try {
+      const result = await onLogin({
+        email: formData.email,
+        password: formData.password,
+      });
 
-    if (result?.success) {
-      navigate('/dashboard', { replace: true });
-      return;
+      if (result?.success) {
+        navigate("/dashboard", { replace: true });
+        return;
+      }
+
+      setErrorMessage(result?.message || "Unable to login");
+    } finally {
+      setIsLoading(false);
     }
-
-    setErrorMessage(result?.message || 'Unable to login');
   };
 
   const handleForgotPassword = () => {
-    console.log('Forgot password clicked');
+    console.log("Forgot password clicked");
   };
 
   const handleFillClientCredentials = () => {
@@ -67,11 +76,11 @@ const Login = ({ onLogin = () => ({ success: false }), clientCredentials, intern
       return;
     }
     setFormData({
-      email: clientCredentials.email || '',
-      password: clientCredentials.password || ''
+      email: clientCredentials.email || "",
+      password: clientCredentials.password || "",
     });
     setShowPassword(false);
-    setErrorMessage('');
+    setErrorMessage("");
   };
 
   const handleFillInternalCredentials = () => {
@@ -79,11 +88,11 @@ const Login = ({ onLogin = () => ({ success: false }), clientCredentials, intern
       return;
     }
     setFormData({
-      email: internalCredentials.email || '',
-      password: internalCredentials.password || ''
+      email: internalCredentials.email || "",
+      password: internalCredentials.password || "",
     });
-    setShowPassword(false);
-    setErrorMessage('');
+    setShowPassword(true);
+    setErrorMessage("");
   };
 
   return (
@@ -94,9 +103,9 @@ const Login = ({ onLogin = () => ({ success: false }), clientCredentials, intern
       alignItems="center"
       justifyContent="center"
       py={8}
-      px={{base:4,md:0}}
+      px={{ base: 4, md: 0 }}
     >
-      <Box w={{base:"100%", md:"50%"}} maxW="lg">
+      <Box w={{ base: "100%", md: "50%" }} maxW="lg">
         <VStack spacing={8} align="stretch">
           {/* Header */}
           <VStack spacing={2} textAlign="center">
@@ -107,6 +116,10 @@ const Login = ({ onLogin = () => ({ success: false }), clientCredentials, intern
                 width="250px"
                 height="auto"
                 objectFit="contain"
+                transition="all 0.4s ease" // smooth animation
+                _hover={{
+                  transform: "scale(1.1)", // zoom effect
+                }}
               />
             </Box>
           </VStack>
@@ -122,18 +135,18 @@ const Login = ({ onLogin = () => ({ success: false }), clientCredentials, intern
           >
             <VStack spacing={6} align="stretch">
               <Text
-              fontSize="2xl"
-              fontWeight="semibold"
-              color="gray.800"
-              align={"center"}
-            >
-              Login
-            </Text>
+                fontSize="2xl"
+                fontWeight="semibold"
+                color="gray.800"
+                align={"center"}
+              >
+                Login
+              </Text>
               {/* User Email */}
               <FormControl isRequired>
-                <FormLabel 
-                  fontSize="sm" 
-                  fontWeight="semibold" 
+                <FormLabel
+                  fontSize="sm"
+                  fontWeight="semibold"
                   color="gray.700"
                   mb={2}
                 >
@@ -142,24 +155,24 @@ const Login = ({ onLogin = () => ({ success: false }), clientCredentials, intern
                 <Input
                   type="email"
                   value={formData.email}
-                  onChange={(e) => handleInputChange('email', e.target.value)}
+                  onChange={(e) => handleInputChange("email", e.target.value)}
                   placeholder="Enter your email"
                   size="md"
-                  bg="white"
-                  borderColor="gray.300"
-                  _hover={{ borderColor: 'blue.400' }}
+                  bg="gray.100"
+                  // borderColor="gray.300"
+                  _hover={{ borderColor: "gray.400" }}
                   _focus={{
-                    borderColor: 'blue.500',
-                    boxShadow: '0 0 0 1px blue.500'
+                    borderColor: "gray.500",
+                    boxShadow: "0 0 0 1px gray.500",
                   }}
                 />
               </FormControl>
 
               {/* Password */}
               <FormControl isRequired>
-                <FormLabel 
-                  fontSize="sm" 
-                  fontWeight="semibold" 
+                <FormLabel
+                  fontSize="sm"
+                  fontWeight="semibold"
                   color="gray.700"
                   mb={2}
                 >
@@ -167,22 +180,26 @@ const Login = ({ onLogin = () => ({ success: false }), clientCredentials, intern
                 </FormLabel>
                 <InputGroup>
                   <Input
-                    type={showPassword ? 'text' : 'password'}
+                    type={showPassword ? "password" : "text"}
                     value={formData.password}
-                    onChange={(e) => handleInputChange('password', e.target.value)}
-                    placeholder="Enter your password"
+                    onChange={(e) =>
+                      handleInputChange("password", e.target.value)
+                    }
+                    placeholder="Enter your Password"
                     size="md"
-                    bg="white"
-                    borderColor="gray.300"
-                    _hover={{ borderColor: 'blue.400' }}
+                    bg="gray.100"
+                    // borderColor="gray.300"
+                    _hover={{ borderColor: "gray.400" }}
                     _focus={{
-                      borderColor: 'blue.500',
-                      boxShadow: '0 0 0 1px blue.500'
+                      borderColor: "gray.400",
+                      boxShadow: "0 0 0 1px gray.400",
                     }}
                   />
                   <InputRightElement height="100%">
                     <IconButton
-                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      aria-label={
+                        showPassword ? "Hide password" : "Show password"
+                      }
                       icon={showPassword ? <ViewOffIcon /> : <ViewIcon />}
                       variant="ghost"
                       size="sm"
@@ -200,16 +217,22 @@ const Login = ({ onLogin = () => ({ success: false }), clientCredentials, intern
 
               {/* Login Button */}
               <Button
+                isLoading={isLoading}
+                rightIcon={<HiArrowRight size={20}/>}
                 colorScheme="blue"
                 size="md"
+                borderRadius={"15px"}
                 fontSize="lg"
                 fontWeight="semibold"
                 onClick={handleLogin}
+                isDisabled={isLoading}
                 _hover={{
-                  transform: 'translateY(-1px)',
-                  boxShadow: 'lg'
+                  scale: 0.95,
+                  transform: "rotateY(-15deg)",
+                  borderRadius:"20px",
+                  boxShadow: "lg",
                 }}
-                transition="all 0.2s"
+                transition="all 0.4s"
               >
                 Login
               </Button>
@@ -221,31 +244,29 @@ const Login = ({ onLogin = () => ({ success: false }), clientCredentials, intern
                 fontSize="sm"
                 fontWeight="medium"
                 onClick={handleForgotPassword}
-                _hover={{ textDecoration: 'none', color: 'blue.700' }}
+                _hover={{ textDecoration: "none", color: "blue.700",transform: "scale(1.05)", transition:"all 0.2s" }}
               >
                 Forgot password?
               </Button>
 
-              
               <HStack spacing={3} justify={"center"}>
-                  <Button
-                    size="sm"
-                    colorScheme="blue"
-                    variant="outline"
-                    onClick={handleFillClientCredentials}
-                  >
-                    Client Login
-                  </Button>
-                  <Button
-                    size="sm"
-                    colorScheme="green"
-                    variant="outline"
-                    onClick={handleFillInternalCredentials}
-                  >
-                    Internal Login
-                  </Button>
-                </HStack>
-              
+                <Button
+                  size="sm"
+                  colorScheme="blue"
+                  variant="outline"
+                  onClick={handleFillClientCredentials}
+                >
+                  Client Login
+                </Button>
+                <Button
+                  size="sm"
+                  colorScheme="green"
+                  variant="outline"
+                  onClick={handleFillInternalCredentials}
+                >
+                  Internal Login
+                </Button>
+              </HStack>
             </VStack>
           </Box>
         </VStack>
@@ -255,7 +276,3 @@ const Login = ({ onLogin = () => ({ success: false }), clientCredentials, intern
 };
 
 export default Login;
-
-
-
-

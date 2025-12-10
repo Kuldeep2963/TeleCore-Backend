@@ -136,7 +136,7 @@ const Vendors = () => {
   return (
     <Box
       flex={1}
-      p={8}
+      p={{base:5,md:8}}
       pr={5}
       pb={5}
       minH="calc(100vh - 76px)"
@@ -278,6 +278,7 @@ const Vendors = () => {
                 <Icon as={FiSearch} color="gray.400" />
               </InputLeftElement>
               <Input
+                bg={"white"}
                 placeholder="Search vendors..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -286,6 +287,7 @@ const Vendors = () => {
             </InputGroup>
 
             <Select
+            bg={"white"}
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
               maxW="150px"
@@ -309,13 +311,13 @@ const Vendors = () => {
             <Table variant="simple">
               <Thead bg="gray.200">
                 <Tr>
-                  <Th color={"gray.700"} textAlign="center">Vendor</Th>
-                  <Th color={"gray.700"} textAlign="center">Contact</Th>
-                  <Th color={"gray.700"} textAlign="center">Location</Th>
-                  <Th color={"gray.700"} textAlign="center">Status</Th>
-                  <Th color={"gray.700"} textAlign="center">Products</Th>
-                  <Th color={"gray.700"} textAlign="center">Orders</Th>
-                  <Th color={"gray.700"} textAlign="center">Actions</Th>
+                  <Th color={"gray.700"}>Vendor</Th>
+                  <Th color={"gray.700"}>Contact</Th>
+                  <Th color={"gray.700"}>Location</Th>
+                  <Th color={"gray.700"}>Status</Th>
+                  {/* <Th color={"gray.700"}>Products</Th> */}
+                  {/* <Th color={"gray.700"} textAlign="center">Orders</Th> */}
+                  <Th color={"gray.700"} >Actions</Th>
                 </Tr>
               </Thead>
               <Tbody>
@@ -354,12 +356,6 @@ const Vendors = () => {
                       <Badge colorScheme={getStatusColor(vendor.status)} borderRadius="full">
                         {vendor.status}
                       </Badge>
-                    </Td>
-                    <Td>
-                      <Text fontWeight="medium">{vendor.total_orders || 0}</Text>
-                    </Td>
-                    <Td>
-                      <Text fontWeight="medium">{vendor.completed_orders || 0}</Text>
                     </Td>
                   
                     <Td>

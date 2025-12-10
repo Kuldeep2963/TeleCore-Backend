@@ -25,7 +25,11 @@ import {
   Badge,
   SimpleGrid,
   Card,
-  CardBody
+  CardBody,
+  List,
+  ListItem,
+  useDisclosure,
+  Portal
 } from '@chakra-ui/react';
 import { FaFileExcel, FaEye, FaSearch, FaUnlink, FaChevronCircleLeft, FaChevronCircleRight } from 'react-icons/fa';
 import { FiRefreshCw } from 'react-icons/fi';
@@ -39,7 +43,10 @@ function MyNumbers({ onRequestDisconnection, refreshTrigger }) {
   const [selectedNumber, setSelectedNumber] = useState(null);
   const [disconnectRequests, setDisconnectRequests] = useState({});
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedOrderId, setSelectedOrderId] = useState('');
+  const [orderSearchTerm, setOrderSearchTerm] = useState('');
   const [numbers, setNumbers] = useState([]);
+  const { isOpen: isOrderDropdownOpen, onOpen: onOrderDropdownOpen, onClose: onOrderDropdownClose } = useDisclosure();
   const [loading, setLoading] = useState(true);
   const [allocationSummary, setAllocationSummary] = useState({
     totalRequired: 0,
@@ -121,20 +128,53 @@ function MyNumbers({ onRequestDisconnection, refreshTrigger }) {
     }
   };
 
-  // Filter numbers based on search term
+  // Get unique orders with order number and ID
+  const uniqueOrders = useMemo(() => {
+    const ordersMap = {};
+    numbers
+      .filter(n => n.order_id && n.order_number)
+      .forEach(n => {
+        if (!ordersMap[n.order_id]) {
+          ordersMap[n.order_id] = n.order_number;
+        }
+      });
+    
+    return Object.entries(ordersMap)
+      .map(([id, number]) => ({ id, number }))
+      .sort((a, b) => a.number.localeCompare(b.number));
+  }, [numbers]);
+
+  // Filter orders based on search term
+  const filteredOrders = useMemo(() => {
+    if (!orderSearchTerm.trim()) {
+      return uniqueOrders;
+    }
+    const searchLower = orderSearchTerm.toLowerCase();
+    return uniqueOrders.filter(order =>
+      order.number.toLowerCase().includes(searchLower)
+    );
+  }, [uniqueOrders, orderSearchTerm]);
+
+  // Filter numbers based on search term and order ID
   const filteredNumbers = useMemo(() => {
+    let result = numbers;
+
+    if (selectedOrderId) {
+      result = result.filter(number => number.order_id === selectedOrderId);
+    }
+
     if (!searchTerm.trim()) {
-      return numbers;
+      return result;
     }
 
     const searchLower = searchTerm.toLowerCase();
-    return numbers.filter(number =>
+    return result.filter(number =>
       number.country_name.toLowerCase().includes(searchLower) ||
       number.product_name.toLowerCase().includes(searchLower) ||
       number.area_code.toLowerCase().includes(searchLower) ||
       number.number.toLowerCase().includes(searchLower)
     );
-  }, [numbers, searchTerm]);
+  }, [numbers, searchTerm, selectedOrderId]);
 
   const handleDisconnectClick = (number) => {
     if (!onRequestDisconnection) {
@@ -150,10 +190,25 @@ function MyNumbers({ onRequestDisconnection, refreshTrigger }) {
   const endIndex = Math.min(startIndex + resultsPerPage, totalResults);
   const currentNumbers = filteredNumbers.slice(startIndex, endIndex);
 
-  // Reset to first page when search changes
+  // Reset to first page when search or order filter changes
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm]);
+  }, [searchTerm, selectedOrderId]);
+
+  // Close dropdown when clicking outside
+  React.useEffect(() => {
+    const handleClickOutside = (e) => {
+      const orderCombobox = document.getElementById('order-combobox');
+      if (orderCombobox && !orderCombobox.contains(e.target)) {
+        onOrderDropdownClose();
+      }
+    };
+
+    if (isOrderDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isOrderDropdownOpen, onOrderDropdownClose]);
 
   const handleExportToExcel = () => {
     const headers = ['S. No.', 'Country', 'Product Type', 'Area Code', 'Number', 'Status'];
@@ -207,6 +262,24 @@ function MyNumbers({ onRequestDisconnection, refreshTrigger }) {
     setSearchTerm('');
   };
 
+  const handleOrderSearchChange = (e) => {
+    setOrderSearchTerm(e.target.value);
+    if (!isOrderDropdownOpen) {
+      onOrderDropdownOpen();
+    }
+  };
+
+  const handleSelectOrder = (order) => {
+    setSelectedOrderId(order.id);
+    setOrderSearchTerm(order.number);
+    onOrderDropdownClose();
+  };
+
+  const clearOrderFilter = () => {
+    setSelectedOrderId('');
+    setOrderSearchTerm('');
+  };
+
   const getStatusColor = (status) => {
     switch (status) {
       case 'Active':
@@ -248,6 +321,67 @@ function MyNumbers({ onRequestDisconnection, refreshTrigger }) {
           </Heading>
           <HStack spacing={6}>
             <Spacer/>
+            <Box position="relative" w="300px" id="order-combobox">
+              <InputGroup>
+                <Input
+                  placeholder="All Orders"
+                  value={orderSearchTerm}
+                  onChange={handleOrderSearchChange}
+                  onFocus={onOrderDropdownOpen}
+                  bg="white"
+                  borderRadius="full"
+                  boxShadow="lg"
+                  autoComplete="off"
+                />
+                <InputRightElement width="2.5rem">
+                  {orderSearchTerm ? (
+                    <Button
+                      h="1.75rem"
+                      size="sm"
+                      onClick={clearOrderFilter}
+                      variant="ghost"
+                      color="gray.500"
+                      _hover={{ color: 'gray.700' }}
+                    >
+                      ✕
+                    </Button>
+                  ) : null}
+                </InputRightElement>
+              </InputGroup>
+              {isOrderDropdownOpen && filteredOrders.length > 0 && (
+                <Box
+                  position="absolute"
+                  top="100%"
+                  left={0}
+                  right={0}
+                  bg="white"
+                  borderRadius="md"
+                  boxShadow="lg"
+                  zIndex={10}
+                  mt={1}
+                  maxH="200px"
+                  overflowY="auto"
+                  border="1px solid"
+                  borderColor="gray.200"
+                >
+                  <List spacing={0}>
+                    {filteredOrders.map((order) => (
+                      <ListItem
+                        key={order.id}
+                        p={3}
+                        cursor="pointer"
+                        _hover={{ bg: 'blue.50' }}
+                        onClick={() => handleSelectOrder(order)}
+                        borderBottom="1px solid"
+                        borderColor="gray.100"
+                      >
+                        <Text fontSize="sm">{order.number}</Text>
+                      </ListItem>
+                    ))}
+                  </List>
+                </Box>
+              )}
+            </Box>
             <InputGroup w="250px">
               <Input
                 boxShadow="lg"
@@ -336,14 +470,13 @@ function MyNumbers({ onRequestDisconnection, refreshTrigger }) {
         </SimpleGrid>
 
         <Box
+          mt={2}
           bg="white"
-          borderRadius="12px"
-          boxShadow="sm"
-          border="1px solid"
-          borderColor="gray.200"
-          h="60%"
-          overflowY="auto"
-          p={2}
+            borderRadius="xl"
+            boxShadow="0 2px 4px rgba(0, 0, 0, 0.05)"
+            border="1px solid"
+            borderColor="gray.100"
+            overflow={{base:"scroll",md:"hidden"}}
         >
           <Table variant="simple" h="470px">
             <Thead position="sticky" top={0} bg="white" zIndex={1}>
@@ -356,7 +489,7 @@ function MyNumbers({ onRequestDisconnection, refreshTrigger }) {
                     fontSize: "sm",
                     letterSpacing: "0.3px",
                     borderBottom: "2px solid",
-                    borderColor: "blue.400",
+                    borderColor: "gray.400",
                     textAlign: "center",
                   }
                 }}
@@ -377,7 +510,7 @@ function MyNumbers({ onRequestDisconnection, refreshTrigger }) {
                     <Td color={"blue.500"} fontWeight={"bold"} textAlign="center">{startIndex + index + 1}</Td>
                     <Td fontWeight={"semibold"} color={"green"} textAlign="center">{number.country_name}</Td>
                     
-                    <Td textAlign="center"><Badge size={"lg"} bg={"blue.100"}>{number.product_name}</Badge></Td>
+                    <Td textAlign="center"><Badge colorScheme='blue' borderRadius={"full"} px={2}>{number.product_name}</Badge></Td>
                     
                     <Td fontWeight={"semibold"} textAlign="center">{number.area_code}</Td>
                     <Td textAlign="center">{number.number}</Td>
@@ -407,7 +540,7 @@ function MyNumbers({ onRequestDisconnection, refreshTrigger }) {
                             isDisabled={number.disconnection_status === 'Pending' || number.disconnection_status === 'Approved' || number.disconnection_status === 'Completed'}
                           >
                             {number.disconnection_status === 'Pending' ? 'Pending...' :
-                             number.disconnection_status === 'Approved' ? 'Approved' :
+                            //  number.disconnection_status === 'Approved' ? 'Approved' :
                              number.disconnection_status === 'Rejected' ? 'Rejected' :
                              number.disconnection_status === 'Completed' ? 'Disconnected' : 'Disconnect'}
                           </Button>
@@ -427,7 +560,7 @@ function MyNumbers({ onRequestDisconnection, refreshTrigger }) {
     fontSize="md"
   >
     <VStack spacing={3} justify="center">
-      <Icon as={FiRefreshCw} boxSize={8} color="gray.500" />
+      <Icon as={FiRefreshCw} boxSize={6} color="gray.500" />
       <Text>
         {searchTerm ? 'No numbers found matching your search' : 'No numbers purchased yet'}
       </Text>

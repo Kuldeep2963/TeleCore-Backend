@@ -69,7 +69,8 @@ router.get('/product/:productId/country/:countryId', async (req, res) => {
     const { productId, countryId } = req.params;
 
     const result = await query(`
-      SELECT pp.* FROM pricing_plans pp
+      SELECT pp.*, p.code as product_code FROM pricing_plans pp
+      JOIN products p ON pp.product_id = p.id
       WHERE (pp.product_id::text = $1 OR pp.product_id = CAST($1 as uuid))
       AND (pp.country_id::text = $2 OR pp.country_id = CAST($2 as uuid))
       AND pp.status = 'Active'

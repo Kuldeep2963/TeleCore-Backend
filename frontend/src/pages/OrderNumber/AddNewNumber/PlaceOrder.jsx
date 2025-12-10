@@ -362,10 +362,10 @@ const PlaceOrder = ({
       <VStack spacing={6} align="stretch">
         {/* Page Header */}
         <Box>
-          <Heading size="xl" color="gray.800" mb={2}>
+          <Heading size="xl" color="gray.800" mb={1}>
             Cart
           </Heading>
-          <Text color="gray.600">
+          <Text color="gray.500">
             Review your items before placing the order
           </Text>
         </Box>
@@ -392,7 +392,7 @@ const PlaceOrder = ({
                           fontSize: "sm",
                           letterSpacing: "0.3px",
                           borderBottom: "2px solid",
-                          borderColor: "blue.400",
+                          borderColor: "gray.400",
                           textAlign: "center",
                           // py: 3
                         },
@@ -406,7 +406,7 @@ const PlaceOrder = ({
                       <Th >Action</Th>
                     </Tr>
                   </Thead>
-                  <Tbody>
+                  <Tbody bg={"white"}>
                     {itemsToDisplay.map((item) => (
                       <Tr key={item.id} _hover={{ bg: "gray.50" }}>
                         <Td color={"blue.500"} fontWeight={"bold"}>
@@ -464,8 +464,8 @@ const PlaceOrder = ({
                 </Table>
               </Box>
             ) : (
-              <Box textAlign="center" py={2}>
-                <Text color="gray.500" fontSize="md">
+              <Box borderRadius={"8px"} border={"1px"} borderColor={"gray.200"} bg={"white"} textAlign="center" py={4}>
+                <Text color="gray.400" fontSize="md">
                   Your cart is empty. Please add items to proceed.
                 </Text>
               </Box>

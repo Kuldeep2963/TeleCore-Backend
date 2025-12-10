@@ -67,9 +67,24 @@ const Invoices = () => {
   const fetchInvoices = async () => {
     try {
       setLoading(true);
-      const response = await api.invoices.getAll();
-      if (response.success) {
-        setInvoices(response.data);
+      const [invoicesResponse, ordersResponse] = await Promise.all([
+        api.invoices.getAll(),
+        api.orders.getAll()
+      ]);
+      
+      if (invoicesResponse.success) {
+        const ordersMap = {};
+        if (ordersResponse.success && Array.isArray(ordersResponse.data)) {
+          for (const order of ordersResponse.data) {
+            ordersMap[order.id] = order;
+          }
+        }
+        
+        const enrichedInvoices = invoicesResponse.data.map(invoice => ({
+          ...invoice,
+          quantity: ordersMap[invoice.order_id]?.quantity || 1
+        }));
+        setInvoices(enrichedInvoices);
       } else {
         toast({
           title: 'Error',
@@ -681,16 +696,16 @@ const Invoices = () => {
                       </VStack>
                     </Td>
                     <Td>
-                      <Text color='blue.700' fontWeight="semibold">{formatCurrency(invoice.mrc_amount || 0)}</Text>
+                      <Text color='blue.700' fontWeight="semibold">{formatCurrency((Number(invoice.mrc_amount) || 0) * (Number(invoice.quantity) || 1))}</Text>
                     </Td>
                     <Td>
-                      <Text color='purple' fontWeight="semibold">{formatCurrency(invoice.usage_amount || 0)}</Text>
+                      <Text color='purple' fontWeight="semibold">{formatCurrency(Number(invoice.usage_amount) || 0)}</Text>
                     </Td>
                     <Td>
-                      <Text color='green' fontWeight="bold">{formatCurrency(invoice.amount || 0)}</Text>
+                      <Text color='green' fontWeight="bold">{formatCurrency(((Number(invoice.mrc_amount) || 0) * (Number(invoice.quantity) || 1)) + (Number(invoice.usage_amount) || 0))}</Text>
                     </Td>
                     <Td textAlign="center">
-                      <Badge colorScheme={getStatusColor(invoice.status || 'Pending')} borderRadius={"full"}>
+                      <Badge px={2} colorScheme={getStatusColor(invoice.status || 'Pending')} borderRadius={"full"}>
                         <HStack spacing={1}>
                           <Icon as={getStatusIcon(invoice.status || 'Pending')} boxSize={3} />
                           <Text>{invoice.status || 'Pending'}</Text>
@@ -805,18 +820,18 @@ const Invoices = () => {
       </Modal> */}
 
       {/* Edit Usage Amount Modal */}
-      <Modal isOpen={!!editingUsage} onClose={handleCancelEditUsage} size={{base:"sm",md:"md"}}>
+      <Modal isOpen={!!editingUsage} onClose={handleCancelEditUsage} size={{base:"sm",md:"lg"}}>
         <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>Edit Usage Amount - {editingUsage?.invoice_number || editingUsage?.id}</ModalHeader>
-          <ModalCloseButton />
-          <ModalBody pb={6}>
+        <ModalContent borderRadius={"15px"}>
+          <ModalHeader borderTopRadius={"15px"} bgGradient="linear(to-r,blue.400,blue.500)" color={"white"} > Usage Amount - {editingUsage?.invoice_number || editingUsage?.id}</ModalHeader>
+          <ModalCloseButton color={"white"} />
+          <ModalBody mt={3} pb={6}>
             {editingUsage && (
-              <VStack spacing={4} align="stretch">
+              <VStack spacing={2} align="stretch">
                 <Box>
                   <HStack spacing={6}>
                   <Text fontWeight="semibold" color="gray.600" mb={2}>Current MRC Amount:</Text>
-                  <Text mb={2} fontWeight='bold' fontSize="lg" color="blue.600">${(parseFloat(editingUsage.mrc_amount)).toFixed(2)}</Text>
+                  <Text mb={2} fontWeight='bold' fontSize="lg" color="blue.600">${(parseFloat(editingUsage.mrc_amount || 0) * (editingUsage.quantity || 1)).toFixed(2)}</Text>
                   </HStack>
                 </Box>
                 <Box>
@@ -847,20 +862,22 @@ const Invoices = () => {
                   <HStack spacing={6}>
                   <Text fontWeight="semibold" color="gray.600" m={2}>New Total Amount:</Text>
                   <Text fontSize="xl" fontWeight="bold" m={2} color="green.600">
-                    ${(parseFloat(editingUsage.mrc_amount || 0) + parseFloat(newUsageAmount || 0)).toFixed(2)}
+                    ${(parseFloat(editingUsage.mrc_amount || 0) * (editingUsage.quantity || 1) + parseFloat(newUsageAmount || 0)).toFixed(2)}
                   </Text>
                   </HStack>
                 </Box>
                 <Flex justify="flex-end" gap={3} mt={4}>
-                  <Button variant="outline" onClick={handleCancelEditUsage}>
+                  <Button borderRadius={"full"} variant="outline" onClick={handleCancelEditUsage}>
                     Cancel
                   </Button>
                   <Button
+                    leftIcon={<FiPlus/>}
                     colorScheme="blue"
+                    borderRadius={"full"}
                     onClick={handleSaveUsageAmount}
                     isDisabled={!newUsageAmount || parseFloat(newUsageAmount) < 0}
                   >
-                    Save Changes
+                    Save
                   </Button>
                 </Flex>
               </VStack>

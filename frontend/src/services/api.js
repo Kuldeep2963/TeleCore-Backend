@@ -97,7 +97,7 @@ const api = {
     update: (id, data) => apiCall(`/orders/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     delete: (id) => apiCall(`/orders/${id}`, { method: 'DELETE' }),
     updateStatus: (id, status) => apiCall(`/orders/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
-    // ADDED MISSING METHOD
+    confirm: (id) => apiCall(`/orders/${id}/confirm`, { method: 'PATCH', body: JSON.stringify({}) }),
     createPricing: (orderId, data) => apiCall(`/orders/${orderId}/pricing`, { 
       method: 'POST', 
       body: JSON.stringify(data) 
@@ -230,6 +230,16 @@ const api = {
     getByProductCountry: (productId, countryId) => apiCall(`/required-documents/product/${productId}/country/${countryId}`),
     create: (data) => apiCall('/required-documents', { method: 'POST', body: JSON.stringify(data) }),
     update: (id, data) => apiCall(`/required-documents/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  },
+
+  vendorPricing: {
+    getAll: () => apiCall('/vendor-pricing'),
+    getById: (id) => apiCall(`/vendor-pricing/${id}`),
+    getByVendor: (vendorId) => apiCall(`/vendor-pricing/vendor/${vendorId}`),
+    getByVendorProductCountry: (vendorId, productId, countryId) => apiCall(`/vendor-pricing/vendor/${vendorId}/product/${productId}/country/${countryId}`),
+    create: (data) => apiCall('/vendor-pricing', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id, data) => apiCall(`/vendor-pricing/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete: (id) => apiCall(`/vendor-pricing/${id}`, { method: 'DELETE' }),
   },
 };
 

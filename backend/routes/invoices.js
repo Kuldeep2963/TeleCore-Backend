@@ -1,7 +1,7 @@
 const express = require('express');
 const { query } = require('../config/database');
 const { authenticateToken, requireInternal } = require('../middleware/auth');
-const { generateMonthlyInvoices } = require('../jobs/invoiceScheduler');
+const { generateMonthlyInvoices, updateOverdueInvoices } = require('../jobs/invoiceScheduler');
 const PDFDocument = require('pdfkit');
 
 const router = express.Router();
@@ -19,6 +19,24 @@ router.post('/manual-trigger/generate', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to trigger invoice generation',
+      error: error.message
+    });
+  }
+});
+
+// Manual trigger for overdue invoice status update (for testing)
+router.post('/manual-trigger/check-overdue', async (req, res) => {
+  try {
+    await updateOverdueInvoices();
+    res.json({
+      success: true,
+      message: 'Overdue invoice check triggered successfully'
+    });
+  } catch (error) {
+    console.error('Manual overdue invoice check error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to trigger overdue invoice check',
       error: error.message
     });
   }

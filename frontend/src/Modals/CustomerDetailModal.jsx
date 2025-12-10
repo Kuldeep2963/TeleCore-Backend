@@ -144,17 +144,17 @@ const CustomerDetailModal = ({ isOpen, onClose, customer }) => {
   return (
     <Modal isOpen={isOpen} onClose={onClose} size={{base:"sm",md:"6xl"}} scrollBehavior="inside">
       <ModalOverlay backdropFilter="blur(4px)" />
-      <ModalContent>
-        <ModalHeader>
+      <ModalContent  borderRadius="15px" >
+        <ModalHeader bgGradient="linear(to-r, blue.400, blue.500)" borderTopRadius={"15px"} color={"white"} >
           <HStack spacing={3}>
             <Avatar size="md" name={customer.company_name} />
             <VStack align="start" spacing={0}>
               <Heading size="lg">{customer.contact_person || customer.company_name}</Heading>
-              <Text fontSize="sm" color="gray.600">Customer Details</Text>
+              <Text fontSize="sm" color="WhiteAlpha.700">Customer Details</Text>
             </VStack>
           </HStack>
         </ModalHeader>
-        <ModalCloseButton />
+        <ModalCloseButton color={"white"} boxSize={20} size={"xl"} />
         <ModalBody>
           <VStack spacing={6} align="stretch">
             {/* Basic Information */}
@@ -360,7 +360,6 @@ const CustomerDetailModal = ({ isOpen, onClose, customer }) => {
                             <Th color={"gray.700"} textAlign="center">Amount</Th>
                             <Th color={"gray.700"} textAlign="center">Status</Th>
                             <Th color={"gray.700"} >Order Date</Th>
-                            <Th color={"gray.700"} >Vendor</Th>
                           </Tr>
                         </Thead>
                         <Tbody>
@@ -386,9 +385,9 @@ const CustomerDetailModal = ({ isOpen, onClose, customer }) => {
                               <Td>
                                 <Text fontSize="sm">{new Date(order.orderDate).toLocaleDateString()}</Text>
                               </Td>
-                              <Td>
+                              {/* <Td>
                                 <Text fontSize="sm">{order.vendor}</Text>
-                              </Td>
+                              </Td> */}
                             </Tr>
                           )) : (
                             <Tr>

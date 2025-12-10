@@ -51,6 +51,7 @@ app.use('/api/users', authenticateToken, require('./routes/users'));
 app.use('/api/wallet', authenticateToken, require('./routes/wallet'));
 app.use('/api/customers', authenticateToken, require('./routes/customers'));
 app.use('/api/vendors', authenticateToken, requireInternal, require('./routes/vendors'));
+app.use('/api/vendor-pricing', authenticateToken, require('./routes/vendor_pricing'));
 app.use('/api/orders', authenticateToken, require('./routes/orders'));
 app.use('/api/numbers', authenticateToken, require('./routes/numbers'));
 app.use('/api/invoices', authenticateToken, require('./routes/invoices'));

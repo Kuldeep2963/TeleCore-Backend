@@ -30,7 +30,7 @@ function DisconnectionModal({ isOpen, onClose, number, onSuccess }) {
         title: 'Error',
         description: 'Please provide a reason for disconnection',
         status: 'error',
-        duration: 3000,
+        duration: 2000,
         isClosable: true,
       });
       return;
@@ -50,7 +50,7 @@ function DisconnectionModal({ isOpen, onClose, number, onSuccess }) {
           title: 'Success',
           description: 'Disconnection request submitted successfully',
           status: 'success',
-          duration: 3000,
+          duration: 2000,
           isClosable: true,
         });
 
@@ -71,7 +71,7 @@ function DisconnectionModal({ isOpen, onClose, number, onSuccess }) {
         title: 'Error',
         description: error.message || 'Failed to submit disconnection request',
         status: 'error',
-        duration: 3000,
+        duration: 2000,
         isClosable: true,
       });
     } finally {

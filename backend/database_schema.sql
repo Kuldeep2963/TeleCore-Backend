@@ -87,6 +87,37 @@ CREATE TABLE vendors (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Vendor Pricing table (pricing offered by vendors)
+CREATE TABLE vendor_pricing (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    vendor_id UUID REFERENCES vendors(id) ON DELETE CASCADE,
+    product_id UUID REFERENCES products(id) ON DELETE CASCADE,
+    country_id UUID REFERENCES countries(id) ON DELETE CASCADE,
+    area_codes TEXT[], -- Array of area codes available for this service
+    nrc DECIMAL(10,4), -- Non-Recurring Charge
+    mrc DECIMAL(10,4), -- Monthly Recurring Charge
+    ppm DECIMAL(10,4), -- Per Minute Rate
+    ppm_fix DECIMAL(10,4), -- Fixed line PPM
+    ppm_mobile DECIMAL(10,4), -- Mobile PPM
+    ppm_payphone DECIMAL(10,4), -- Payphone PPM
+    arc DECIMAL(10,4), -- Additional Routing Charge
+    mo DECIMAL(10,4), -- Mobile Originated
+    mt DECIMAL(10,4), -- Mobile Terminated
+    incoming_ppm DECIMAL(10,4),
+    outgoing_ppm_fix DECIMAL(10,4),
+    outgoing_ppm_mobile DECIMAL(10,4),
+    incoming_sms DECIMAL(10,4),
+    outgoing_sms DECIMAL(10,4),
+    billing_pulse VARCHAR(20) DEFAULT '60/60',
+    estimated_lead_time VARCHAR(50) DEFAULT '15 Days',
+    contract_term VARCHAR(50) DEFAULT '1 Month',
+    disconnection_notice_term VARCHAR(50) DEFAULT '1 Month',
+    status VARCHAR(50) DEFAULT 'Active' CHECK (status IN ('Active', 'Inactive')),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(vendor_id, product_id, country_id)
+);
+
 -- Customers table (clients)
 CREATE TABLE customers (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -142,7 +173,9 @@ CREATE TABLE order_pricing (
     outgoing_ppm_fix DECIMAL(10,4),
     outgoing_ppm_mobile DECIMAL(10,4),
     incoming_sms DECIMAL(10,4),
-    outgoing_sms DECIMAL(10,4)
+    outgoing_sms DECIMAL(10,4),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(order_id, pricing_type)
 );
 
 -- Numbers table (phone numbers)
@@ -154,7 +187,7 @@ CREATE TABLE numbers (
     country_id UUID REFERENCES countries(id) ON DELETE CASCADE,
     product_id UUID REFERENCES products(id) ON DELETE CASCADE,
     area_code VARCHAR(100),
-    status VARCHAR(50) DEFAULT 'Active' CHECK (status IN ('Active', 'Inactive', 'Disconnected', 'Pending')),
+    status VARCHAR(50) DEFAULT 'Active' CHECK (status IN ('Active','Disconnected')),
     activation_date DATE,
     disconnection_date DATE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
@@ -169,7 +202,7 @@ CREATE TABLE invoices (
     mrc_amount DECIMAL(10,2) DEFAULT 0.00, -- Monthly Recurring Charges
     usage_amount DECIMAL(10,2) DEFAULT 0.00, -- Usage charges, can be updated by internal users
     amount DECIMAL(10,2) NOT NULL, -- Total amount (mrc_amount + usage_amount)
-    status VARCHAR(50) DEFAULT 'Pending' CHECK (status IN ('Pending', 'Paid', 'Overdue', 'Cancelled')),
+    status VARCHAR(50) DEFAULT 'Pending' CHECK (status IN ('Pending', 'Paid', 'Overdue')),
     invoice_date DATE DEFAULT CURRENT_DATE,
     due_date DATE NOT NULL,
     paid_date DATE,
@@ -188,7 +221,7 @@ CREATE TABLE disconnection_requests (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     number_id UUID REFERENCES numbers(id) ON DELETE CASCADE,
     order_id UUID REFERENCES orders(id) ON DELETE CASCADE,
-    status VARCHAR(50) DEFAULT 'Pending' CHECK (status IN ('Pending', 'Approved', 'Rejected', 'Completed')),
+    status VARCHAR(50) DEFAULT 'Pending' CHECK (status IN ('Pending', 'Approved', 'Rejected')),
     requested_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     processed_at TIMESTAMP WITH TIME ZONE,
     notes TEXT
@@ -232,15 +265,14 @@ CREATE TABLE required_documents (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     product_id UUID REFERENCES products(id) ON DELETE CASCADE,
     country_id UUID REFERENCES countries(id) ON DELETE CASCADE,
-    document_name VARCHAR(255) NOT NULL,
-    document_code VARCHAR(100) UNIQUE NOT NULL,
+    document_code VARCHAR(100),
+    document_name VARCHAR(255),
     description TEXT,
-    is_required BOOLEAN DEFAULT true,
     status VARCHAR(50) DEFAULT 'Active' CHECK (status IN ('Active', 'Inactive')),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(product_id, country_id, document_code)
 );
-
 -- Indexes for better performance
 CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_users_role ON users(role);
@@ -255,6 +287,8 @@ CREATE INDEX idx_invoices_customer_id ON invoices(customer_id);
 CREATE INDEX idx_invoices_status ON invoices(status);
 CREATE INDEX idx_invoices_due_date ON invoices(due_date);
 CREATE INDEX idx_pricing_plans_product_country ON pricing_plans(product_id, country_id);
+CREATE INDEX idx_vendor_pricing_vendor_product_country ON vendor_pricing(vendor_id, product_id, country_id);
+CREATE INDEX idx_vendor_pricing_status ON vendor_pricing(status);
 CREATE INDEX idx_wallet_transactions_user_id ON wallet_transactions(user_id);
 CREATE INDEX idx_service_details_product_country ON service_details(product_id, country_id);
 CREATE INDEX idx_required_documents_product_country ON required_documents(product_id, country_id);
@@ -274,57 +308,6 @@ CREATE TRIGGER update_customers_updated_at BEFORE UPDATE ON customers FOR EACH R
 CREATE TRIGGER update_orders_updated_at BEFORE UPDATE ON orders FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_invoices_updated_at BEFORE UPDATE ON invoices FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_vendors_updated_at BEFORE UPDATE ON vendors FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_vendor_pricing_updated_at BEFORE UPDATE ON vendor_pricing FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_service_details_updated_at BEFORE UPDATE ON service_details FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_required_documents_updated_at BEFORE UPDATE ON required_documents FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
--- -- Insert initial data
--- INSERT INTO countries (id, countryname, phonecode, availableproducts) VALUES
--- ('550e8400-e29b-41d4-a716-446655440000', 'United States', '+1', '[{"name": "DID", "areaCodes": ["212", "213", "310", "323", "415", "510", "650", "714", "818", "925"]}, {"name": "Mobile", "areaCodes": ["201", "202", "203", "204", "205"]}]'),
--- ('550e8400-e29b-41d4-a716-446655440001', 'United Kingdom', '+44', '[{"name": "DID", "areaCodes": ["20", "161", "121", "113", "141"]}, {"name": "Freephone", "areaCodes": ["800", "808"]}, {"name": "Universal Freephone", "areaCodes": ["800", "808"]}, {"name": "Two Way SMS", "areaCodes": ["700", "701"]}, {"name": "Mobile", "areaCodes": ["770", "771", "772"]}]'),
--- ('550e8400-e29b-41d4-a716-446655440002', 'Canada', '+1', '[{"name": "DID", "areaCodes": ["416", "647", "438", "514", "613"]}, {"name": "Freephone", "areaCodes": ["800", "888", "877"]}, {"name": "Mobile", "areaCodes": ["289", "365", "403", "587"]}]'),
--- ('550e8400-e29b-41d4-a716-446655440003', 'Australia', '+61', '[{"name": "DID", "areaCodes": ["2", "3", "7", "8"]}, {"name": "Freephone", "areaCodes": ["1800", "1300"]}, {"name": "Universal Freephone", "areaCodes": ["1800", "1300"]}]'),
--- ('550e8400-e29b-41d4-a716-446655440004', 'Myanmar', '+95', '[{"name": "DID", "areaCodes": ["1", "2", "9"]}, {"name": "Freephone", "areaCodes": ["800"]}, {"name": "Two Way SMS", "areaCodes": ["900"]}]'),
--- ('550e8400-e29b-41d4-a716-446655440005', 'Singapore', '+65', '[{"name": "Freephone", "areaCodes": ["800", "1800"]}, {"name": "Universal Freephone", "areaCodes": ["800", "1800"]}, {"name": "Mobile", "areaCodes": ["8", "9"]}]');
-
--- INSERT INTO products (name, code, description, category) VALUES
--- ('DID', 'did', 'Direct Inward Dialing numbers', 'DID'),
--- ('Freephone', 'freephone', 'Toll-free numbers', 'Freephone'),
--- ('Universal Freephone', 'universal-freephone', 'Universal toll-free numbers', 'Universal Freephone'),
--- ('Two Way Voice', 'two-way-voice', 'Bidirectional voice calling', 'Two Way Voice'),
--- ('Two Way SMS', 'two-way-sms', 'Bidirectional SMS service', 'Two Way SMS'),
--- ('Mobile', 'mobile', 'Mobile number services', 'Mobile');
-
--- -- Sample pricing for US DID
--- INSERT INTO pricing_plans (product_id, country_id, nrc, mrc, ppm) VALUES
--- ((SELECT id FROM products WHERE code = 'did'), '550e8400-e29b-41d4-a716-446655440000', 24.00, 24.00, 0.0380);
-
--- -- Sample service details
--- INSERT INTO service_details (product_id, country_id, restrictions, channels, portability, fix_coverage, mobile_coverage, payphone_coverage, default_channels, maximum_channels, extra_channel_price) VALUES
--- ((SELECT id FROM products WHERE code = 'did'), '550e8400-e29b-41d4-a716-446655440000', 'None', 'SMS, Voice', 'Yes', 'Supported', 'Supported', 'Not Supported', 2, 10, 45.00),
--- ((SELECT id FROM products WHERE code = 'freephone'), '550e8400-e29b-41d4-a716-446655440000', 'None', 'Voice', 'Yes', 'Supported', 'Supported', 'Not Supported', 2, 8, 50.00),
--- ((SELECT id FROM products WHERE code = 'mobile'), '550e8400-e29b-41d4-a716-446655440000', 'None', 'SMS, Voice', 'Yes', 'Not Supported', 'Supported', 'Not Supported', 1, 5, 35.00),
--- ((SELECT id FROM products WHERE code = 'did'), '550e8400-e29b-41d4-a716-446655440001', 'None', 'SMS, Voice', 'Yes', 'Supported', 'Supported', 'Not Supported', 2, 10, 42.00),
--- ((SELECT id FROM products WHERE code = 'freephone'), '550e8400-e29b-41d4-a716-446655440001', 'None', 'Voice', 'Yes', 'Supported', 'Supported', 'Not Supported', 2, 8, 48.00),
--- ((SELECT id FROM products WHERE code = 'universal-freephone'), '550e8400-e29b-41d4-a716-446655440001', 'None', 'Voice', 'Yes', 'Supported', 'Supported', 'Not Supported', 2, 8, 45.00),
--- ((SELECT id FROM products WHERE code = 'two-way-sms'), '550e8400-e29b-41d4-a716-446655440001', 'None', 'SMS', 'Yes', 'Supported', 'Supported', 'Not Supported', 1, 3, 25.00),
--- ((SELECT id FROM products WHERE code = 'mobile'), '550e8400-e29b-41d4-a716-446655440001', 'None', 'SMS, Voice', 'Yes', 'Not Supported', 'Supported', 'Not Supported', 1, 5, 32.00);
-
--- -- Sample required documents
--- INSERT INTO required_documents (product_id, country_id, document_name, document_code, description, is_required) VALUES
--- ((SELECT id FROM products WHERE code = 'did'), '550e8400-e29b-41d4-a716-446655440000', 'Business License', 'business_license', 'Valid business registration certificate', true),
--- ((SELECT id FROM products WHERE code = 'did'), '550e8400-e29b-41d4-a716-446655440000', 'Tax Certificate', 'tax_certificate', 'Latest tax clearance certificate', true),
--- ((SELECT id FROM products WHERE code = 'did'), '550e8400-e29b-41d4-a716-446655440000', 'ID Proof', 'id_proof', 'Government issued ID for authorized signatory', false),
--- ((SELECT id FROM products WHERE code = 'did'), '550e8400-e29b-41d4-a716-446655440000', 'Address Proof', 'address_proof', 'Utility bill or bank statement showing address', true),
--- ((SELECT id FROM products WHERE code = 'did'), '550e8400-e29b-41d4-a716-446655440000', 'Bank Details', 'bank_details', 'Bank account details for payment processing', true),
--- ((SELECT id FROM products WHERE code = 'freephone'), '550e8400-e29b-41d4-a716-446655440000', 'Business License', 'business_license', 'Valid business registration certificate', true),
--- ((SELECT id FROM products WHERE code = 'freephone'), '550e8400-e29b-41d4-a716-446655440000', 'Tax Certificate', 'tax_certificate', 'Latest tax clearance certificate', true),
--- ((SELECT id FROM products WHERE code = 'freephone'), '550e8400-e29b-41d4-a716-446655440000', 'Address Proof', 'address_proof', 'Utility bill or bank statement showing address', true),
--- ((SELECT id FROM products WHERE code = 'freephone'), '550e8400-e29b-41d4-a716-446655440000', 'Bank Details', 'bank_details', 'Bank account details for payment processing', true),
--- ((SELECT id FROM products WHERE code = 'mobile'), '550e8400-e29b-41d4-a716-446655440000', 'Business License', 'business_license', 'Valid business registration certificate', true),
--- ((SELECT id FROM products WHERE code = 'mobile'), '550e8400-e29b-41d4-a716-446655440000', 'ID Proof', 'id_proof', 'Government issued ID for authorized signatory', true),
--- ((SELECT id FROM products WHERE code = 'mobile'), '550e8400-e29b-41d4-a716-446655440000', 'Address Proof', 'address_proof', 'Utility bill or bank statement showing address', true);
-
--- -- Users will be created by seed-data.js with proper bcrypt hashes
--- -- Placeholder users - will be populated by seed script
--- -- To set up: run 'npm run setup' from backend directory
-

@@ -62,7 +62,7 @@ function NumberDisconnectModal({ isOpen, onClose, onSuccess }) {
         title: 'Error',
         description: 'Failed to load data',
         status: 'error',
-        duration: 3000,
+        duration: 2000,
         isClosable: true,
       });
     } finally {
@@ -100,7 +100,7 @@ function NumberDisconnectModal({ isOpen, onClose, onSuccess }) {
         title: 'Error',
         description: 'Please select a number to disconnect',
         status: 'error',
-        duration: 3000,
+        duration:2000,
         isClosable: true,
       });
       return;
@@ -111,7 +111,7 @@ function NumberDisconnectModal({ isOpen, onClose, onSuccess }) {
         title: 'Error',
         description: 'Phone number confirmation does not match',
         status: 'error',
-        duration: 3000,
+        duration: 2000,
         isClosable: true,
       });
       return;

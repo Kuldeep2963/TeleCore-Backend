@@ -68,35 +68,40 @@ const Billing = ({ walletBalance = 50.00, onUpdateBalance = () => {}, userId }) 
         api.orders.getAll()
       ]);
 
-      // Transform invoices for table usage
-      if (invoicesResponse && invoicesResponse.success && Array.isArray(invoicesResponse.data)) {
-        const transformedInvoices = invoicesResponse.data.map(invoice => ({
-          id: invoice.invoice_number, // using invoice_number consistently
-          invoiceRaw: invoice, // keep raw if needed
-          date: safeDate(invoice.invoice_date) || '',
-          dueDate: safeDate(invoice.due_date) || '',
-          payDate: safeDate(invoice.paid_date) || null,
-          service: invoice.customer_name || invoice.product_name || 'Service',
-          amount: parseFloat(invoice.amount || 0),
-          mrcAmount: parseFloat(invoice.mrc_amount || 0),
-          usageAmount: parseFloat(invoice.usage_amount || 0),
-          status: invoice.status || 'Unknown',
-          period: invoice.period || '',
-          fromDate: safeDate(invoice.from_date) || null,
-          toDate: safeDate(invoice.to_date) || null,
-          orderId: invoice.order_id || null
-        }));
-        setInvoices(transformedInvoices);
-      } else {
-        setInvoices([]);
-      }
-
       // Build maps for orders (needed for quantity and completed_date fallbacks)
       const ordersMap = {};
       if (ordersResponse && ordersResponse.success && Array.isArray(ordersResponse.data)) {
         for (const o of ordersResponse.data) {
           ordersMap[o.id] = o;
         }
+      }
+
+      // Transform invoices for table usage
+      if (invoicesResponse && invoicesResponse.success && Array.isArray(invoicesResponse.data)) {
+        const transformedInvoices = invoicesResponse.data.map(invoice => {
+          const order = ordersMap[invoice.order_id];
+          const quantity = order?.quantity || 1;
+          return {
+            id: invoice.invoice_number,
+            invoiceRaw: invoice,
+            date: safeDate(invoice.invoice_date) || '',
+            dueDate: safeDate(invoice.due_date) || '',
+            payDate: safeDate(invoice.paid_date) || null,
+            service: invoice.customer_name || invoice.product_name || 'Service',
+            amount: parseFloat(invoice.amount || 0),
+            mrcAmount: parseFloat(invoice.mrc_amount || 0),
+            usageAmount: parseFloat(invoice.usage_amount || 0),
+            status: invoice.status || 'Unknown',
+            period: invoice.period || '',
+            fromDate: safeDate(invoice.from_date) || null,
+            toDate: safeDate(invoice.to_date) || null,
+            orderId: invoice.order_id || null,
+            quantity: quantity
+          };
+        });
+        setInvoices(transformedInvoices);
+      } else {
+        setInvoices([]);
       }
 
       const activeServicesData = [];
@@ -767,7 +772,7 @@ const Billing = ({ walletBalance = 50.00, onUpdateBalance = () => {}, userId }) 
                     <Flex justify="space-between" align="center" mb={4}>
                       <InputGroup maxW="300px">
                         <InputLeftElement pointerEvents="none"><FaSearch color="gray.300" /></InputLeftElement>
-                        <Input placeholder="Search invoices..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} bg="white" borderRadius={"full"} />
+                        <Input placeholder="Search invoices..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} bg="gray.100" borderRadius={"full"} />
                       </InputGroup>
                       <Text fontSize="sm" color="gray.600">{totalResults} invoice{totalResults !== 1 ? 's' : ''} found</Text>
                     </Flex>
@@ -812,9 +817,9 @@ const Billing = ({ walletBalance = 50.00, onUpdateBalance = () => {}, userId }) 
                             <Td color={"blue.500"} textAlign="center" fontWeight="medium">{invoice.id}</Td>
                             <Td textAlign="center" fontWeight="500">{invoice.service}</Td>
                             <Td textAlign="center" fontSize="sm" color="gray.600">{invoice.date}</Td>
-                            <Td textAlign="center" isNumeric fontWeight="semibold" color="blue.600">${Number(invoice.mrcAmount).toFixed(2)}</Td>
+                            <Td textAlign="center" isNumeric fontWeight="semibold" color="blue.600">${(Number(invoice.mrcAmount) * Number(invoice.quantity)).toFixed(2)}</Td>
                             <Td textAlign="center" isNumeric fontWeight="semibold" color="purple.600">${Number(invoice.usageAmount).toFixed(2)}</Td>
-                            <Td textAlign="center" isNumeric fontWeight="bold" color="green.600">${Number(invoice.amount).toFixed(2)}</Td>
+                            <Td textAlign="center" isNumeric fontWeight="bold" color="green.600">${((Number(invoice.mrcAmount) * Number(invoice.quantity)) + Number(invoice.usageAmount)).toFixed(2)}</Td>
                             <Td textAlign="center">
                               <Badge colorScheme={getStatusColor(invoice.status)} borderRadius={"full"}>
                                 <HStack spacing={1}><Icon as={getStatusIcon(invoice.status)} boxSize={3} /><Text>{invoice.status}</Text></HStack>

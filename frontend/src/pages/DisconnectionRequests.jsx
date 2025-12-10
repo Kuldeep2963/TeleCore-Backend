@@ -200,8 +200,8 @@ const DisconnectionRequests = () => {
   return (
     <Box
       flex={1}
-      p={6}
-      pl={8}
+      p={{base:4,md:6}}
+      pl={{base:4,md:8}}
       bg="#f8f9fa"
       height="calc(100vh - 76px)"
       overflowY="auto"
@@ -212,10 +212,10 @@ const DisconnectionRequests = () => {
           <Heading color="#1a3a52" fontSize="3xl" fontWeight="bold">
             Disconnection Requests
           </Heading>
-            <Button size={{base:"sm",md:"sm"}} colorScheme='red' variant={"outline"} borderRadius={"full"} onClick={handleOpenDisconnectModal}>
+            <Button size={{base:"sm",md:"sm"}} borderColor={"red.700"} variant={"outline"} borderRadius={"full"} onClick={handleOpenDisconnectModal}>
               <HStack spacing={2}>
-              <FaUnlink color='red'/>
-              <Text display={{base:"none",md:"block"}} color={"red.500"}>Disconnect Number</Text>
+              <FaUnlink color="#C53030"/>
+              <Text display={{base:"none",md:"block"}} color={"red.700"}>Disconnect Number</Text>
               </HStack>
             </Button>
         </HStack>
@@ -360,7 +360,7 @@ const DisconnectionRequests = () => {
                       </HStack>
                     </Td>
                     <Td>
-                      <Badge colorScheme="blue">{request.productType}</Badge>
+                      <Badge px={2} borderRadius={"full"} colorScheme="blue">{request.productType}</Badge>
                     </Td>
                     <Td>
                       <HStack>
@@ -396,7 +396,7 @@ const DisconnectionRequests = () => {
                       </Tooltip>
                     </Td>
                     <Td>
-                      <Badge borderRadius={"full"} colorScheme={getStatusColor(request.status)}>
+                      <Badge borderRadius={"full"} px={2} colorScheme={getStatusColor(request.status)}>
                         {request.status}
                       </Badge>
                     </Td>

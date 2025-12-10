@@ -126,13 +126,13 @@ function App() {
   }, []);
 
   const clientCredentials = {
-    email: 'sarah@telecore.com',
-    password: 'Sarah@123'
+    email: 'ankit.tyagi@telecore.com',
+    password: 'Ankit@12345'
   };
 
   const internalCredentials = {
-    email: 'internal@telecore.com',
-    password: 'Internal@123'
+    email: 'kuldeep.tyagi@telecore.com',
+    password: 'Kuldeep@12345'
   };
 
   const handleAddToCart = (item) => {
@@ -229,7 +229,7 @@ function App() {
           country_id: item.countryId,
           area_code: item.areaCode,
           quantity: item.quantity || 1,
-          total_amount: item.totalAmount || 0,
+          total_amount: 0,
           status: 'In Progress',
           documents: documentsArray
         };
@@ -253,17 +253,17 @@ function App() {
             nrc: parsePricingValue(item.desiredPricing.nrc),
             mrc: parsePricingValue(item.desiredPricing.mrc),
             ppm: parsePricingValue(item.desiredPricing.ppm),
-            ppm_fix: parsePricingValue(item.desiredPricing.ppmFix),
-            ppm_mobile: parsePricingValue(item.desiredPricing.ppmMobile),
-            ppm_payphone: parsePricingValue(item.desiredPricing.ppmPayphone),
+            ppm_fix: parsePricingValue(item.desiredPricing.ppm_fix),
+            ppm_mobile: parsePricingValue(item.desiredPricing.ppm_mobile),
+            ppm_payphone: parsePricingValue(item.desiredPricing.ppm_payphone),
             arc: parsePricingValue(item.desiredPricing.arc),
             mo: parsePricingValue(item.desiredPricing.mo),
             mt: parsePricingValue(item.desiredPricing.mt),
-            incoming_ppm: parsePricingValue(item.desiredPricing.Incomingppm),
-            outgoing_ppm_fix: parsePricingValue(item.desiredPricing.Outgoingppmfix),
-            outgoing_ppm_mobile: parsePricingValue(item.desiredPricing.Outgoingppmmobile),
-            incoming_sms: parsePricingValue(item.desiredPricing.incmongsms),
-            outgoing_sms: parsePricingValue(item.desiredPricing.outgoingsms)
+            incoming_ppm: parsePricingValue(item.desiredPricing.incoming_ppm),
+            outgoing_ppm_fix: parsePricingValue(item.desiredPricing.outgoing_ppm_fix),
+            outgoing_ppm_mobile: parsePricingValue(item.desiredPricing.outgoing_ppm_mobile),
+            incoming_sms: parsePricingValue(item.desiredPricing.incoming_sms),
+            outgoing_sms: parsePricingValue(item.desiredPricing.outgoing_sms)
           };
 
           // Remove null values

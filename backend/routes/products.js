@@ -40,7 +40,7 @@ router.get('/:id', async (req, res) => {
     if (result.rows.length === 0) {
       return res.status(404).json({
         success: false,
-        message: 'Product not found'
+        message: 'Product not found 1'
       });
     }
 

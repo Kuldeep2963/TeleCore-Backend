@@ -55,8 +55,7 @@ function Navbar({ cartCount = 0, walletBalance = 0, profilePicture = null, onLog
       borderBottom="1px solid"
       borderColor="rgba(148, 163, 184, 0.1)"
       boxShadow="0 4px 20px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.1)"
-      px={4}
-      py={1}
+      p={1}
       position="fixed"
       top={0}
       left={0}
@@ -86,7 +85,7 @@ function Navbar({ cartCount = 0, walletBalance = 0, profilePicture = null, onLog
         />
         
         {/* Right Section - All items in a single row */}
-        <HStack spacing={4}>
+        <HStack spacing={{base:2,md:4}}>
           {userRole === 'Internal' &&(
             <>
             <IconButton
@@ -161,7 +160,7 @@ function Navbar({ cartCount = 0, walletBalance = 0, profilePicture = null, onLog
               >
                 <FaWallet color="#1a3a52" size={16} />
                 <Text fontWeight="bold" fontSize="18px" color="green.600">
-                  ${walletBalance}
+                  ${(walletBalance).toFixed(2)}
                 </Text>
               </Box>
             </>
@@ -185,9 +184,12 @@ function Navbar({ cartCount = 0, walletBalance = 0, profilePicture = null, onLog
                       height="30px"
                       fontSize="10px"
                     />
-                    <Text fontWeight="500" fontSize="14px" color="#1a3a52" display={{ base: 'none', md: 'block' }}>
+                    <VStack align={"flex-end"} >
+                    <Text fontWeight="bold" fontSize="14px" color="gray.700" display={{ base: 'none', md: 'block' }}>
                       {`${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim() || 'User'}
                     </Text>
+                    <Text fontSize={"12px"} color={"gray.600"} fontWeight={"semibold"}>{userRole}</Text>
+                    </VStack>
                   </HStack>
                 }
                 variant="ghost"

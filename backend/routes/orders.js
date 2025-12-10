@@ -214,7 +214,7 @@ router.post('/', requireClient, async (req, res) => {
       if (productCheck.rows.length === 0) {
         return res.status(400).json({
           success: false,
-          message: 'Product not found'
+          message: `Product not found with ID: ${product_id}`
         });
       }
     } catch (error) {
@@ -251,7 +251,7 @@ router.post('/', requireClient, async (req, res) => {
 
     const timestamp = Date.now();
     const random = Math.floor(Math.random() * 10000);
-    const orderNumber = `ORD-${timestamp}-${random}`;
+    const orderNumber = `ORD-${random}`;
 
     let processedDocuments = null;
     if (documents && Array.isArray(documents) && documents.length > 0) {
@@ -282,24 +282,75 @@ router.post('/', requireClient, async (req, res) => {
 });
 
 // Order pricing endpoints - must come BEFORE /:id routes
-router.post('/:orderId/pricing', requireClient, async (req, res) => {
+// Both clients and internal users can save pricing
+router.post('/:orderId/pricing', async (req, res) => {
   try {
     const { orderId } = req.params;
-    const { pricing_type, nrc, mrc, ppm, ppm_fix, ppm_mobile, ppm_payphone, arc, mo, mt, incoming_ppm, outgoing_ppm_fix, outgoing_ppm_mobile, incoming_sms, outgoing_sms } = req.body;
+    const userRole = req.user?.role;
+
+    // Verify user is authenticated
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
+
+    // Allow only Client and Internal roles
+    if (!['Client', 'Internal', 'Admin'].includes(userRole)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Insufficient permissions'
+      });
+    }
+
+    // Verify internal users can only update in-progress orders
+    if (userRole === 'Internal' || userRole === 'Admin') {
+      const orderCheck = await query('SELECT status FROM orders WHERE id = $1', [orderId]);
+      if (orderCheck.rows.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: 'Order not found'
+        });
+      }
+      if (orderCheck.rows[0].status?.toLowerCase() !== 'in progress') {
+        return res.status(403).json({
+          success: false,
+          message: 'Can only edit pricing for in-progress orders'
+        });
+      }
+    }
+
+    const { pricing_type = 'desired', nrc, mrc, ppm, ppm_fix, ppm_mobile, ppm_payphone, arc, mo, mt, incoming_ppm, outgoing_ppm_fix, outgoing_ppm_mobile, incoming_sms, outgoing_sms } = req.body;
 
     const result = await query(`
       INSERT INTO order_pricing (order_id, pricing_type, nrc, mrc, ppm, ppm_fix, ppm_mobile, ppm_payphone, arc, mo, mt, incoming_ppm, outgoing_ppm_fix, outgoing_ppm_mobile, incoming_sms, outgoing_sms)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+      ON CONFLICT (order_id, pricing_type) DO UPDATE SET
+        nrc = COALESCE($3, order_pricing.nrc),
+        mrc = COALESCE($4, order_pricing.mrc),
+        ppm = COALESCE($5, order_pricing.ppm),
+        ppm_fix = COALESCE($6, order_pricing.ppm_fix),
+        ppm_mobile = COALESCE($7, order_pricing.ppm_mobile),
+        ppm_payphone = COALESCE($8, order_pricing.ppm_payphone),
+        arc = COALESCE($9, order_pricing.arc),
+        mo = COALESCE($10, order_pricing.mo),
+        mt = COALESCE($11, order_pricing.mt),
+        incoming_ppm = COALESCE($12, order_pricing.incoming_ppm),
+        outgoing_ppm_fix = COALESCE($13, order_pricing.outgoing_ppm_fix),
+        outgoing_ppm_mobile = COALESCE($14, order_pricing.outgoing_ppm_mobile),
+        incoming_sms = COALESCE($15, order_pricing.incoming_sms),
+        outgoing_sms = COALESCE($16, order_pricing.outgoing_sms)
       RETURNING *
     `, [orderId, pricing_type, nrc, mrc, ppm, ppm_fix, ppm_mobile, ppm_payphone, arc, mo, mt, incoming_ppm, outgoing_ppm_fix, outgoing_ppm_mobile, incoming_sms, outgoing_sms]);
 
     res.status(201).json({
       success: true,
-      message: 'Order pricing created successfully',
+      message: 'Order pricing saved successfully',
       data: result.rows[0]
     });
   } catch (error) {
-    console.error('Create order pricing error:', error.message);
+    console.error('Save order pricing error:', error.message);
     res.status(500).json({
       success: false,
       message: error.message || 'Internal server error'
@@ -307,11 +358,26 @@ router.post('/:orderId/pricing', requireClient, async (req, res) => {
   }
 });
 
-router.get('/:orderId/pricing', requireClient, async (req, res) => {
+router.get('/:orderId/pricing', async (req, res) => {
   try {
     const { orderId } = req.params;
 
-    const result = await query('SELECT * FROM order_pricing WHERE order_id = $1 ORDER BY created_at', [orderId]);
+    // Verify user is authenticated
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
+
+    const result = await query(`
+      SELECT op.*, p.code as product_code
+      FROM order_pricing op
+      JOIN orders o ON op.order_id = o.id
+      JOIN products p ON o.product_id = p.id
+      WHERE op.order_id = $1
+      ORDER BY op.created_at
+    `, [orderId]);
 
     res.json({
       success: true,
@@ -368,17 +434,91 @@ router.patch('/:id/status', async (req, res) => {
   }
 });
 
+// Confirm order and calculate amount based on pricing
+router.patch('/:id/confirm', requireInternal, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Get order details
+    const orderResult = await query(
+      'SELECT id, quantity FROM orders WHERE id = $1',
+      [id]
+    );
+
+    if (orderResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Order not found'
+      });
+    }
+
+    const order = orderResult.rows[0];
+    const quantity = order.quantity;
+
+    // Get order pricing
+    const pricingResult = await query(
+      'SELECT nrc, mrc FROM order_pricing WHERE order_id = $1 AND pricing_type = $2',
+      [id, 'desired']
+    );
+
+    if (pricingResult.rows.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Order pricing not found. Please set pricing before confirming.'
+      });
+    }
+
+    const pricing = pricingResult.rows[0];
+    const nrc = parseFloat(pricing.nrc) || 0;
+    const mrc = parseFloat(pricing.mrc) || 0;
+    const totalAmount = (nrc + mrc) * quantity;
+
+    // Update order with calculated amount and status
+    const updateResult = await query(
+      `UPDATE orders 
+       SET status = $1, total_amount = $2, updated_at = CURRENT_TIMESTAMP 
+       WHERE id = $3 
+       RETURNING *`,
+      ['Confirmed', totalAmount, id]
+    );
+
+    res.json({
+      success: true,
+      message: 'Order confirmed successfully',
+      data: {
+        ...updateResult.rows[0],
+        calculatedAmount: totalAmount,
+        calculation: `(NRC: $${nrc.toFixed(2)} + MRC: $${mrc.toFixed(2)}) × ${quantity} = $${totalAmount.toFixed(2)}`
+      }
+    });
+  } catch (error) {
+    console.error('Confirm order error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Internal server error'
+    });
+  }
+});
+
 // ID-based routes come last
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
 
     const result = await query(`
-      SELECT o.*, c.company_name, c.contact_person, v.name as vendor_name, p.name as product_name
+      SELECT o.id, o.order_number, o.quantity, o.total_amount, o.status, o.order_date, o.completed_date, o.created_at, o.documents, o.area_code,
+             o.country_id, o.product_id,
+             c.company_name, c.contact_person,
+             u.first_name, u.last_name, u.email as user_email,
+             v.name as vendor_name,
+             p.name as product_name, p.category as product_category,
+             co.countryname as country_name, co.phonecode as country_code
       FROM orders o
       LEFT JOIN customers c ON o.customer_id = c.id
+      LEFT JOIN users u ON c.user_id = u.id
       LEFT JOIN vendors v ON o.vendor_id = v.id
       LEFT JOIN products p ON o.product_id = p.id
+      LEFT JOIN countries co ON o.country_id = co.id
       WHERE o.id = $1
     `, [id]);
 
@@ -389,11 +529,81 @@ router.get('/:id', async (req, res) => {
       });
     }
 
-    const orderData = result.rows[0];
+    const order = result.rows[0];
+
+    // Fetch order pricing data
+    let desiredPricingData = null;
+    try {
+      const pricingResult = await query(
+        'SELECT * FROM order_pricing WHERE order_id = $1 AND pricing_type = $2',
+        [id, 'desired']
+      );
+      if (pricingResult.rows.length > 0) {
+        const pricing = pricingResult.rows[0];
+        desiredPricingData = {
+          nrc: pricing.nrc,
+          mrc: pricing.mrc,
+          ppm: pricing.ppm,
+          ppm_fix: pricing.ppm_fix,
+          ppm_mobile: pricing.ppm_mobile,
+          ppm_payphone: pricing.ppm_payphone,
+          arc: pricing.arc,
+          mo: pricing.mo,
+          mt: pricing.mt,
+          incoming_ppm: pricing.incoming_ppm,
+          outgoing_ppm_fix: pricing.outgoing_ppm_fix,
+          outgoing_ppm_mobile: pricing.outgoing_ppm_mobile,
+          incoming_sms: pricing.incoming_sms,
+          outgoing_sms: pricing.outgoing_sms
+        };
+      }
+    } catch (err) {
+      console.error('Error fetching order pricing:', err);
+    }
+
+    // Parse documents if needed
+    let parsedDocuments = [];
+    if (order.documents && Array.isArray(order.documents)) {
+      parsedDocuments = order.documents.map(doc => {
+        if (typeof doc === 'string') {
+          try {
+            return JSON.parse(doc);
+          } catch (e) {
+            return doc;
+          }
+        }
+        return doc;
+      });
+    }
+
+    // Transform to match frontend expectations
+    const transformedData = {
+      id: order.id,
+      orderNo: order.order_number,
+      country: order.country_name || 'N/A',
+      productType: order.product_category || 'N/A',
+      serviceName: order.product_name || 'N/A',
+      areaCode: order.area_code || 'N/A',
+      quantity: order.quantity,
+      orderStatus: order.status,
+      orderDate: order.order_date ? new Date(order.order_date).toISOString().split('T')[0] : null,
+      completedDate: order.completed_date ? new Date(order.completed_date).toISOString().split('T')[0] : null,
+      created_at: order.created_at,
+      totalAmount: order.total_amount,
+      companyName: order.company_name,
+      vendorName: order.vendor_name,
+      documents: parsedDocuments,
+      pricing: desiredPricingData,
+      desiredPricing: desiredPricingData,
+      createdBy: order.first_name && order.last_name ? `${order.first_name} ${order.last_name}` : (order.user_email || 'Unknown User'),
+      // Keep raw data for reference
+      countryId: order.country_id,
+      productId: order.product_id
+    };
     
     res.json({
       success: true,
-      data: orderData
+      data: transformedData
     });
   } catch (error) {
     console.error('Get order error:', error);

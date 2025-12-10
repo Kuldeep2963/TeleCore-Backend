@@ -115,7 +115,7 @@ function ChangePasswordModal({ isOpen, onClose }) {
           title: 'Success',
           description: 'Password changed successfully!',
           status: 'success',
-          duration: 3000,
+          duration: 2000,
           isClosable: true,
         });
 
@@ -130,7 +130,7 @@ function ChangePasswordModal({ isOpen, onClose }) {
           title: 'Error',
           description: response.message || 'Failed to change password. Please try again.',
           status: 'error',
-          duration: 3000,
+          duration: 2000,
           isClosable: true,
         });
       }
@@ -140,7 +140,7 @@ function ChangePasswordModal({ isOpen, onClose }) {
         title: 'Error',
         description: error.message || 'Failed to change password. Please try again.',
         status: 'error',
-        duration: 3000,
+        duration: 2000,
         isClosable: true,
       });
     } finally {
@@ -159,7 +159,7 @@ function ChangePasswordModal({ isOpen, onClose }) {
   return (
     <Modal isOpen={isOpen} onClose={handleClose} isCentered size={{base:"sm",md:"md"}} autoFocus={false} blockScrollOnMount={false}>
       <ModalOverlay backdropFilter="blur(4px)" />
-      <ModalContent borderRadius="12px" boxShadow="0 8px 32px rgba(0, 0, 0, 0.15)">
+      <ModalContent borderRadius="15px" boxShadow="0 8px 32px rgba(0, 0, 0, 0.15)">
         <ModalHeader
           bgGradient="linear(to-r, blue.400, blue.500)"
           color="white"
@@ -173,16 +173,6 @@ function ChangePasswordModal({ isOpen, onClose }) {
 
         <ModalBody pt={6} pb={4}>
           <VStack spacing={4} align="stretch">
-            {/* Info Alert */}
-            <Alert
-              status="info"
-              borderRadius="8px"
-              variant="subtle"
-              fontSize="sm"
-            >
-              <AlertIcon />
-              Enter your current password and choose a new one.
-            </Alert>
 
             {/* Old Password */}
             <PasswordInput
@@ -224,6 +214,8 @@ function ChangePasswordModal({ isOpen, onClose }) {
 
         <ModalFooter gap={3} pb={4} pt={2}>
           <Button
+            borderRadius={"full"}
+            size={"md"}
             variant="outline"
             colorScheme="gray"
             onClick={handleClose}
@@ -233,6 +225,8 @@ function ChangePasswordModal({ isOpen, onClose }) {
           </Button>
           <Button
             colorScheme="blue"
+            size={"md"}
+            borderRadius={"full"}
             onClick={handleChangePassword}
             isLoading={loading}
             loadingText="Updating..."

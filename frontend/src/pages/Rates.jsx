@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { PRICING_HEADINGS } from "../constants/pricingConstants";
 import {
   Box,
   Heading,
@@ -36,41 +37,6 @@ import api from "../services/api";
 import Countries from "./Countries";
 import { FaDollarSign, FaGlobe } from "react-icons/fa";
 
-const pricingHeadings = {
-  did: { nrc: "NRC", mrc: "MRC", ppm: "PPM" },
-  freephone: {
-    nrc: "NRC",
-    mrc: "MRC",
-    ppmFix: "PPM Fix",
-    ppmMobile: "PPM Mobile",
-    ppmPayphone: "PPM Payphone",
-  },
-  universal: {
-    nrc: "NRC",
-    mrc: "MRC",
-    ppmFix: "PPM Fix",
-    ppmMobile: "PPM Mobile",
-    ppmPayphone: "PPM Payphone",
-  },
-  "two-way-voice": {
-    nrc: "NRC",
-    mrc: "MRC",
-    ppmIncoming: "Incoming PPM",
-    ppmOutgoingfix: "Outgoing Fix PPM",
-    ppmOutgoingmobile: "Outgoing Mobile PPM",
-  },
-  "two-way-sms": { nrc: "NRC", mrc: "MRC", arc: "ARC", mo: "MO", mt: "MT" },
-  mobile: {
-    nrc: "NRC",
-    mrc: "MRC",
-    Incomingppm: "Incoming PPM",
-    Outgoingppmfix: "Outgoing Fix PPM",
-    Outgoingppmmobile: "Outgoing Mobile PPM",
-    incmongsms: "Incoming SMS",
-    outgoingsms: "Outgoing SMS",
-  },
-};
-
 const Rates = () => {
   const [selectedCountry, setSelectedCountry] = useState("");
   const [selectedProductType, setSelectedProductType] = useState("");
@@ -87,7 +53,7 @@ const Rates = () => {
   const toast = useToast();
 
   const currentHeadings =
-    pricingHeadings[selectedProductType] || pricingHeadings.did;
+    PRICING_HEADINGS[selectedProductType?.toLowerCase()] || PRICING_HEADINGS.did;
 
   const fetchCountries = async () => {
     try {
@@ -246,27 +212,8 @@ const Rates = () => {
 
   const handleSave = async () => {
     try {
-      const fieldMap = {
-        nrc: "nrc",
-        mrc: "mrc",
-        ppm: "ppm",
-        ppmFix: "ppm_fix",
-        ppmMobile: "ppm_mobile",
-        ppmPayphone: "ppm_payphone",
-        arc: "arc",
-        mo: "mo",
-        mt: "mt",
-        ppmIncoming: "incoming_ppm",
-        ppmOutgoingfix: "outgoing_ppm_fix",
-        ppmOutgoingmobile: "outgoing_ppm_mobile",
-        incmongsms: "incoming_sms",
-        outgoingsms: "outgoing_sms",
-        Incomingppm: "incoming_ppm",
-        Outgoingppmfix: "outgoing_ppm_fix",
-        Outgoingppmmobile: "outgoing_ppm_mobile",
-      };
       const updateData = {};
-      Object.values(fieldMap).forEach((field) => {
+      Object.keys(currentHeadings).forEach((field) => {
         const value = editValues[field];
         if (value !== undefined && value !== null && value !== "") {
           const parsed = parseFloat(value);
@@ -559,26 +506,7 @@ const Rates = () => {
                           {(pricingData.length > 0 ? pricingData : [{ id: "new" }]).map((row) => (
                           <Tr key={row.id} borderBottomWidth="1px">
                             {Object.entries(currentHeadings).map(([key]) => {
-                              const fieldMap = {
-                                nrc: "nrc",
-                                mrc: "mrc",
-                                ppm: "ppm",
-                                ppmFix: "ppm_fix",
-                                ppmMobile: "ppm_mobile",
-                                ppmPayphone: "ppm_payphone",
-                                arc: "arc",
-                                mo: "mo",
-                                mt: "mt",
-                                ppmIncoming: "incoming_ppm",
-                                ppmOutgoingfix: "outgoing_ppm_fix",
-                                ppmOutgoingmobile: "outgoing_ppm_mobile",
-                                incmongsms: "incoming_sms",
-                                outgoingsms: "outgoing_sms",
-                                Incomingppm: "incoming_ppm",
-                                Outgoingppmfix: "outgoing_ppm_fix",
-                                Outgoingppmmobile: "outgoing_ppm_mobile",
-                              };
-                              const fieldName = fieldMap[key];
+                              const fieldName = key;
                               const value = row[fieldName];
                               return (
                                 <Td

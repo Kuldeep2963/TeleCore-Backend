@@ -3,7 +3,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { query } = require('../config/database');
-const { requireClient } = require('../middleware/auth');
+const { requireClient, authenticateToken } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -202,12 +202,13 @@ router.get('/:orderId', requireClient, async (req, res) => {
 });
 
 // Download a specific document
-router.get('/download/:orderId/:filename', requireClient, async (req, res) => {
+router.get('/download/:orderId/:filename', authenticateToken, async (req, res) => {
   try {
     const { orderId, filename } = req.params;
     const userId = req.user.id;
+    const userRole = req.user.role;
 
-    // Verify the order belongs to the user
+    // Verify the order exists
     const orderCheck = await query(`
       SELECT o.id, c.user_id
       FROM orders o
@@ -222,7 +223,8 @@ router.get('/download/:orderId/:filename', requireClient, async (req, res) => {
       });
     }
 
-    if (orderCheck.rows[0].user_id !== userId) {
+    // Check access: Clients can only download their own order documents, Internal can download any
+    if (userRole === 'Client' && orderCheck.rows[0].user_id !== userId) {
       return res.status(403).json({
         success: false,
         message: 'Access denied.'

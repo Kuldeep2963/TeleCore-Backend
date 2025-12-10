@@ -170,6 +170,11 @@ const Customers = () => {
               colorScheme="blue"
               size="sm"
               px={{base:7,md:2}}
+              _hover={{
+                boxShadow: "0 4px 8px rgba(0,0,0,0.2)",
+                transform: "translateY(-2px)",
+                transition: "all 0.4s ease-in-out"
+                  }}
               onClick={() => navigate('/add-vendor-customer', { state: { activeTab: 1 } })}
               borderRadius="full"
             >
@@ -188,6 +193,11 @@ const Customers = () => {
             <Box
               bg="white"
               p={6}
+              _hover={{
+                boxShadow: "0 4px 8px rgba(0,0,0,0.2)",
+                transform: "translateY(-2px)",
+                transition: "all 0.4s ease-in-out"
+                  }}
               px={{base:2,md:6}}
               borderRadius="xl"
               boxShadow="0 2px 4px rgba(0, 0, 0, 0.05)"
@@ -217,6 +227,11 @@ const Customers = () => {
             <Box
               bg="white"
               p={6}
+              _hover={{
+                boxShadow: "0 4px 8px rgba(0,0,0,0.2)",
+                transform: "translateY(-2px)",
+                transition: "all 0.4s ease-in-out"
+                  }}
               px={{base:2,md:6}}
 
               borderRadius="xl"
@@ -247,6 +262,11 @@ const Customers = () => {
             <Box
               bg="white"
               p={6}
+              _hover={{
+                boxShadow: "0 4px 8px rgba(0,0,0,0.2)",
+                transform: "translateY(-2px)",
+                transition: "all 0.4s ease-in-out"
+                  }}
               px={{base:2,md:6}}
 
               borderRadius="xl"
@@ -277,6 +297,11 @@ const Customers = () => {
             <Box
               bg="white"
               p={6}
+              _hover={{
+                boxShadow: "0 4px 8px rgba(0,0,0,0.2)",
+                transform: "translateY(-2px)",
+                transition: "all 0.4s ease-in-out"
+                  }}
               px={{base:2,md:6}}
               borderRadius="xl"
               boxShadow="0 2px 4px rgba(0, 0, 0, 0.05)"
@@ -306,7 +331,7 @@ const Customers = () => {
 
           {/* Filters */}
           <HStack spacing={4} mb={6}>
-            <InputGroup bg={"white"} maxW="300px">
+            <InputGroup borderRadius="full" bg={"white"} maxW="300px">
               <InputLeftElement>
                 <Icon as={FiSearch} color="gray.400" />
               </InputLeftElement>

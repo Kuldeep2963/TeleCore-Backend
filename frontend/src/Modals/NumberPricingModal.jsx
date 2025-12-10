@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { PRICING_FIELDS_BY_PRODUCT, PRICING_FIELD_LABELS, PRICING_HEADINGS } from '../constants/pricingConstants';
 import {
   Modal,
   ModalOverlay,
@@ -39,18 +40,44 @@ function NumberPricingModal({ isOpen, onClose, selectedNumber }) {
   }, [isOpen, selectedNumber]);
 
   const fetchPricingData = async () => {
-    if (!selectedNumber?.product_id || !selectedNumber?.country_id) {
-      setError('Missing product or country information');
+    if (!selectedNumber?.order_id) {
+      setError('Missing order information');
       return;
     }
 
     try {
       setLoading(true);
       setError(null);
-      const response = await api.pricing.getByProduct(selectedNumber.product_id, selectedNumber.country_id);
+      const response = await api.orders.getPricing(selectedNumber.order_id);
       
       if (response.success && response.data) {
-        setPricingData(response.data);
+        const currentPricing = Array.isArray(response.data) 
+          ? response.data.find(p => p.pricing_type === 'current') || response.data[0]
+          : response.data;
+        
+        if (currentPricing && selectedNumber?.product_id && selectedNumber?.country_id) {
+          try {
+            const pricingPlanResponse = await api.pricing.getByProduct(selectedNumber.product_id, selectedNumber.country_id);
+            if (pricingPlanResponse.success && pricingPlanResponse.data) {
+              const planData = pricingPlanResponse.data;
+              const mergedPricing = {
+                ...currentPricing,
+                billing_pulse: planData.billing_pulse,
+                estimated_lead_time: planData.estimated_lead_time,
+                contract_term: planData.contract_term,
+                disconnection_notice_term: planData.disconnection_notice_term
+              };
+              setPricingData(mergedPricing);
+            } else {
+              setPricingData(currentPricing);
+            }
+          } catch (err) {
+            console.warn('Could not fetch additional pricing metadata:', err);
+            setPricingData(currentPricing);
+          }
+        } else {
+          setPricingData(currentPricing);
+        }
       } else {
         setError('Pricing data not available');
       }
@@ -68,38 +95,18 @@ function NumberPricingModal({ isOpen, onClose, selectedNumber }) {
   };
 
   const getPricingFields = (productCode) => {
-    const fieldMaps = {
-      did: ['nrc', 'mrc', 'ppm'],
-      freephone: ['nrc', 'mrc', 'ppm_fix', 'ppm_mobile', 'ppm_payphone'],
-      universal: ['nrc', 'mrc', 'ppm_fix', 'ppm_mobile', 'ppm_payphone'],
-      'two-way-voice': ['nrc', 'mrc', 'incoming_ppm', 'outgoing_ppm_fix', 'outgoing_ppm_mobile'],
-      'two-way-sms': ['nrc', 'mrc', 'arc', 'mo', 'mt'],
-      mobile: ['nrc', 'mrc', 'incoming_ppm', 'outgoing_ppm_fix', 'outgoing_ppm_mobile', 'incoming_sms', 'outgoing_sms']
-    };
-
-    const fieldLabels = {
-      nrc: 'NRC',
-      mrc: 'MRC',
-      ppm: 'PPM',
-      ppm_fix: 'PPM Fix',
-      ppm_mobile: 'PPM Mobile',
-      ppm_payphone: 'PPM Payphone',
-      incoming_ppm: 'Incoming PPM',
-      outgoing_ppm_fix: 'Outgoing Fix PPM',
-      outgoing_ppm_mobile: 'Outgoing Mobile PPM',
-      arc: 'ARC',
-      mo: 'MO',
-      mt: 'MT',
-      incoming_sms: 'Incoming SMS',
-      outgoing_sms: 'Outgoing SMS'
-    };
-
     const code = productCode?.toLowerCase() || 'did';
-    const fields = fieldMaps[code] || fieldMaps.did;
+    const fields = PRICING_FIELDS_BY_PRODUCT[code] || PRICING_FIELDS_BY_PRODUCT.did;
+    const headings = PRICING_HEADINGS[code] || PRICING_HEADINGS.did;
+
+    const labels = {};
+    fields.forEach((field) => {
+      labels[field] = headings[field] || PRICING_FIELD_LABELS[field] || field;
+    });
 
     return {
       fields,
-      labels: fieldLabels
+      labels
     };
   };
 
@@ -138,7 +145,7 @@ function NumberPricingModal({ isOpen, onClose, selectedNumber }) {
                 </CardBody>
               </Card>
                  <Box>
-                  <Heading size="md" color="gray.800" mb={4}>Pricing</Heading>
+                  <Heading size="md" color="gray.800" mb={4}>{selectedNumber.product_name} Pricing</Heading>
                   {loading ? (
                     <Center py={8}>
                       <Spinner size="lg" color="blue.500" />
@@ -147,26 +154,31 @@ function NumberPricingModal({ isOpen, onClose, selectedNumber }) {
                     <Text color="red.500" textAlign="center">{error}</Text>
                   ) : pricingData ? (
                     <>
-                      <Table variant="simple" mb={6}>
-                        <Thead bg="gray.200">
-                          <Tr>
-                            {getPricingFields(pricingData.product_code).fields.map((field) => (
-                              <Th fontSize={"sm"} key={field} textAlign="center" color="gray.800" fontWeight="semibold">
-                                {getPricingFields(pricingData.product_code).labels[field]}
-                              </Th>
-                            ))}
-                          </Tr>
-                        </Thead>
-                        <Tbody>
-                          <Tr>
-                            {getPricingFields(pricingData.product_code).fields.map((field) => (
-                              <Td key={field} textAlign="center" fontSize="lg" color="green" fontWeight="bold">
-                                {formatPrice(pricingData[field])}
-                              </Td>
-                            ))}
-                          </Tr>
-                        </Tbody>
-                      </Table>
+                      {(() => {
+                        const pricingFields = getPricingFields(pricingData.product_code);
+                        return (
+                          <Table variant="simple" mb={6}>
+                            <Thead bg="gray.200">
+                              <Tr>
+                                {pricingFields.fields.map((field) => (
+                                  <Th fontSize={"sm"} key={field} textAlign="center" color="gray.800" fontWeight="semibold">
+                                    {pricingFields.labels[field]}
+                                  </Th>
+                                ))}
+                              </Tr>
+                            </Thead>
+                            <Tbody>
+                              <Tr>
+                                {pricingFields.fields.map((field) => (
+                                  <Td key={field} textAlign="center" fontSize="lg" color="green" fontWeight="bold">
+                                    {formatPrice(pricingData[field])}
+                                  </Td>
+                                ))}
+                              </Tr>
+                            </Tbody>
+                          </Table>
+                        );
+                      })()}
                       <Divider mb={6} />
                       <Grid px={2} templateColumns="repeat(4, 1fr)" gap={6}>
                         <VStack spacing={1} align="start">

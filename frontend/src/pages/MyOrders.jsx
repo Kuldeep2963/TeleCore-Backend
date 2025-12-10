@@ -409,15 +409,14 @@ function MyOrders({ userId, userRole }) {
           </Box>
         <Box
           bg="white"
-          borderRadius="12px"
-          p={2}
-          boxShadow="sm"
-          border="1px solid"
-          borderColor="gray.200"
-          overflow={{base:"scroll",md:"hidden"}}
+            borderRadius="xl"
+            boxShadow="0 2px 4px rgba(0, 0, 0, 0.05)"
+            border="1px solid"
+            borderColor="gray.100"
+            overflow={{base:"scroll",md:"hidden"}}
         >
           <Table variant="simple" h={"400px"}>
-            <Thead>
+            <Thead bg={"gray.200"}>
               <Tr
                 sx={{
                   '& > th': {
@@ -427,7 +426,7 @@ function MyOrders({ userId, userRole }) {
                     fontSize: "sm",
                     letterSpacing: "0.3px",
                     borderBottom: "2px solid",
-                    borderColor: "blue.400",
+                    borderColor: "gray.400",
                     textAlign: "center",
                   }
                 }}
@@ -448,15 +447,15 @@ function MyOrders({ userId, userRole }) {
                 currentOrders.map((order) => (
                   <Tr key={order.id} _hover={{ bg: 'gray.50' }}>
                     {/* <Td textAlign="center">{order.id}</Td> */}
-                    <Td fontWeight={"medium"} color={"blue.600"} textAlign="center">#{order.orderNo}</Td>
+                    <Td fontWeight={"medium"} color={"blue.600"} textAlign="center">{order.orderNo}</Td>
                     <Td fontWeight={"semibold"} textAlign="center">{order.country}</Td>
-                    <Td textAlign="center"><Badge size={"lg"} bg={"blue.100"}>{order.productType}</Badge></Td>
-                    <Td fontWeight={"bold"} color={"green"} textAlign="center">${order.totalAmount}</Td>
+                    <Td textAlign="center"><Badge borderRadius={"full"} px={2}  bg={"blue.100"}>{order.productType}</Badge></Td>
+                    <Td fontWeight={"semibold"} color={"green"} textAlign="center">${order.totalAmount}</Td>
                     <Td textAlign="center">{order.areaCode}</Td>
                     <Td w={"5%"} fontWeight={"bold"} textAlign="center">{order.quantity}</Td>
                     <Td textAlign="center">
                       
-                      <Badge borderRadius={"full"} colorScheme={getStatusColor(order.orderStatus)}>
+                      <Badge borderRadius={"full"} px={2} colorScheme={getStatusColor(order.orderStatus)}>
                         <HStack spacing={1}>
                           <Icon as={getStatusIcon(order.orderStatus)} boxSize={3} />
                           <Text>{order.orderStatus}</Text>

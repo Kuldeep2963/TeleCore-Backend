@@ -451,7 +451,7 @@ const Orders = () => {
                   <Tr key={order.ordernumber} _hover={{ bg: "gray.50" }}>
                     <Td>
                       <Text fontWeight="medium" color="blue.600">
-                        #{order.orderNo}
+                        {order.orderNo}
                       </Text>
                     </Td>
                     <Td>
@@ -462,7 +462,7 @@ const Orders = () => {
                       </VStack>
                     </Td>
                     <Td>
-                      <Badge bg={"blue.100"}>
+                      <Badge px={2} borderRadius={"full"} bg={"blue.100"}>
                         <Text>{order.serviceName || "N/A"}</Text>
                       </Badge>
                     </Td>
@@ -472,7 +472,7 @@ const Orders = () => {
                       </Text>
                     </Td>
                     <Td>
-                      <Text color={"green"} fontWeight="bold">
+                      <Text color={"green"} fontWeight="semibold">
                         {formatCurrency(order.totalAmount || 0)}
                       </Text>
                     </Td>
@@ -480,6 +480,7 @@ const Orders = () => {
                       <Badge
                         colorScheme={getStatusColor(order.orderStatus)}
                         borderRadius={"full"}
+                        px={2}
                       >
                         <HStack spacing={1}>
                           <Icon
@@ -510,7 +511,7 @@ const Orders = () => {
                         >
                           <Icon as={FiEye} boxSize={4} />
                         </Button>
-                        {order.orderStatus === "In Progress" && (
+                        {/* {order.orderStatus === "In Progress" && (
                           <HStack>
                             <Button
                               size="sm"
@@ -533,7 +534,7 @@ const Orders = () => {
                               Reject
                             </Button>
                           </HStack>
-                        )}
+                        )} */}
                         {order.orderStatus === "Amount Paid" && (
                           <Button
                             size="sm"

@@ -126,18 +126,59 @@ const generateMonthlyInvoices = async () => {
   }
 };
 
+const updateOverdueInvoices = async () => {
+  try {
+    console.log(`\n📋 Overdue Invoice Check Started at ${new Date().toISOString()}`);
+
+    const result = await query(
+      `
+      UPDATE invoices
+      SET status = 'Overdue', updated_at = CURRENT_TIMESTAMP
+      WHERE status = 'Pending' 
+        AND due_date < CURRENT_DATE
+      RETURNING id, invoice_number, due_date
+    `
+    );
+
+    if (result.rows.length > 0) {
+      console.log(`✅ Updated ${result.rows.length} invoices to Overdue status`);
+      result.rows.forEach(invoice => {
+        console.log(`   - Invoice ${invoice.invoice_number} (Due: ${invoice.due_date})`);
+      });
+    } else {
+      console.log(`ℹ️  No overdue invoices found to update`);
+    }
+
+    console.log(`✔ Overdue invoice check completed at ${new Date().toISOString()}`);
+  } catch (error) {
+    console.error("❌ Fatal overdue invoice update error:", error);
+  }
+};
+
 const startInvoiceScheduler = () => {
-  // RUN EVERY DAY AT 00:00 (midnight)
+  // RUN EVERY DAY AT 00:00 (midnight) - Generate monthly invoices
   cron.schedule(
     "37 6 * * *",
     async () => {
       console.log("Running daily invoice generation check at midnight...");
       await generateMonthlyInvoices();
     },
-    { timezone: "UTC" } // prevents timezone drift
+    { timezone: "UTC" }
   );
 
-  console.log("Invoice scheduler initialized (runs daily at 00:00 UTC)");
+  // RUN EVERY DAY AT 12:59 IST (07:29 UTC) - Check and update overdue invoices
+  cron.schedule(
+    "29 7 * * *",
+    async () => {
+      console.log("Running daily overdue invoice check...");
+      await updateOverdueInvoices();
+    },
+    { timezone: "Asia/Kolkata" }
+  );
+
+  console.log("Invoice scheduler initialized:");
+  console.log("  - Monthly invoice generation: daily at 00:00 UTC");
+  console.log("  - Overdue invoice check: daily at 12:59 IST (07:29 UTC)");
 };
 
-module.exports = { startInvoiceScheduler, generateMonthlyInvoices };
+module.exports = { startInvoiceScheduler, generateMonthlyInvoices, updateOverdueInvoices };

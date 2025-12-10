@@ -18,28 +18,28 @@ const InvoiceDetailsModal = ({ isOpen, onClose, invoice }) => {
   return (
     <Modal isOpen={isOpen} onClose={onClose} size={{base:"sm",md:"2xl"}}>
       <ModalOverlay backdropFilter="blur(4px)"/>
-      <ModalContent>
-        <ModalHeader>Invoice Details - {invoice.id || invoice.invoiceNumber}</ModalHeader>
-        <ModalCloseButton />
+      <ModalContent borderRadius={"15px"}>
+        <ModalHeader bgGradient="linear(to-r, blue.400, blue.500)" borderTopRadius={"15px"} color={"white"} >Invoice Details - {invoice.id || invoice.invoiceNumber}</ModalHeader>
+        <ModalCloseButton boxSize={10} color={"white"}/>
         <ModalBody pb={6}>
           <VStack spacing={4} align="stretch">
             {/* Basic Information */}
             <Grid templateColumns="1fr 1fr" gap={2}>
               <Box>
                 <Text fontWeight="semibold" color="gray.600">Customer:</Text>
-                <Text color={"purple"} fontWeight="semibold">{invoice.customer_name || invoice.service || invoice.name}</Text>
+                <Text color={"purple"} fontWeight="semibold">{invoice.service || invoice.name || invoice.customer_name || 'N/A'}</Text>
               </Box>
               <Box>
                 <Text fontWeight="semibold" color="gray.600">Invoice Date:</Text>
-                <Text fontWeight="500">{invoice.invoice_date ? new Date(invoice.invoice_date).toLocaleDateString() : (invoice.created_at ? new Date(invoice.created_at).toLocaleDateString() : "-")}</Text>
+                <Text fontWeight="500">{invoice.date ? invoice.date : (invoice.invoiceDate ? new Date(invoice.invoiceDate).toLocaleDateString() : "-")}</Text>
               </Box>
               <Box>
                 <Text fontWeight="semibold" color="gray.600">Due Date:</Text>
-                <Text fontWeight="500">{invoice.due_date ? new Date(invoice.due_date).toLocaleDateString() : "-"}</Text>
+                <Text fontWeight="500">{invoice.dueDate ? invoice.dueDate : "-"}</Text>
               </Box>
               <Box>
                 <Text fontWeight="semibold" color="gray.600">Period:</Text>
-                <Text fontWeight="500">{invoice.period}</Text>
+                <Text fontWeight="500">{invoice.period || '-'}</Text>
               </Box>
             </Grid>
 
@@ -49,11 +49,11 @@ const InvoiceDetailsModal = ({ isOpen, onClose, invoice }) => {
             <Grid templateColumns="1fr 1fr" gap={2}>
               <Box>
                 <Text fontWeight="semibold" color="gray.600">MRC Amount:</Text>
-                <Text fontWeight="500" color="blue.600">${Number(invoice.mrc_amount || invoice.price || 0).toFixed(2)}</Text>
+                <Text fontWeight="500" color="blue.600">${(Number(invoice.mrcAmount || invoice.price || 0) * (invoice.quantity || 1)).toFixed(2)}</Text>
               </Box>
               <Box>
                 <Text fontWeight="semibold" color="gray.600">Usage Amount:</Text>
-                <Text fontWeight="500" color="purple.600">${Number(invoice.usage_amount || 0).toFixed(2)}</Text>
+                <Text fontWeight="500" color="purple.600">${Number(invoice.usageAmount || 0).toFixed(2)}</Text>
               </Box>
               <Box>
                 <Text fontWeight="semibold" color="gray.600">Quantity:</Text>
@@ -71,19 +71,19 @@ const InvoiceDetailsModal = ({ isOpen, onClose, invoice }) => {
             <Grid templateColumns="1fr 1fr" gap={2}>
               <Box>
                 <Text fontWeight="semibold" color="gray.600">Country:</Text>
-                <Text fontWeight="500">{invoice.country_name || invoice.countryName || '-'}</Text>
+                <Text fontWeight="500">{invoice.countryName || invoice.country_name || '-'}</Text>
               </Box>
               <Box>
                 <Text fontWeight="semibold" color="gray.600">Product:</Text>
-                <Text fontWeight="500">{invoice.product_type || invoice.product_name || invoice.productType || '-'}</Text>
+                <Text fontWeight="500">{invoice.productType || invoice.product_type || invoice.product_name || '-'}</Text>
               </Box>
               <Box>
                 <Text fontWeight="semibold" color="gray.600">Area Code:</Text>
-                <Text fontWeight="500">{invoice.area_code || invoice.areaCode || '-'}</Text>
+                <Text fontWeight="500">{invoice.areaCode || invoice.area_code || '-'}</Text>
               </Box>
               <Box>
                 <Text fontWeight="semibold" color="gray.600">Next Billing Date:</Text>
-                <Text fontWeight="500">{invoice.to_date ? new Date(invoice.to_date).toLocaleDateString() : (invoice.nextBilling || '-')}</Text>
+                <Text fontWeight="500">{invoice.toDate ? invoice.toDate : (invoice.nextBilling || '-')}</Text>
               </Box>
             </Grid>
 
@@ -97,7 +97,7 @@ const InvoiceDetailsModal = ({ isOpen, onClose, invoice }) => {
               </Box>
               <Box>
                 <Text fontWeight="semibold" color="gray.600">Pay Date:</Text>
-                <Text fontWeight="500">{invoice.paid_date ? new Date(invoice.paid_date).toLocaleDateString() : (invoice.payDate || "-")}</Text>
+                <Text fontWeight="500">{invoice.payDate ? invoice.payDate : "-"}</Text>
               </Box>
             </Grid>
 

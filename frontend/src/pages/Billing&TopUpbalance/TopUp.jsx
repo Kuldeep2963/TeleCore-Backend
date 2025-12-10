@@ -52,6 +52,7 @@ const TopUp = ({
 }) => {
   const [topupAmount, setTopupAmount] = useState('');
   const [thresholdBalance, setThresholdBalance] = useState(10.00); // Default threshold
+  const [thresholdInput, setThresholdInput] = useState(10.00); // Temporary input value
   const [selectedPayment, setSelectedPayment] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [currentBalance, setCurrentBalance] = useState(walletBalance);
@@ -264,7 +265,7 @@ const TopUp = ({
   return (
     <VStack spacing={8} align="stretch" w={"full"} mx="auto">
       {/* Page Header */}
-      <Box textAlign="left" pt={4}>
+      <Box textAlign="left">
         <Heading size="lg" bgGradient="linear(to-r, blue.500, purple.500)" bgClip="text" mb={3}>
           Wallet Management
         </Heading>
@@ -297,7 +298,7 @@ const TopUp = ({
             boxShadow="lg"
             w="100%"
           >
-            <CardBody p={8}>
+            <CardBody p={{base:4,md:8}}>
               <VStack spacing={6} align="stretch">
                 <Flex justify="space-between" align="center">
                   <VStack align="start" spacing={1}>
@@ -338,7 +339,7 @@ const TopUp = ({
             boxShadow="lg"
             w="100%"
           >
-            <CardBody p={8}>
+            <CardBody p={{base:4,md:8}}>
               <VStack spacing={6} align="stretch">
                 <Heading size="md" mb={2}>
                   Add Funds to Wallet
@@ -347,7 +348,7 @@ const TopUp = ({
                 {/* Quick Amount Buttons */}
                 <Box>
                   <Text fontWeight="medium" mb={3}>Quick Top-up</Text>
-                  <SimpleGrid columns={{ base: 3, sm: 5 }} gap={12}>
+                  <SimpleGrid columns={5} gap={{base:3,md:12}}>
                     {quickAmounts.map((amount) => (
                       <Button
                         key={amount}
@@ -453,7 +454,7 @@ const TopUp = ({
             boxShadow="lg"
             w="100%"
           >
-            <CardBody p={8}>
+            <CardBody p={{base:4,md:8}}>
               <VStack spacing={6} align="stretch">
                 <Flex align="center" justify="space-between">
                   <Heading size="md">Balance Alerts</Heading>
@@ -503,7 +504,7 @@ const TopUp = ({
                 {/* Quick Threshold Buttons */}
                 <Box>
                   <Text fontWeight="medium" mb={3}>Quick Settings</Text>
-                  <SimpleGrid columns={4} gap={2}>
+                  <SimpleGrid columns={4} gap={3}>
                     {thresholdOptions.map((amount) => (
                       <Button
                         key={amount}
