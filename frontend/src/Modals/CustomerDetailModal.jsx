@@ -65,7 +65,7 @@ const CustomerDetailModal = ({ isOpen, onClose, customer }) => {
       const ordersResponse = await api.orders.getAll({ customer_id: customer.id });
       if (ordersResponse.success) {
         setCustomerOrders(ordersResponse.data.map(order => ({
-          id: `#${order.orderNo}`,
+          id: `${order.orderNo}`,
           service: order.serviceName || 'Service',
           quantity: order.quantity,
           totalAmount: order.totalAmount,

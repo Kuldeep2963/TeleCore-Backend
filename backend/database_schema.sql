@@ -210,6 +210,8 @@ CREATE TABLE invoices (
     from_date DATE,
     to_date DATE,
     notes TEXT,
+    rate_per_minute DECIMAL(10,4) DEFAULT 0.00, -- Cost per minute for usage calculation
+    duration INTEGER DEFAULT 0, -- Duration in seconds for usage charges
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );

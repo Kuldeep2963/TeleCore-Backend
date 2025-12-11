@@ -374,7 +374,7 @@ const Rates = () => {
                   gap={4}
                 >
                   <VStack spacing={2} flex={1}>
-                    <Text fontWeight="semibold" fontSize="sm">
+                    <Text fontWeight="semibold" fontSize="sm" alignSelf={"start"} ml={3}>
                       Select Country
                     </Text>
                     <Select
@@ -393,7 +393,7 @@ const Rates = () => {
                   </VStack>
 
                   <VStack spacing={2} flex={1}>
-                    <Text fontWeight="semibold" fontSize="sm">
+                    <Text fontWeight="semibold" fontSize="sm" alignSelf={"start"} ml={3}>
                       Select Product Type
                     </Text>
                     <Select
@@ -430,7 +430,7 @@ const Rates = () => {
                       colorScheme="blue"
                       onClick={handleSearch}
                       isLoading={searchLoading}
-                      isDisabled={!selectedCountry}
+                      isDisabled={!selectedCountry || !selectedProductType}
                       w={{ base: "full", md: "auto" }}
                     >
                       Search

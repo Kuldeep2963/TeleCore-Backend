@@ -42,10 +42,10 @@ function DocumentRequiredModal({ isOpen, onClose, documents = [], title = "Requi
   return (
     <Modal isOpen={isOpen} onClose={onClose} size={{base:"sm",md:"lg"}}>
       <ModalOverlay backdropFilter="blur(4px)" />
-      <ModalContent>
-        <ModalHeader>{title}</ModalHeader>
-        <ModalCloseButton />
-        <ModalBody pb={6}>
+      <ModalContent borderRadius={"15px"}>
+        <ModalHeader bgGradient="linear(to-r, blue.400, blue.500)" borderTopRadius={"15px"} color={"white"} >{title}</ModalHeader>
+        <ModalCloseButton color={"white"}  />
+        <ModalBody mt={3} pb={6}>
           {displayDocuments.length > 0 ? (
             <List spacing={3}>
               {displayDocuments.map((doc, index) => (

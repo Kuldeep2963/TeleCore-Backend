@@ -228,15 +228,20 @@ const TopUp = ({
     try {
       const response = await walletService.getUserProfile(userId);
       if (response.success && response.data.wallet_threshold !== null) {
-        setThresholdBalance(parseFloat(response.data.wallet_threshold) || 10.00);
+        const threshold = parseFloat(response.data.wallet_threshold) || 10.00;
+        setThresholdBalance(threshold);
+        setThresholdInput(threshold);
       } else {
         // Fallback to localStorage if no backend threshold
         const savedThreshold = localStorage.getItem('walletThreshold');
         if (savedThreshold) {
-          setThresholdBalance(parseFloat(savedThreshold) || 10.00);
+          const threshold = parseFloat(savedThreshold) || 10.00;
+          setThresholdBalance(threshold);
+          setThresholdInput(threshold);
         } else {
           // Default to 10.00 if nothing is saved
           setThresholdBalance(10.00);
+          setThresholdInput(10.00);
         }
       }
     } catch (error) {
@@ -244,10 +249,13 @@ const TopUp = ({
       // Fallback to localStorage
       const savedThreshold = localStorage.getItem('walletThreshold');
       if (savedThreshold) {
-        setThresholdBalance(parseFloat(savedThreshold) || 10.00);
+        const threshold = parseFloat(savedThreshold) || 10.00;
+        setThresholdBalance(threshold);
+        setThresholdInput(threshold);
       } else {
         // Default to 10.00 if nothing is saved
         setThresholdBalance(10.00);
+        setThresholdInput(10.00);
       }
     }
   };
@@ -258,6 +266,7 @@ const TopUp = ({
   const paymentMethods = [
     { id: 'card', name: 'Credit/Debit Card', icon: FaCreditCard, color: 'blue' },
     { id: 'stripe', name: 'Stripe', icon: SiStripe, color: 'purple' },
+    { id: 'wallet', name: 'Wallet', icon: FaWallet, color: 'green'}
   ];
 
   const isLowBalance = currentBalance < thresholdBalance;
@@ -391,7 +400,7 @@ const TopUp = ({
                 {/* Payment Methods */}
                 <Box>
                   <Text fontWeight="medium" mb={3}>Payment Method</Text>
-                  <SimpleGrid columns={{ base: 1, md: 2 }} gap={3}>
+                  <SimpleGrid columns={{ base: 1, md: 3 }} gap={3}>
                     {paymentMethods.map((method) => (
                       <Button
                         key={method.id}
@@ -415,7 +424,7 @@ const TopUp = ({
                 <Button
                   colorScheme="blue"
                   size="lg"
-                  height="60px"
+                  // height="50px"
                   fontSize="lg"
                   leftIcon={isLoading ? <Spinner size="sm" /> : <RiFlashlightFill />}
                   onClick={handleTopup}
@@ -478,6 +487,11 @@ const TopUp = ({
                     <Text fontSize="2xl" fontWeight="bold" color="orange.500">
                       ${typeof thresholdBalance === 'number' ? thresholdBalance.toFixed(2) : '10.00'}
                     </Text>
+                    {thresholdInput !== thresholdBalance && (
+                      <Text fontSize="xs" color="orange.600" fontWeight="medium">
+                        (Pending update: ${typeof thresholdInput === 'number' ? thresholdInput.toFixed(2) : '10.00'})
+                      </Text>
+                    )}
                   </VStack>
                 </Box>
 
@@ -485,8 +499,8 @@ const TopUp = ({
                 <Box>
                   <Text fontWeight="medium" mb={3}>Set Alert Threshold</Text>
                   <NumberInput
-                    value={thresholdBalance}
-                    onChange={(value) => setThresholdBalance(parseFloat(value) || 0)}
+                    value={thresholdInput}
+                    onChange={(value) => setThresholdInput(parseFloat(value) || 0)}
                     min={0}
                     precision={2}
                     size="md"
@@ -511,7 +525,7 @@ const TopUp = ({
                         size="sm"
                         variant="outline"
                         colorScheme="orange"
-                        onClick={() => handleSetThreshold(amount.toString())}
+                        onClick={() => setThresholdInput(amount)}
                         isDisabled={isLoading}
                       >
                         ${amount}
@@ -525,8 +539,8 @@ const TopUp = ({
                   colorScheme="orange"
                   variant="outline"
                   leftIcon={<FaBell />}
-                  onClick={() => handleSetThreshold(thresholdBalance)}
-                  isDisabled={isLoading}
+                  onClick={() => handleSetThreshold(thresholdInput)}
+                  isDisabled={isLoading || thresholdInput === thresholdBalance}
                 >
                   Update Alert
                 </Button>

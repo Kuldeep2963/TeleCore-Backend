@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from "react";
 import {
   Box,
   Heading,
@@ -29,12 +29,19 @@ import {
   List,
   ListItem,
   useDisclosure,
-  Portal
-} from '@chakra-ui/react';
-import { FaFileExcel, FaEye, FaSearch, FaUnlink, FaChevronCircleLeft, FaChevronCircleRight } from 'react-icons/fa';
-import { FiRefreshCw } from 'react-icons/fi';
-import NumberPricingModal from '../Modals/NumberPricingModal';
-import api from '../services/api';
+  Portal,
+} from "@chakra-ui/react";
+import {
+  FaFileExcel,
+  FaEye,
+  FaSearch,
+  FaUnlink,
+  FaChevronCircleLeft,
+  FaChevronCircleRight,
+} from "react-icons/fa";
+import { FiRefreshCw } from "react-icons/fi";
+import NumberPricingModal from "../Modals/NumberPricingModal";
+import api from "../services/api";
 
 function MyNumbers({ onRequestDisconnection, refreshTrigger }) {
   const [currentPage, setCurrentPage] = useState(1);
@@ -42,28 +49,26 @@ function MyNumbers({ onRequestDisconnection, refreshTrigger }) {
   const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
   const [selectedNumber, setSelectedNumber] = useState(null);
   const [disconnectRequests, setDisconnectRequests] = useState({});
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedOrderId, setSelectedOrderId] = useState('');
-  const [orderSearchTerm, setOrderSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedOrderId, setSelectedOrderId] = useState("");
+  const [orderSearchTerm, setOrderSearchTerm] = useState("");
   const [numbers, setNumbers] = useState([]);
-  const { isOpen: isOrderDropdownOpen, onOpen: onOrderDropdownOpen, onClose: onOrderDropdownClose } = useDisclosure();
+  const {
+    isOpen: isOrderDropdownOpen,
+    onOpen: onOrderDropdownOpen,
+    onClose: onOrderDropdownClose,
+  } = useDisclosure();
   const [loading, setLoading] = useState(true);
-  const [allocationSummary, setAllocationSummary] = useState({
-    totalRequired: 0,
-    totalAllocated: 0,
-    pendingAllocation: 0
-  });
+
   const toast = useToast();
 
   useEffect(() => {
     fetchNumbers();
-    fetchAllocationSummary();
   }, []);
 
   useEffect(() => {
     if (refreshTrigger > 0) {
       fetchNumbers();
-      fetchAllocationSummary();
     }
   }, [refreshTrigger]);
 
@@ -75,19 +80,19 @@ function MyNumbers({ onRequestDisconnection, refreshTrigger }) {
         setNumbers(response.data);
       } else {
         toast({
-          title: 'Error',
-          description: 'Failed to load numbers',
-          status: 'error',
+          title: "Error",
+          description: "Failed to load numbers",
+          status: "error",
           duration: 3000,
           isClosable: true,
         });
       }
     } catch (error) {
-      console.error('Error fetching numbers:', error);
+      console.error("Error fetching numbers:", error);
       toast({
-        title: 'Error',
-        description: 'Failed to load numbers',
-        status: 'error',
+        title: "Error",
+        description: "Failed to load numbers",
+        status: "error",
         duration: 3000,
         isClosable: true,
       });
@@ -96,49 +101,17 @@ function MyNumbers({ onRequestDisconnection, refreshTrigger }) {
     }
   };
 
-  const fetchAllocationSummary = async () => {
-    try {
-      const ordersResponse = await api.orders.getAll();
-      if (ordersResponse.success && ordersResponse.data) {
-        const orders = ordersResponse.data;
-        const numbersResponse = await api.numbers.getAll();
-        const allNumbers = numbersResponse.success ? numbersResponse.data : [];
-
-        let totalRequired = 0;
-        let totalAllocated = 0;
-
-        orders.forEach(order => {
-          if (order.orderStatus === 'Delivered') {
-            totalRequired += order.quantity || 0;
-            const allocatedCount = allNumbers.filter(n => n.order_id === order.id).length;
-            totalAllocated += allocatedCount;
-          }
-        });
-
-        const pendingAllocation = Math.max(0, totalRequired - totalAllocated);
-
-        setAllocationSummary({
-          totalRequired,
-          totalAllocated,
-          pendingAllocation
-        });
-      }
-    } catch (error) {
-      console.error('Error fetching allocation summary:', error);
-    }
-  };
-
   // Get unique orders with order number and ID
   const uniqueOrders = useMemo(() => {
     const ordersMap = {};
     numbers
-      .filter(n => n.order_id && n.order_number)
-      .forEach(n => {
+      .filter((n) => n.order_id && n.order_number)
+      .forEach((n) => {
         if (!ordersMap[n.order_id]) {
           ordersMap[n.order_id] = n.order_number;
         }
       });
-    
+
     return Object.entries(ordersMap)
       .map(([id, number]) => ({ id, number }))
       .sort((a, b) => a.number.localeCompare(b.number));
@@ -150,7 +123,7 @@ function MyNumbers({ onRequestDisconnection, refreshTrigger }) {
       return uniqueOrders;
     }
     const searchLower = orderSearchTerm.toLowerCase();
-    return uniqueOrders.filter(order =>
+    return uniqueOrders.filter((order) =>
       order.number.toLowerCase().includes(searchLower)
     );
   }, [uniqueOrders, orderSearchTerm]);
@@ -160,7 +133,7 @@ function MyNumbers({ onRequestDisconnection, refreshTrigger }) {
     let result = numbers;
 
     if (selectedOrderId) {
-      result = result.filter(number => number.order_id === selectedOrderId);
+      result = result.filter((number) => number.order_id === selectedOrderId);
     }
 
     if (!searchTerm.trim()) {
@@ -168,11 +141,12 @@ function MyNumbers({ onRequestDisconnection, refreshTrigger }) {
     }
 
     const searchLower = searchTerm.toLowerCase();
-    return result.filter(number =>
-      number.country_name.toLowerCase().includes(searchLower) ||
-      number.product_name.toLowerCase().includes(searchLower) ||
-      number.area_code.toLowerCase().includes(searchLower) ||
-      number.number.toLowerCase().includes(searchLower)
+    return result.filter(
+      (number) =>
+        number.country_name.toLowerCase().includes(searchLower) ||
+        number.product_name.toLowerCase().includes(searchLower) ||
+        number.area_code.toLowerCase().includes(searchLower) ||
+        number.number.toLowerCase().includes(searchLower)
     );
   }, [numbers, searchTerm, selectedOrderId]);
 
@@ -198,38 +172,49 @@ function MyNumbers({ onRequestDisconnection, refreshTrigger }) {
   // Close dropdown when clicking outside
   React.useEffect(() => {
     const handleClickOutside = (e) => {
-      const orderCombobox = document.getElementById('order-combobox');
+      const orderCombobox = document.getElementById("order-combobox");
       if (orderCombobox && !orderCombobox.contains(e.target)) {
         onOrderDropdownClose();
       }
     };
 
     if (isOrderDropdownOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
+      document.addEventListener("mousedown", handleClickOutside);
+      return () =>
+        document.removeEventListener("mousedown", handleClickOutside);
     }
   }, [isOrderDropdownOpen, onOrderDropdownClose]);
 
   const handleExportToExcel = () => {
-    const headers = ['S. No.', 'Country', 'Product Type', 'Area Code', 'Number', 'Status'];
+    const headers = [
+      "S. No.",
+      "Country",
+      "Product Type",
+      "Area Code",
+      "Number",
+      "Status",
+    ];
     const rows = filteredNumbers.map((num, index) => [
       index + 1,
       num.country_name,
       num.product_name,
       num.area_code,
       num.number,
-      num.status || 'N/A'
+      num.status || "N/A",
     ]);
-    
+
     const csvContent = [
-      headers.join(','),
-      ...rows.map(row => row.join(','))
-    ].join('\n');
-    
-    const element = document.createElement('a');
-    element.setAttribute('href', 'data:text/csv;charset=utf-8,' + encodeURIComponent(csvContent));
-    element.setAttribute('download', 'my-numbers.csv');
-    element.style.display = 'none';
+      headers.join(","),
+      ...rows.map((row) => row.join(",")),
+    ].join("\n");
+
+    const element = document.createElement("a");
+    element.setAttribute(
+      "href",
+      "data:text/csv;charset=utf-8," + encodeURIComponent(csvContent)
+    );
+    element.setAttribute("download", "my-numbers.csv");
+    element.style.display = "none";
     document.body.appendChild(element);
     element.click();
     document.body.removeChild(element);
@@ -259,7 +244,7 @@ function MyNumbers({ onRequestDisconnection, refreshTrigger }) {
   };
 
   const clearSearch = () => {
-    setSearchTerm('');
+    setSearchTerm("");
   };
 
   const handleOrderSearchChange = (e) => {
@@ -276,19 +261,18 @@ function MyNumbers({ onRequestDisconnection, refreshTrigger }) {
   };
 
   const clearOrderFilter = () => {
-    setSelectedOrderId('');
-    setOrderSearchTerm('');
+    setSelectedOrderId("");
+    setOrderSearchTerm("");
   };
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'Active':
-        return 'green';
-      case 'Inactive':
-        return 'gray';
-      case 'Disconnected':
-        return 'red';
-   
+      case "Active":
+        return "green";
+      case "Inactive":
+        return "gray";
+      case "Disconnected":
+        return "red";
     }
   };
 
@@ -303,8 +287,8 @@ function MyNumbers({ onRequestDisconnection, refreshTrigger }) {
   return (
     <Box
       flex={1}
-      p={{base:4,md:6}}
-      pb={2}
+      p={{ base: 4, md: 6 }}
+      pb={1}
       bg="#f8f9fa"
       height="calc(100vh - 76px)"
       overflowY="auto"
@@ -320,7 +304,7 @@ function MyNumbers({ onRequestDisconnection, refreshTrigger }) {
             My Numbers
           </Heading>
           <HStack spacing={6}>
-            <Spacer/>
+            <Spacer />
             <Box position="relative" w="300px" id="order-combobox">
               <InputGroup>
                 <Input
@@ -341,7 +325,7 @@ function MyNumbers({ onRequestDisconnection, refreshTrigger }) {
                       onClick={clearOrderFilter}
                       variant="ghost"
                       color="gray.500"
-                      _hover={{ color: 'gray.700' }}
+                      _hover={{ color: "gray.700" }}
                     >
                       ✕
                     </Button>
@@ -370,7 +354,7 @@ function MyNumbers({ onRequestDisconnection, refreshTrigger }) {
                         key={order.id}
                         p={3}
                         cursor="pointer"
-                        _hover={{ bg: 'blue.50' }}
+                        _hover={{ bg: "blue.50" }}
                         onClick={() => handleSelectOrder(order)}
                         borderBottom="1px solid"
                         borderColor="gray.100"
@@ -400,7 +384,7 @@ function MyNumbers({ onRequestDisconnection, refreshTrigger }) {
                     onClick={clearSearch}
                     variant="ghost"
                     color="gray.500"
-                    _hover={{ color: 'gray.700' }}
+                    _hover={{ color: "gray.700" }}
                   >
                     ✕
                   </Button>
@@ -440,49 +424,22 @@ function MyNumbers({ onRequestDisconnection, refreshTrigger }) {
         )} */}
 
         {/* Allocation Summary */}
-        <SimpleGrid columns={{ base: 1, md: 3 }} spacing={8}>
-          <Card bg="white" borderRadius="12px" boxShadow="lg" border="1px solid" borderColor="gray.200">
-            <CardBody>
-              <HStack justify={"center"} spacing={12}>
-                <Text fontSize="sm" color="gray.600" fontWeight="medium">Total Quantity Required</Text>
-                <Text fontSize="2xl" color="blue.600" fontWeight="bold">{allocationSummary.totalRequired}</Text>
-              </HStack>
-            </CardBody>
-          </Card>
-
-          <Card bg="white" borderRadius="12px" boxShadow="md" border="1px solid" borderColor="gray.200">
-            <CardBody>
-              <HStack justify={"center"} spacing={12}>
-                <Text fontSize="sm" color="gray.600" fontWeight="medium">Total Quantity Allocated</Text>
-                <Text fontSize="2xl" color="green.600" fontWeight="bold">{allocationSummary.totalAllocated}</Text>
-              </HStack>
-            </CardBody>
-          </Card>
-
-          <Card bg="white" borderRadius="12px" boxShadow="md" border="1px solid" borderColor="gray.200">
-            <CardBody>
-              <HStack justify={"center"} spacing={12}>
-                <Text fontSize="sm" color="gray.600" fontWeight="medium">Pending Allocation</Text>
-                <Text fontSize="2xl" color={allocationSummary.pendingAllocation > 0 ? "orange.600" : "green.600"} fontWeight="bold">{allocationSummary.pendingAllocation}</Text>
-              </HStack>
-            </CardBody>
-          </Card>
-        </SimpleGrid>
 
         <Box
           mt={2}
           bg="white"
-            borderRadius="xl"
-            boxShadow="0 2px 4px rgba(0, 0, 0, 0.05)"
-            border="1px solid"
-            borderColor="gray.100"
-            overflow={{base:"scroll",md:"hidden"}}
+          borderRadius="xl"
+          boxShadow="0 2px 4px rgba(0, 0, 0, 0.05)"
+          border="1px solid"
+          borderColor="gray.100"
+          overflow={{ base: "scroll", md: "hidden" }}
+          h="470px"
         >
-          <Table variant="simple" h="470px">
+          <Table variant="simple">
             <Thead position="sticky" top={0} bg="white" zIndex={1}>
               <Tr
                 sx={{
-                  '& > th': {
+                  "& > th": {
                     bg: "gray.200",
                     color: "gray.700",
                     fontWeight: "semibold",
@@ -491,7 +448,7 @@ function MyNumbers({ onRequestDisconnection, refreshTrigger }) {
                     borderBottom: "2px solid",
                     borderColor: "gray.400",
                     textAlign: "center",
-                  }
+                  },
                 }}
               >
                 <Th width="10%">No.</Th>
@@ -506,17 +463,39 @@ function MyNumbers({ onRequestDisconnection, refreshTrigger }) {
             <Tbody>
               {currentNumbers.length > 0 ? (
                 currentNumbers.map((number, index) => (
-                  <Tr key={number.id} _hover={{ bg: 'gray.50' }}>
-                    <Td color={"blue.500"} fontWeight={"bold"} textAlign="center">{startIndex + index + 1}</Td>
-                    <Td fontWeight={"semibold"} color={"green"} textAlign="center">{number.country_name}</Td>
-                    
-                    <Td textAlign="center"><Badge colorScheme='blue' borderRadius={"full"} px={2}>{number.product_name}</Badge></Td>
-                    
-                    <Td fontWeight={"semibold"} textAlign="center">{number.area_code}</Td>
+                  <Tr key={number.id} _hover={{ bg: "gray.50" }}>
+                    <Td
+                      color={"blue.500"}
+                      fontWeight={"bold"}
+                      textAlign="center"
+                    >
+                      {startIndex + index + 1}
+                    </Td>
+                    <Td
+                      fontWeight={"semibold"}
+                      color={"green"}
+                      textAlign="center"
+                    >
+                      {number.country_name}
+                    </Td>
+
+                    <Td textAlign="center">
+                      <Badge colorScheme="blue" borderRadius={"full"} px={2}>
+                        {number.product_name}
+                      </Badge>
+                    </Td>
+
+                    <Td fontWeight={"semibold"} textAlign="center">
+                      {number.area_code}
+                    </Td>
                     <Td textAlign="center">{number.number}</Td>
                     <Td textAlign="center">
-                      <Badge px={2} colorScheme={getStatusColor(number.status)} borderRadius="full">
-                        {number.status || 'N/A'}
+                      <Badge
+                        px={2}
+                        colorScheme={getStatusColor(number.status)}
+                        borderRadius="full"
+                      >
+                        {number.status || "N/A"}
                       </Badge>
                     </Td>
                     <Td textAlign="center">
@@ -530,19 +509,27 @@ function MyNumbers({ onRequestDisconnection, refreshTrigger }) {
                         >
                           View
                         </Button>
-                        {number.status !== 'Disconnected' && (
+                        {number.status !== "Disconnected" && (
                           <Button
                             size="sm"
                             colorScheme="red"
                             variant="ghost"
                             leftIcon={<Icon as={FaUnlink} />}
                             onClick={() => handleDisconnectClick(number)}
-                            isDisabled={number.disconnection_status === 'Pending' || number.disconnection_status === 'Approved' || number.disconnection_status === 'Completed'}
+                            isDisabled={
+                              number.disconnection_status === "Pending" ||
+                              number.disconnection_status === "Approved" ||
+                              number.disconnection_status === "Completed"
+                            }
                           >
-                            {number.disconnection_status === 'Pending' ? 'Pending...' :
-                            //  number.disconnection_status === 'Approved' ? 'Approved' :
-                             number.disconnection_status === 'Rejected' ? 'Rejected' :
-                             number.disconnection_status === 'Completed' ? 'Disconnected' : 'Disconnect'}
+                            {number.disconnection_status === "Pending"
+                              ? "Pending..."
+                              : //  number.disconnection_status === 'Approved' ? 'Approved' :
+                              number.disconnection_status === "Rejected"
+                              ? "Rejected"
+                              : number.disconnection_status === "Completed"
+                              ? "Disconnected"
+                              : "Disconnect"}
                           </Button>
                         )}
                       </HStack>
@@ -551,22 +538,24 @@ function MyNumbers({ onRequestDisconnection, refreshTrigger }) {
                 ))
               ) : (
                 <Tr>
-  <Td 
-    colSpan={7}
-    textAlign="center"
-    color="gray.600"
-    py={8}
-    fontStyle='italic'
-    fontSize="md"
-  >
-    <VStack spacing={3} justify="center">
-      <Icon as={FiRefreshCw} boxSize={6} color="gray.500" />
-      <Text>
-        {searchTerm ? 'No numbers found matching your search' : 'No numbers purchased yet'}
-      </Text>
-    </VStack>
-  </Td>
-</Tr>
+                  <Td
+                    colSpan={7}
+                    textAlign="center"
+                    color="gray.600"
+                    py={8}
+                    fontStyle="italic"
+                    fontSize="md"
+                  >
+                    <VStack spacing={3} justify="center">
+                      <Icon as={FiRefreshCw} boxSize={6} color="gray.500" />
+                      <Text>
+                        {searchTerm
+                          ? "No numbers found matching your search"
+                          : "No numbers purchased yet"}
+                      </Text>
+                    </VStack>
+                  </Td>
+                </Tr>
               )}
             </Tbody>
           </Table>
@@ -583,10 +572,7 @@ function MyNumbers({ onRequestDisconnection, refreshTrigger }) {
             px={4}
             py={2}
           >
-            <Flex
-              justify="space-between"
-              align="center"
-            >
+            <Flex justify="space-between" align="center">
               {/* Results per page selector */}
               <HStack spacing={2}>
                 <Text fontSize="sm" color="gray.600">
@@ -618,9 +604,9 @@ function MyNumbers({ onRequestDisconnection, refreshTrigger }) {
                   isDisabled={currentPage === 1}
                   borderRadius="md"
                 >
-                  <FaChevronCircleLeft/>
+                  <FaChevronCircleLeft />
                 </Button>
-                
+
                 <Text fontSize="sm" color="gray.600" px={2}>
                   Page {currentPage} of {totalPages}
                 </Text>
@@ -632,7 +618,7 @@ function MyNumbers({ onRequestDisconnection, refreshTrigger }) {
                   isDisabled={currentPage === totalPages}
                   borderRadius="md"
                 >
-                  <FaChevronCircleRight/>
+                  <FaChevronCircleRight />
                 </Button>
               </HStack>
 

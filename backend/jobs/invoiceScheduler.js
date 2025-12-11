@@ -1,21 +1,22 @@
 const cron = require('node-cron');
 const { query } = require('../config/database');
 
-// Utility: Generate strong unique invoice number
-const generateInvoiceNumber = () => {
-  return `INV-${Date.now().toString(36).toUpperCase()}-${Math.random()
-    .toString(36)
-    .substr(2, 6)
-    .toUpperCase()}`;
+// Utility: Generate invoice number in format "orderNumber-month"
+const generateInvoiceNumber = (orderNumber, month) => {
+  return `${orderNumber}-${month}`;
 };
 
-// Utility: Get previous month start/end safely
+// Utility: Get previous month start/end safely (IST timezone)
 const getPreviousMonthRange = () => {
   const now = new Date();
+  
+  // Convert to IST (UTC+5:30)
+  const istOffset = 5.5 * 60 * 60 * 1000;
+  const istNow = new Date(now.getTime() + istOffset);
 
-  // Previous month (UTC safe)
-  const prevMonthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1));
-  const prevMonthEnd = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 0));
+  // Previous month (IST)
+  const prevMonthStart = new Date(Date.UTC(istNow.getUTCFullYear(), istNow.getUTCMonth() - 1, 1));
+  const prevMonthEnd = new Date(Date.UTC(istNow.getUTCFullYear(), istNow.getUTCMonth(), 0));
 
   // Period format: YYYY-MM (best for storage)
   const period = `${prevMonthStart.getUTCFullYear()}-${String(
@@ -36,7 +37,7 @@ const generateMonthlyInvoices = async () => {
     // Fetch orders delivered in previous month with no invoice yet
     const deliveredOrders = await query(
       `
-      SELECT o.id, o.customer_id, o.country_id, o.product_id, o.area_code, o.completed_date, o.quantity
+      SELECT o.id, o.order_number, o.customer_id, o.country_id, o.product_id, o.area_code, o.completed_date, o.quantity
       FROM orders o
       WHERE o.status = 'Delivered'
         AND o.completed_date IS NOT NULL
@@ -61,6 +62,23 @@ const generateMonthlyInvoices = async () => {
 
     for (const order of deliveredOrders.rows) {
       try {
+        // Count active numbers for this order
+        const activeNumbersResult = await query(
+          `
+          SELECT COUNT(*) as active_count
+          FROM numbers
+          WHERE order_id = $1 AND status = 'Active'
+          `,
+          [order.id]
+        );
+
+        const activeCount = parseInt(activeNumbersResult.rows[0].active_count) || 0;
+
+        if (activeCount === 0) {
+          console.log(`⚠️ Order ${order.id} has no active numbers, skipping invoice`);
+          continue;
+        }
+
         // Get MRC pricing - try 'current' first, then fallback to 'desired'
         const pricingResult = await query(
           `
@@ -81,15 +99,28 @@ const generateMonthlyInvoices = async () => {
           continue;
         }
 
-        const mrcAmount = Number(pricingResult.rows[0].mrc)*Number(order.quantity);
+        const mrcAmount = Number(pricingResult.rows[0].mrc) * activeCount;
         const usageAmount = 0; // For now; usage fills later from CDR
 
         const amount = mrcAmount + usageAmount;
 
-        const invoiceNumber = generateInvoiceNumber();
-
         const invoiceDate = new Date();
+        const istOffset = 5.5 * 60 * 60 * 1000;
+        const istInvoiceDate = new Date(invoiceDate.getTime() + istOffset);
+        const month = String(istInvoiceDate.getUTCMonth() + 1).padStart(2, '0');
+        const invoiceNumber = generateInvoiceNumber(order.order_number, month);
+
         const dueDate = new Date(invoiceDate.getTime() + 10 * 24 * 60 * 60 * 1000);
+
+        // Calculate from_date and to_date based on order completion date
+        const completionDate = new Date(order.completed_date);
+        const istCompletion = new Date(completionDate.getTime() + istOffset);
+        
+        // from_date: completion date (same day)
+        const fromDate = new Date(Date.UTC(istCompletion.getUTCFullYear(), istCompletion.getUTCMonth(), istCompletion.getUTCDate()));
+        
+        // to_date: same date of next month
+        const toDate = new Date(Date.UTC(istCompletion.getUTCFullYear(), istCompletion.getUTCMonth() + 1, istCompletion.getUTCDate()));
 
         // Insert securely with duplicate prevention
         await query(
@@ -109,12 +140,12 @@ const generateMonthlyInvoices = async () => {
             amount,
             dueDate,
             period, // safe format: YYYY-MM
-            prevMonthStart,
-            prevMonthEnd
+            fromDate,
+            toDate
           ]
         );
 
-        console.log(`Invoice generated for order ${order.id}: ${invoiceNumber}`);
+        console.log(`✅ Invoice generated for order ${order.id}: ${invoiceNumber} (Active numbers: ${activeCount}, MRC: ${mrcAmount})`);
       } catch (err) {
         console.error(`❌ Error generating invoice for order ${order.id}`, err);
       }
@@ -135,7 +166,7 @@ const updateOverdueInvoices = async () => {
       UPDATE invoices
       SET status = 'Overdue', updated_at = CURRENT_TIMESTAMP
       WHERE status = 'Pending' 
-        AND due_date < CURRENT_DATE
+        AND due_date <= CURRENT_DATE
       RETURNING id, invoice_number, due_date
     `
     );
@@ -158,17 +189,17 @@ const updateOverdueInvoices = async () => {
 const startInvoiceScheduler = () => {
   // RUN EVERY DAY AT 00:00 (midnight) - Generate monthly invoices
   cron.schedule(
-    "37 6 * * *",
+    "48 14 * * *",
     async () => {
       console.log("Running daily invoice generation check at midnight...");
       await generateMonthlyInvoices();
     },
-    { timezone: "UTC" }
+    { timezone: "Asia/Kolkata" }
   );
 
   // RUN EVERY DAY AT 12:59 IST (07:29 UTC) - Check and update overdue invoices
   cron.schedule(
-    "29 7 * * *",
+    "22 14 * * *",
     async () => {
       console.log("Running daily overdue invoice check...");
       await updateOverdueInvoices();

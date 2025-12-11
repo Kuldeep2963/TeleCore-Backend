@@ -12,7 +12,7 @@ exports.sendPasswordResetEmail = async (email, resetToken) => {
   const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
   
   const mailOptions = {
-    from: process.env.GMAIL_USER,
+    from: process.env.GMAIL_USER, 
     to: email,
     subject: 'Password Reset Request',
     html: `

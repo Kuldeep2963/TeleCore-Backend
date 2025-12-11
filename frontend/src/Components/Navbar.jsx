@@ -188,7 +188,7 @@ function Navbar({ cartCount = 0, walletBalance = 0, profilePicture = null, onLog
                     <Text fontWeight="bold" fontSize="14px" color="gray.700" display={{ base: 'none', md: 'block' }}>
                       {`${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim() || 'User'}
                     </Text>
-                    <Text fontSize={"12px"} color={"gray.600"} fontWeight={"semibold"}>{userRole}</Text>
+                    <Text fontSize={"12px"} color={"gray.600"} fontWeight={"semibold"} display={{ base: 'none', md: 'block' }}>{userRole}</Text>
                     </VStack>
                   </HStack>
                 }
@@ -201,6 +201,7 @@ function Navbar({ cartCount = 0, walletBalance = 0, profilePicture = null, onLog
                 size="md"
                 transition="all 0.2s ease"
                 px={3}
+                py={6}
               />
 
             <MenuList 

@@ -341,9 +341,9 @@ const Countries = () => {
             gap={4}
             align={{ base: "stretch", md: "center" }}
           >
-            <VStack spacing={2} flex={1}>
-              <Text fontWeight="bold" fontSize="sm" alignSelf="start">
-                Select Country:
+            <VStack spacing={2} flex={1} >
+              <Text ml={3} fontWeight="semibold" fontSize="sm" alignSelf="start">
+                Select Country
               </Text>
               <Select
                 bg={"white"}

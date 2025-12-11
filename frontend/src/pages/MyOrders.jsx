@@ -414,8 +414,9 @@ function MyOrders({ userId, userRole }) {
             border="1px solid"
             borderColor="gray.100"
             overflow={{base:"scroll",md:"hidden"}}
+             h={"400px"} 
         >
-          <Table variant="simple" h={"400px"}>
+          <Table variant="simple">
             <Thead bg={"gray.200"}>
               <Tr
                 sx={{

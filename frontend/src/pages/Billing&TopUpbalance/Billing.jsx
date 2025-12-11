@@ -11,7 +11,6 @@ import {
   FaChevronCircleRight,
   FaChevronCircleLeft
 } from 'react-icons/fa';
-import { jsPDF } from 'jspdf';
 import TopUp from './TopUp';
 import InvoiceDetailsModal from '../../Modals/InvoiceDetailsModal';
 import api from '../../services/api';
@@ -114,9 +113,9 @@ const Billing = ({ walletBalance = 50.00, onUpdateBalance = () => {}, userId }) 
           if (statusLower !== 'paid') {
             const order = ordersMap[inv.order_id] || null;
 
-            // compute price & quantity (fallbacks)
+            // compute price & quantity (use active numbers count)
             const price = parseFloat(inv.mrc_amount || 0);
-            const quantity = order?.quantity || inv.quantity || 1;
+            const quantity = parseInt(inv.active_numbers_count) || 0;
             const usageAmount = parseFloat(inv.usage_amount || 0);
 
             // compute dates
@@ -151,10 +150,11 @@ const Billing = ({ walletBalance = 50.00, onUpdateBalance = () => {}, userId }) 
               fromDate,
               period: inv.period || '',
               toDate: nextBilling || '',
-              totalCost: (price * quantity) + usageAmount,
+              totalCost: price + usageAmount,
               nextBilling: nextBilling || '',
               status: inv.status || 'Unknown',
               invoiceDate: safeDate(inv.invoice_date) || '',
+              dueDate: safeDate(inv.due_date) || '',
               orderId: inv.order_id || null,
               countryName,
               productType,
@@ -215,168 +215,31 @@ const Billing = ({ walletBalance = 50.00, onUpdateBalance = () => {}, userId }) 
     onOpen();
   };
 
-  const generateInvoicePDF = (invoiceData) => {
-  const doc = new jsPDF();
-  const pageWidth = doc.internal.pageSize.getWidth();
-  let y = 20;
-
-  // -------------------------
-  // Helpers
-  // -------------------------
-  const formatDate = (date) =>
-    date
-      ? new Date(date).toLocaleDateString("en-US", {
-          year: "numeric",
-          month: "short",
-          day: "numeric",
-        })
-      : "N/A";
-
-  const currency = (amount) => `$${Number(amount || 0).toFixed(2)}`;
-
-  const drawSectionTitle = (title) => {
-    doc.setFontSize(12);
-    doc.setFont(undefined, "bold");
-    doc.text(title, 20, y);
-    y += 8;
-    doc.setFont(undefined, "normal");
-    doc.setFontSize(10);
-  };
-
-  const drawLine = () => {
-    doc.setDrawColor(0);
-    doc.line(20, y, pageWidth - 20, y);
-    y += 10;
-  };
-
-  const drawRow = (label, value) => {
-    doc.setFont(undefined, "normal");
-    doc.text(label, 20, y);
-    doc.text(String(value), pageWidth - 90, y);
-    y += 7;
-  };
-
-  // -------------------------
-  // Header
-  // -------------------------
-  doc.setFontSize(20);
-  doc.setFont(undefined, "bold");
-  doc.text("INVOICE", pageWidth / 2, y, { align: "center" });
-  y += 15;
-
-  doc.setFontSize(10);
-  doc.setFont(undefined, "normal");
-  drawRow("Invoice Number:", invoiceData.invoice_number || "N/A");
-  drawRow("Invoice Date:", formatDate(invoiceData.invoice_date));
-  drawRow("Customer:", invoiceData.customer_name || "N/A");
-  drawRow("Due Date:", formatDate(invoiceData.due_date));
-
-  if (invoiceData.customer_email) drawRow("Email:", invoiceData.customer_email);
-  if (invoiceData.customer_phone) drawRow("Phone:", invoiceData.customer_phone);
-  if (invoiceData.country_name || invoiceData.area_code)
-    drawRow(
-      "Location:",
-      `${invoiceData.country_name || ""} ${invoiceData.area_code || ""}`.trim()
-    );
-
-  drawLine();
-
-  // -------------------------
-  // Invoice Details
-  // -------------------------
-  drawSectionTitle("Invoice Details");
-
-  const detailRows = [
-    ["Period", invoiceData.period || "N/A"],
-    ["From Date", formatDate(invoiceData.from_date)],
-    ["To Date", formatDate(invoiceData.to_date)],
-    ["Product", invoiceData.product_name || "N/A"],
-    ["Product Type", invoiceData.product_type || "N/A"],
-    ["Quantity", invoiceData.quantity || "N/A"],
-  ];
-
-  detailRows.forEach(([label, value]) => drawRow(label + ":", value));
-
-  drawLine();
-
-  // -------------------------
-  // Charges Section
-  // -------------------------
-  drawSectionTitle("Charges");
-
-  drawRow("MRC Amount:", currency(invoiceData.mrc_amount));
-  drawRow("Usage Amount:", currency(invoiceData.usage_amount));
-
-  drawLine();
-
-  // -------------------------
-  // Total Amount
-  // -------------------------
-  doc.setFont(undefined, "bold");
-  doc.setFontSize(12);
-  doc.text("Total Amount:", 20, y);
-  doc.text(currency(invoiceData.amount), pageWidth - 90, y);
-  y += 12;
-
-  // -------------------------
-  // Status & Paid Info
-  // -------------------------
-  doc.setFontSize(10);
-  doc.setFont(undefined, "normal");
-  drawRow("Status:", invoiceData.status || "N/A");
-
-  if (invoiceData.paid_date) drawRow("Paid Date:", formatDate(invoiceData.paid_date));
-
-  // -------------------------
-  // Notes
-  // -------------------------
-  if (invoiceData.notes) {
-    y += 8;
-    doc.setFont(undefined, "bold");
-    doc.text("Notes:", 20, y);
-    y += 7;
-
-    doc.setFont(undefined, "normal");
-
-    const wrapped = doc.splitTextToSize(String(invoiceData.notes), pageWidth - 40);
-    doc.text(wrapped, 20, y);
-  }
-
-  // -------------------------
-  // Save PDF
-  // -------------------------
-  const fileName = `Invoice_${invoiceData.invoice_number}_${new Date()
-    .toISOString()
-    .split("T")[0]}.pdf`;
-
-  doc.save(fileName);
-};
-
   const handleDownloadInvoice = async (invoiceNumber) => {
     try {
-      console.log('Fetching invoice details for:', invoiceNumber);
-      const response = await api.invoices.getDetails(invoiceNumber);
-
-      console.log('Invoice details response:', response);
-      if (response.success && response.data) {
-        generateInvoicePDF(response.data);
-        toast({
-          title: 'Success',
-          description: `Invoice ${invoiceNumber} downloaded successfully.`,
-          status: 'success',
-          duration: 2000,
-          isClosable: true
-        });
-      } else {
-        console.error('Response not successful:', response);
-        toast({
-          title: 'Error',
-          description: response?.message || 'Failed to fetch invoice details.',
-          status: 'error',
-          duration: 3000,
-          isClosable: true
-        });
+      const response = await api.invoices.downloadPDF(invoiceNumber);
+      
+      if (!response.ok) {
+        throw new Error('Failed to download invoice');
       }
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `${invoiceNumber}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      toast({
+        title: 'Success',
+        description: `Invoice ${invoiceNumber} downloaded successfully.`,
+        status: 'success',
+        duration: 2000,
+        isClosable: true
+      });
     } catch (error) {
       console.error('Download invoice error:', error.message, error);
       toast({
@@ -624,11 +487,11 @@ const Billing = ({ walletBalance = 50.00, onUpdateBalance = () => {}, userId }) 
                                 <Box flex={1}>
                                   <Text fontWeight="semibold" color="purple" fontSize="md">{service.name}</Text>
                                   <Text fontSize="sm" fontWeight="bold" color="green.600">
-                                    ${Number(service.price).toFixed(2)} × {service.quantity} numbers
+                                    ${Number(service.price)/(service.quantity).toFixed(2)} × {service.quantity} numbers
                                   </Text>
                                 </Box>
                                 <HStack spacing={3}>
-                                  <Badge colorScheme={getStatusColor(service.status)} borderRadius="full">
+                                  <Badge px={2} colorScheme={getStatusColor(service.status)} borderRadius="full">
                                     {service.status}
                                   </Badge>
                                   <Button
@@ -648,8 +511,8 @@ const Billing = ({ walletBalance = 50.00, onUpdateBalance = () => {}, userId }) 
                               <Grid templateColumns={{ base: "repeat(2, 1fr)", md: "repeat(6, 1fr)" }} gap={3} w="full">
                                 <Box textAlign="center">
                                   <Text fontSize="xs" color="gray.600" fontWeight="medium" mb={1}>Country</Text>
-                                  <Badge variant="subtle" borderRadius={"full"} colorScheme="blue" justifyContent="center">
-                                    <Text fontWeight="bold" fontSize="sm">{service.countryName || '-'}</Text>
+                                  <Badge px={2} borderRadius={"full"} colorScheme="blue" justifyContent="center">
+                                    <Text>{service.countryName || '-'}</Text>
                                   </Badge>
                                 </Box>
                                 <Box textAlign="center">
@@ -658,11 +521,11 @@ const Billing = ({ walletBalance = 50.00, onUpdateBalance = () => {}, userId }) 
                                 </Box>
                                 <Box textAlign="center">
                                   <Text fontSize="xs" color="gray.600" fontWeight="medium" mb={1}>Period</Text>
-                                  <Text fontWeight="bold" fontSize="sm">{service.period || '-'}</Text>
+                                  <Text fontWeight="bold" fontSize="sm">{service.fromDate && service.toDate ? `${service.fromDate} to ${service.toDate}` : '-'}</Text>
                                 </Box>
                                 <Box textAlign="center">
                                   <Text fontSize="xs" color="gray.600" fontWeight="medium" mb={1}>MRC Cost</Text>
-                                  <Text fontWeight="bold" fontSize="sm" color="purple.600">${(Number(service.price) * Number(service.quantity)).toFixed(2)}</Text>
+                                  <Text fontWeight="bold" fontSize="sm" color="purple.600">${(Number(service.price)).toFixed(2)}</Text>
                                 </Box>
                                 <Box textAlign="center">
                                   <Text fontSize="xs" color="gray.600" fontWeight="medium" mb={1}>Usage Cost</Text>
@@ -680,22 +543,15 @@ const Billing = ({ walletBalance = 50.00, onUpdateBalance = () => {}, userId }) 
 
                       <Divider my={4} />
 
-                     <Flex justify="flex-end" align="center" px={8} mb={4} gap={5}>
+                     <Flex justify="flex-end" align="center" px={8} gap={5}>
+                      <Button px={{base:8,md:4}} variant={"outline"} borderRadius={"full"} leftIcon={<FaCreditCard />} colorScheme="green" >
+                          Pay Now
+                        </Button>
                       <Text fontSize="md" color="gray.600">Total Due</Text>
                       <Text fontWeight="bold" fontSize="2xl" color="green.600">
                           ${calculateTotalDue().toFixed(2)}
                       </Text>
                      </Flex>
-                     <Divider my={4} />
-
-                      <Flex justify="flex-end" gap={4}>
-                        <Button px={{base:10,md:4}} borderRadius={"full"} leftIcon={<FiDownload />} colorScheme="teal" variant="outline" >
-                          Download All Invoices
-                        </Button>
-                        <Button px={{base:6,md:4}} borderRadius={"full"} leftIcon={<FaCreditCard />} colorScheme="blue" >
-                          Pay Now
-                        </Button>
-                      </Flex>
                     </CardBody>
                   </Card>
                 </Grid>
@@ -776,8 +632,8 @@ const Billing = ({ walletBalance = 50.00, onUpdateBalance = () => {}, userId }) 
                       </InputGroup>
                       <Text fontSize="sm" color="gray.600">{totalResults} invoice{totalResults !== 1 ? 's' : ''} found</Text>
                     </Flex>
-
-                    <Table variant="simple" h={"350px"} overflow={"auto"}>
+                   <Box  h={"350px"} overflow={"auto"}>
+                    <Table variant="simple">
                       <Thead>
                         <Tr sx={{
                           '& > th': {
@@ -817,11 +673,11 @@ const Billing = ({ walletBalance = 50.00, onUpdateBalance = () => {}, userId }) 
                             <Td color={"blue.500"} textAlign="center" fontWeight="medium">{invoice.id}</Td>
                             <Td textAlign="center" fontWeight="500">{invoice.service}</Td>
                             <Td textAlign="center" fontSize="sm" color="gray.600">{invoice.date}</Td>
-                            <Td textAlign="center" isNumeric fontWeight="semibold" color="blue.600">${(Number(invoice.mrcAmount) * Number(invoice.quantity)).toFixed(2)}</Td>
-                            <Td textAlign="center" isNumeric fontWeight="semibold" color="purple.600">${Number(invoice.usageAmount).toFixed(2)}</Td>
-                            <Td textAlign="center" isNumeric fontWeight="bold" color="green.600">${((Number(invoice.mrcAmount) * Number(invoice.quantity)) + Number(invoice.usageAmount)).toFixed(2)}</Td>
+                            <Td textAlign="center" isNumeric fontWeight="semibold" color="blue.600">${(Number(invoice.mrcAmount) ).toFixed(2)}</Td>
+                            <Td  isNumeric fontWeight="semibold" color="purple.600">${Number(invoice.usageAmount).toFixed(2)}</Td>
+                            <Td  isNumeric fontWeight="bold" color="green.600">${(Number(invoice.mrcAmount)  + Number(invoice.usageAmount)).toFixed(2)}</Td>
                             <Td textAlign="center">
-                              <Badge colorScheme={getStatusColor(invoice.status)} borderRadius={"full"}>
+                              <Badge px={2} colorScheme={getStatusColor(invoice.status)} borderRadius={"full"}>
                                 <HStack spacing={1}><Icon as={getStatusIcon(invoice.status)} boxSize={3} /><Text>{invoice.status}</Text></HStack>
                               </Badge>
                             </Td>
@@ -850,6 +706,7 @@ const Billing = ({ walletBalance = 50.00, onUpdateBalance = () => {}, userId }) 
                         )}
                       </Tbody>
                     </Table>
+                    </Box>
 
                     {/* Pagination Footer */}
                     {totalResults > 0 && (

@@ -21,6 +21,7 @@ import {
   Flex,
   Spinner,
   Center,
+  Spacer,
 } from "@chakra-ui/react";
 import { DownloadIcon, SearchIcon, ViewIcon } from "@chakra-ui/icons";
 import { FiXCircle, FiUpload } from "react-icons/fi";
@@ -301,6 +302,7 @@ function Products() {
     >
       <Box w={"full"} p={2}>
         <VStack align="flex-start" spacing={2} mb={4}>
+          <HStack>
           <Heading
             as="h1"
             color={headingColor}
@@ -309,6 +311,20 @@ function Products() {
           >
             Products
           </Heading>
+          <Spacer/>
+          <Button
+              size={"sm"}
+              leftIcon={<FiUpload />}
+              colorScheme="green"
+              borderRadius={"full"}
+              variant="outline"
+              onClick={handleExportExcel}
+            >
+              Export
+            </Button>
+            
+          </HStack>
+
         </VStack>
 
         <Box borderRadius="16px" p={{ base: 5, md: 6 }} mb={3}>
@@ -395,28 +411,7 @@ function Products() {
             </SimpleGrid>
           </VStack>
         </Box>
-<HStack justify="space-between" align="center" mb={4} spacing={4}>
-              <Heading
-                as="h2"
-                color={subheadingColor}
-                fontSize="lg"
-                fontWeight="bold"
-              >
-                Product Inventory
-              </Heading>
-           
-            <Button
-              size={"sm"}
-              leftIcon={<FiUpload />}
-              colorScheme="green"
-              borderRadius={"full"}
-              variant="outline"
-              onClick={handleExportExcel}
-            >
-              Export
-            </Button>
-          </HStack>
-
+            
         <Box
          bg="white"
             borderRadius="xl"

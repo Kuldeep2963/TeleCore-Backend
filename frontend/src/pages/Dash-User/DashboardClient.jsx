@@ -103,7 +103,7 @@ function Dashboard({ userId, userRole }) {
       const totalOrders = ordersResponse.success ? ordersResponse.data.length : 0;
       // Active numbers are those not disconnected (disconnection_status is not 'Completed')
       const activeNumbers = numbersResponse.success
-        ? numbersResponse.data.filter(num => num.disconnection_status !== 'Completed').length
+        ? numbersResponse.data.filter(num => num.status !== 'Disconnected').length
         : 0;
 
       // Calculate invoice counts by status

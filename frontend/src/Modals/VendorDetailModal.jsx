@@ -41,7 +41,8 @@ import {
   FiCalendar,
   FiFileText,
   FiEye,
-  FiPlus
+  FiPlus,
+  FiDownload
 } from 'react-icons/fi';
 import DocumentRequiredModal from './DocumentRequiredModal';
 import AddVendorPricingModal from './AddVendorPricingModal';
@@ -95,6 +96,55 @@ const VendorDetailModal = ({ isOpen, onClose, vendor }) => {
 
   const getStatusColor = (status) => {
     return status === 'Active' ? 'green' : 'red';
+  };
+
+  const handleExportPricing = () => {
+    if (vendorPricing.length === 0) {
+      toast({
+        title: 'No Data',
+        description: 'No pricing data available to export',
+        status: 'warning',
+        duration: 3,
+        isClosable: true,
+      });
+      return;
+    }
+
+    const csvContent = [
+      ['Country', 'Product', 'Area Codes', 'NRC', 'MRC', 'PPM', 'ARC', 'MO', 'MT', 'Status'],
+      ...vendorPricing.map(pricing => [
+        pricing.country_name || '',
+        pricing.product_name || '',
+        pricing.area_codes ? pricing.area_codes.join('; ') : 'All',
+        pricing.nrc || '',
+        pricing.mrc || '',
+        pricing.ppm || '',
+        pricing.arc || '',
+        pricing.mo || '',
+        pricing.mt || '',
+        pricing.status || 'Active'
+      ])
+    ]
+      .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `${vendor.name}_pricing_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    toast({
+      title: 'Success',
+      description: 'Pricing data exported successfully',
+      status: 'success',
+      duration: 2,
+      isClosable: true,
+    });
   };
 
   return (
@@ -245,6 +295,20 @@ const VendorDetailModal = ({ isOpen, onClose, vendor }) => {
                   </Button>
                   <Button
                     colorScheme="blue"
+                    variant="ghost"
+                    size="sm"
+                    leftIcon={<FiDownload />}
+                    borderRadius="full"
+                    _hover={{
+                      bg: "blue.100",
+                    }}
+                    transition="all 0.2s ease"
+                    onClick={handleExportPricing}
+                  >
+                    Export
+                  </Button>
+                  {/* <Button
+                    colorScheme="blue"
                     variant="outline"
                     borderRadius="full"
                     size="sm"
@@ -258,7 +322,7 @@ const VendorDetailModal = ({ isOpen, onClose, vendor }) => {
                     onClick={() => setIsDocumentsModalOpen(true)}
                   >
                     <Text display={{base:"none", md:"block"}}>Required Documents</Text>
-                  </Button>
+                  </Button> */}
                 </HStack>
               </HStack>
               {loading ? (

@@ -24,22 +24,18 @@ const InvoiceDetailsModal = ({ isOpen, onClose, invoice }) => {
         <ModalBody pb={6}>
           <VStack spacing={4} align="stretch">
             {/* Basic Information */}
-            <Grid templateColumns="1fr 1fr" gap={2}>
+            <Grid templateColumns="repeat(3, auto)" gap={4}>
               <Box>
                 <Text fontWeight="semibold" color="gray.600">Customer:</Text>
                 <Text color={"purple"} fontWeight="semibold">{invoice.service || invoice.name || invoice.customer_name || 'N/A'}</Text>
               </Box>
               <Box>
                 <Text fontWeight="semibold" color="gray.600">Invoice Date:</Text>
-                <Text fontWeight="500">{invoice.date ? invoice.date : (invoice.invoiceDate ? new Date(invoice.invoiceDate).toLocaleDateString() : "-")}</Text>
+                <Text fontWeight="500">{invoice.date || invoice.invoiceDate || "-"}</Text>
               </Box>
               <Box>
                 <Text fontWeight="semibold" color="gray.600">Due Date:</Text>
-                <Text fontWeight="500">{invoice.dueDate ? invoice.dueDate : "-"}</Text>
-              </Box>
-              <Box>
-                <Text fontWeight="semibold" color="gray.600">Period:</Text>
-                <Text fontWeight="500">{invoice.period || '-'}</Text>
+                <Text fontWeight="500">{invoice.dueDate || "-"}</Text>
               </Box>
             </Grid>
 
@@ -49,7 +45,7 @@ const InvoiceDetailsModal = ({ isOpen, onClose, invoice }) => {
             <Grid templateColumns="1fr 1fr" gap={2}>
               <Box>
                 <Text fontWeight="semibold" color="gray.600">MRC Amount:</Text>
-                <Text fontWeight="500" color="blue.600">${(Number(invoice.mrcAmount || invoice.price || 0) * (invoice.quantity || 1)).toFixed(2)}</Text>
+                <Text fontWeight="500" color="blue.600">${Number(invoice.mrcAmount || invoice.price || 0).toFixed(2)}</Text>
               </Box>
               <Box>
                 <Text fontWeight="semibold" color="gray.600">Usage Amount:</Text>
@@ -61,7 +57,7 @@ const InvoiceDetailsModal = ({ isOpen, onClose, invoice }) => {
               </Box>
               <Box>
                 <Text fontWeight="semibold" color="gray.600">Total Cost:</Text>
-                <Text fontWeight="500" color="green.600">${Number(invoice.amount || 0).toFixed(2)}</Text>
+                <Text fontWeight="500" color="green.600">${Number(invoice.mrcAmount + invoice.usageAmount).toFixed(2)}</Text>
               </Box>
             </Grid>
 
@@ -83,17 +79,21 @@ const InvoiceDetailsModal = ({ isOpen, onClose, invoice }) => {
               </Box>
               <Box>
                 <Text fontWeight="semibold" color="gray.600">Next Billing Date:</Text>
-                <Text fontWeight="500">{invoice.toDate ? invoice.toDate : (invoice.nextBilling || '-')}</Text>
+                <Text fontWeight="500">{invoice.nextBilling || invoice.toDate || '-'}</Text>
               </Box>
             </Grid>
 
             <Divider />
 
             {/* Additional Information */}
-            <Grid templateColumns="1fr 1fr" gap={2}>
+            <Grid templateColumns="1fr 1fr 1fr" gap={2}>
               <Box>
-                <Text fontWeight="semibold" color="gray.600">Billing Period:</Text>
-                <Text fontWeight="500">{invoice.period || '-'}</Text>
+                <Text fontWeight="semibold" color="gray.600"> From date:</Text>
+                <Text fontWeight="500">{invoice.fromDate || '-'}</Text>
+              </Box>
+              <Box>
+                <Text fontWeight="semibold" color="gray.600"> To date:</Text>
+                <Text fontWeight="500">{invoice.toDate || '-'}</Text>
               </Box>
               <Box>
                 <Text fontWeight="semibold" color="gray.600">Pay Date:</Text>
@@ -111,7 +111,7 @@ const InvoiceDetailsModal = ({ isOpen, onClose, invoice }) => {
               <Box textAlign="right">
                 <Text fontWeight="bold">Total Amount:</Text>
                 <Text fontWeight="bold" fontSize="xl" color="green.600">
-                  ${Number(invoice.amount || 0).toFixed(2)}
+                  ${Number(invoice.mrcAmount + invoice.usageAmount).toFixed(2)}
                 </Text>
               </Box>
             </Flex>

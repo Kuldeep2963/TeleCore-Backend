@@ -49,7 +49,6 @@ import {
   FiDownload
 } from 'react-icons/fi';
 import { FaEdit } from 'react-icons/fa';
-import { jsPDF } from 'jspdf';
 import api from '../services/api';
 
 const Invoices = () => {
@@ -119,6 +118,9 @@ const Invoices = () => {
   });
   const [editingUsage, setEditingUsage] = useState(null);
   const [newUsageAmount, setNewUsageAmount] = useState('');
+  const [newRatePerMinute, setNewRatePerMinute] = useState('');
+  const [durationMinutes, setDurationMinutes] = useState('');
+  const [durationSeconds, setDurationSeconds] = useState('');
 
   useEffect(() => {
     fetchCustomers();
@@ -225,7 +227,54 @@ const Invoices = () => {
 
   const handleEditUsageAmount = (invoice) => {
     setEditingUsage(invoice);
-    setNewUsageAmount(invoice.usage_amount?.toString() || '0');
+    const usageAmount = Number(invoice.usage_amount) || 0;
+    const ratePerMin = Number(invoice.rate_per_minute) || 0;
+    const totalSecs = Number(invoice.duration) || 0;
+    
+    const mins = Math.floor(totalSecs / 60);
+    const secs = totalSecs % 60;
+    
+    setNewUsageAmount(usageAmount.toFixed(2));
+    setNewRatePerMinute(ratePerMin.toFixed(4));
+    setDurationMinutes(mins.toString());
+    setDurationSeconds(secs.toString());
+  };
+
+  const calculateUsageAmount = (rate, minutes, seconds) => {
+    const rate_num = parseFloat(rate) || 0;
+    const mins_num = parseInt(minutes) || 0;
+    const secs_num = parseInt(seconds) || 0;
+    const totalMinutes = mins_num + (secs_num / 60);
+    const result = rate_num * totalMinutes;
+    return isNaN(result) ? 0 : result;
+  };
+
+  const handleDurationChange = () => {
+    const calculated = calculateUsageAmount(newRatePerMinute, durationMinutes, durationSeconds);
+    setNewUsageAmount(calculated.toFixed(2));
+  };
+
+  const handleRateChange = (value) => {
+    setNewRatePerMinute(value);
+    const calculated = calculateUsageAmount(value, durationMinutes, durationSeconds);
+    setNewUsageAmount(calculated.toFixed(2));
+  };
+
+  const handleMinutesChange = (value) => {
+    setDurationMinutes(value);
+    const calculated = calculateUsageAmount(newRatePerMinute, value, durationSeconds);
+    setNewUsageAmount(calculated.toFixed(2));
+  };
+
+  const handleSecondsChange = (value) => {
+    const secs = parseInt(value) || 0;
+    if (secs >= 60) {
+      setDurationSeconds('59');
+    } else {
+      setDurationSeconds(value);
+    }
+    const calculated = calculateUsageAmount(newRatePerMinute, durationMinutes, value);
+    setNewUsageAmount(calculated.toFixed(2));
   };
 
   const handleSaveUsageAmount = async () => {
@@ -233,9 +282,36 @@ const Invoices = () => {
 
     try {
       const updatedAmount = parseFloat(newUsageAmount) || 0;
+      const updatedRate = parseFloat(newRatePerMinute) || 0;
+      const mins = parseInt(durationMinutes) || 0;
+      const secs = parseInt(durationSeconds) || 0;
+      const updatedDuration = (mins * 60) + secs;
 
-      // Make API call to update usage amount
-      const response = await api.invoices.updateUsage(editingUsage.id, { usage_amount: updatedAmount });
+      // Validation
+      if (isNaN(updatedRate) || isNaN(updatedDuration)) {
+        toast({
+          title: "Validation Error",
+          description: "Rate and duration must be valid numbers",
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+        });
+        return;
+      }
+
+      console.log('Sending update:', {
+        id: editingUsage.id,
+        usage_amount: updatedAmount,
+        rate_per_minute: updatedRate,
+        duration: updatedDuration
+      });
+
+      // Make API call to update usage amount, rate, and duration
+      const response = await api.invoices.update(editingUsage.id, { 
+        usage_amount: updatedAmount,
+        rate_per_minute: updatedRate,
+        duration: updatedDuration
+      });
 
       if (response.success) {
         // Update local state with the response data
@@ -244,15 +320,17 @@ const Invoices = () => {
             ? {
                 ...invoice,
                 usage_amount: parseFloat(response.data.usage_amount),
-                amount: parseFloat(response.data.amount)
+                amount: parseFloat(response.data.amount),
+                rate_per_minute: parseFloat(response.data.rate_per_minute),
+                duration: parseInt(response.data.duration)
               }
             : invoice
         );
         setInvoices(updatedInvoices);
 
         toast({
-          title: "Usage amount updated",
-          description: `Usage amount for invoice ${editingUsage.invoice_number || editingUsage.id} has been updated to $${updatedAmount.toFixed(2)}`,
+          title: "Invoice updated",
+          description: `Invoice ${editingUsage.invoice_number || editingUsage.id} has been updated successfully`,
           status: "success",
           duration: 3000,
           isClosable: true,
@@ -260,14 +338,17 @@ const Invoices = () => {
 
         setEditingUsage(null);
         setNewUsageAmount('');
+        setNewRatePerMinute('');
+        setDurationMinutes('');
+        setDurationSeconds('');
       } else {
-        throw new Error(response.message || 'Failed to update usage amount');
+        throw new Error(response.message || 'Failed to update invoice');
       }
     } catch (error) {
-      console.error('Update usage amount error:', error);
+      console.error('Update invoice error:', error);
       toast({
         title: "Error",
-        description: error.message || "Failed to update usage amount",
+        description: error.message || "Failed to update invoice",
         status: "error",
         duration: 3000,
         isClosable: true,
@@ -278,127 +359,26 @@ const Invoices = () => {
   const handleCancelEditUsage = () => {
     setEditingUsage(null);
     setNewUsageAmount('');
-  };
-
-  const generateInvoicePDF = (invoiceData) => {
-    const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.getWidth();
-    let y = 20;
-
-    const formatDate = (date) =>
-      date
-        ? new Date(date).toLocaleDateString("en-US", {
-            year: "numeric",
-            month: "short",
-            day: "numeric",
-          })
-        : "N/A";
-
-    const currency = (amount) => `$${Number(amount || 0).toFixed(2)}`;
-
-    const drawSectionTitle = (title) => {
-      doc.setFontSize(12);
-      doc.setFont(undefined, "bold");
-      doc.text(title, 20, y);
-      y += 8;
-      doc.setFont(undefined, "normal");
-      doc.setFontSize(10);
-    };
-
-    const drawLine = () => {
-      doc.setDrawColor(0);
-      doc.line(20, y, pageWidth - 20, y);
-      y += 10;
-    };
-
-    const drawRow = (label, value) => {
-      doc.setFont(undefined, "normal");
-      doc.text(label, 20, y);
-      doc.text(String(value), pageWidth - 90, y);
-      y += 7;
-    };
-
-    doc.setFontSize(20);
-    doc.setFont(undefined, "bold");
-    doc.text("INVOICE", pageWidth / 2, y, { align: "center" });
-    y += 15;
-
-    doc.setFontSize(10);
-    doc.setFont(undefined, "normal");
-    drawRow("Invoice Number:", invoiceData.invoice_number || "N/A");
-    drawRow("Invoice Date:", formatDate(invoiceData.invoice_date || invoiceData.created_at));
-    drawRow("Customer:", invoiceData.customer_name || "N/A");
-    drawRow("Due Date:", formatDate(invoiceData.due_date));
-
-    if (invoiceData.customer_email) drawRow("Email:", invoiceData.customer_email);
-    if (invoiceData.customer_phone) drawRow("Phone:", invoiceData.customer_phone);
-    if (invoiceData.country_name || invoiceData.area_code)
-      drawRow(
-        "Location:",
-        `${invoiceData.country_name || ""} ${invoiceData.area_code || ""}`.trim()
-      );
-
-    drawLine();
-
-    drawSectionTitle("Invoice Details");
-
-    const detailRows = [
-      ["Period", invoiceData.period || "N/A"],
-      ["From Date", formatDate(invoiceData.from_date)],
-      ["To Date", formatDate(invoiceData.to_date)],
-      ["Product", invoiceData.product_name || "N/A"],
-      ["Product Type", invoiceData.product_type || "N/A"],
-      ["Quantity", invoiceData.quantity || "N/A"],
-    ];
-
-    detailRows.forEach(([label, value]) => drawRow(label + ":", value));
-
-    drawLine();
-
-    drawSectionTitle("Charges");
-
-    drawRow("MRC Amount:", currency(invoiceData.mrc_amount));
-    drawRow("Usage Amount:", currency(invoiceData.usage_amount));
-
-    drawLine();
-
-    doc.setFont(undefined, "bold");
-    doc.setFontSize(12);
-    doc.text("Total Amount:", 20, y);
-    doc.text(currency(invoiceData.amount), pageWidth - 90, y);
-    y += 12;
-
-    doc.setFontSize(10);
-    doc.setFont(undefined, "normal");
-    drawRow("Status:", invoiceData.status || "N/A");
-
-    if (invoiceData.paid_date) drawRow("Paid Date:", formatDate(invoiceData.paid_date));
-
-    if (invoiceData.notes) {
-      y += 8;
-      doc.setFont(undefined, "bold");
-      doc.text("Notes:", 20, y);
-      y += 7;
-
-      doc.setFont(undefined, "normal");
-
-      const wrapped = doc.splitTextToSize(String(invoiceData.notes), pageWidth - 40);
-      doc.text(wrapped, 20, y);
-    }
-
-    const fileName = `Invoice_${invoiceData.invoice_number}_${new Date()
-      .toISOString()
-      .split("T")[0]}.pdf`;
-
-    doc.save(fileName);
+    setNewRatePerMinute('');
+    setDurationMinutes('');
+    setDurationSeconds('');
   };
 
   const handleDownloadPDF = async (invoiceId, invoiceNumber) => {
     try {
-      const response = await api.invoices.getDetails(invoiceId);
+      const response = await api.invoices.downloadPDF(invoiceId);
 
-      if (response.success && response.data) {
-        generateInvoicePDF(response.data);
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `Invoice_${invoiceNumber}_${new Date().toISOString().split('T')[0]}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+
         toast({
           title: 'Success',
           description: `Invoice ${invoiceNumber} downloaded successfully.`,
@@ -407,10 +387,9 @@ const Invoices = () => {
           isClosable: true
         });
       } else {
-        console.error('Response not successful:', response);
         toast({
           title: 'Error',
-          description: response?.message || 'Failed to fetch invoice details.',
+          description: 'Failed to download invoice PDF.',
           status: 'error',
           duration: 3000,
           isClosable: true
@@ -639,6 +618,7 @@ const Invoices = () => {
                 <Icon as={FiSearch} color="gray.400" />
               </InputLeftElement>
               <Input
+                bg={"white"}
                 placeholder="Search invoices..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -647,6 +627,7 @@ const Invoices = () => {
             </InputGroup>
 
             <Select
+              bg={"white"}
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
               maxW="150px"
@@ -696,13 +677,13 @@ const Invoices = () => {
                       </VStack>
                     </Td>
                     <Td>
-                      <Text color='blue.700' fontWeight="semibold">{formatCurrency((Number(invoice.mrc_amount) || 0) * (Number(invoice.quantity) || 1))}</Text>
+                      <Text color='blue.700' fontWeight="semibold">{formatCurrency(Number(invoice.mrc_amount) || 0) }</Text>
                     </Td>
                     <Td>
                       <Text color='purple' fontWeight="semibold">{formatCurrency(Number(invoice.usage_amount) || 0)}</Text>
                     </Td>
                     <Td>
-                      <Text color='green' fontWeight="bold">{formatCurrency(((Number(invoice.mrc_amount) || 0) * (Number(invoice.quantity) || 1)) + (Number(invoice.usage_amount) || 0))}</Text>
+                      <Text color='green' fontWeight="bold">{formatCurrency((Number(invoice.mrc_amount) || 0) + (Number(invoice.usage_amount) || 0))}</Text>
                     </Td>
                     <Td textAlign="center">
                       <Badge px={2} colorScheme={getStatusColor(invoice.status || 'Pending')} borderRadius={"full"}>
@@ -819,11 +800,11 @@ const Invoices = () => {
         </ModalContent>
       </Modal> */}
 
-      {/* Edit Usage Amount Modal */}
-      <Modal isOpen={!!editingUsage} onClose={handleCancelEditUsage} size={{base:"sm",md:"lg"}}>
+      {/* Edit Invoice Modal */}
+      <Modal isOpen={!!editingUsage} onClose={handleCancelEditUsage} size={{base:"sm",md:"xl"}}>
         <ModalOverlay />
         <ModalContent borderRadius={"15px"}>
-          <ModalHeader borderTopRadius={"15px"} bgGradient="linear(to-r,blue.400,blue.500)" color={"white"} > Usage Amount - {editingUsage?.invoice_number || editingUsage?.id}</ModalHeader>
+          <ModalHeader borderTopRadius={"15px"} bgGradient="linear(to-r,blue.400,blue.500)" color={"white"} >  Invoice - {editingUsage?.invoice_number || editingUsage?.id}</ModalHeader>
           <ModalCloseButton color={"white"} />
           <ModalBody mt={3} pb={6}>
             {editingUsage && (
@@ -831,7 +812,7 @@ const Invoices = () => {
                 <Box>
                   <HStack spacing={6}>
                   <Text fontWeight="semibold" color="gray.600" mb={2}>Current MRC Amount:</Text>
-                  <Text mb={2} fontWeight='bold' fontSize="lg" color="blue.600">${(parseFloat(editingUsage.mrc_amount || 0) * (editingUsage.quantity || 1)).toFixed(2)}</Text>
+                  <Text mb={2} fontWeight='bold' fontSize="lg" color="blue.600">${parseFloat(editingUsage.mrc_amount || 0).toFixed(2)}</Text>
                   </HStack>
                 </Box>
                 <Box>
@@ -842,7 +823,59 @@ const Invoices = () => {
                 </Box>
                 <Divider />
                 <Box>
-                  <Text fontWeight="semibold" color="gray.600" mb={2}>New Usage Amount:</Text>
+                <Box>
+                  <Text fontWeight="semibold" color="gray.600" mb={2}>Rate per Minute:</Text>
+                  <InputGroup>
+                    <InputLeftElement  pointerEvents="none" color="gray.600" fontSize="1.2em">
+                      $
+                    </InputLeftElement>
+                    <Input
+                      type="number"
+                      step="0.0001"
+                      min="0"
+                      bg={"white"}
+                      borderColor={"gray.300"}
+                      value={newRatePerMinute}
+                      onChange={(e) => handleRateChange(e.target.value)}
+                      placeholder="Enter rate per minute"
+                      size="md"
+                    />
+                  </InputGroup>
+                </Box>
+
+                <Box mt={2}>
+                  <Text fontWeight="semibold" color="gray.600" mb={2}>Duration</Text>
+                  <HStack spacing={2}>
+                    <Box flex={1}>
+                      <Text fontSize="sm" color="gray.500" mb={1}>Minutes</Text>
+                      <Input
+                        type="number"
+                        min="0"
+                        value={durationMinutes}
+                        onChange={(e) => handleMinutesChange(e.target.value)}
+                        bg={"white"}
+                        placeholder="Minutes"
+                        size="md"
+                      />
+                    </Box>
+                    <Box flex={1}>
+                      <Text fontSize="sm" color="gray.500" mb={1}>Seconds (0-59)</Text>
+                      <Input
+                        type="number"
+                        min="0"
+                        max="59"
+                        value={durationSeconds}
+                        onChange={(e) => handleSecondsChange(e.target.value)}
+                        bg={"white"}
+                        placeholder="Seconds"
+                        size="md"
+                      />
+                    </Box>
+                  </HStack>
+                </Box>
+                </Box>
+                <Box>
+                  <Text fontWeight="semibold" color="gray.600" mb={2}>Calculated Usage Amount:</Text>
                   <InputGroup>
                     <InputLeftElement pointerEvents="none" color="gray.300" fontSize="1.2em">
                       $
@@ -852,20 +885,24 @@ const Invoices = () => {
                       step="0.01"
                       min="0"
                       value={newUsageAmount}
-                      onChange={(e) => setNewUsageAmount(e.target.value)}
+                      isReadOnly
+                      bg="gray.200"
                       placeholder="0.00"
-                      size="lg"
+                      size="md"
                     />
                   </InputGroup>
+                 
                 </Box>
+                
                 <Box>
                   <HStack spacing={6}>
                   <Text fontWeight="semibold" color="gray.600" m={2}>New Total Amount:</Text>
                   <Text fontSize="xl" fontWeight="bold" m={2} color="green.600">
-                    ${(parseFloat(editingUsage.mrc_amount || 0) * (editingUsage.quantity || 1) + parseFloat(newUsageAmount || 0)).toFixed(2)}
+                    ${(parseFloat(editingUsage.mrc_amount || 0) + parseFloat(newUsageAmount || 0)).toFixed(2)}
                   </Text>
                   </HStack>
                 </Box>
+                
                 <Flex justify="flex-end" gap={3} mt={4}>
                   <Button borderRadius={"full"} variant="outline" onClick={handleCancelEditUsage}>
                     Cancel
@@ -875,7 +912,6 @@ const Invoices = () => {
                     colorScheme="blue"
                     borderRadius={"full"}
                     onClick={handleSaveUsageAmount}
-                    isDisabled={!newUsageAmount || parseFloat(newUsageAmount) < 0}
                   >
                     Save
                   </Button>

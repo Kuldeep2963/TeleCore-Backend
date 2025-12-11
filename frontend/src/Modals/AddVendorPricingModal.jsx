@@ -271,6 +271,7 @@ const AddVendorPricingModal = ({ isOpen, onClose, vendorId, pricingData = null, 
                   value={formData.product_id}
                   onChange={handleChange}
                   placeholder="Select product"
+                  _disabled={{ color: "gray.800", bg: "gray.50", opacity: 1 }}
                 >
                   {products.map(product => (
                     <option key={product.id} value={product.id}>
@@ -289,6 +290,7 @@ const AddVendorPricingModal = ({ isOpen, onClose, vendorId, pricingData = null, 
                     value={formData.country_id}
                     onChange={handleChange}
                     placeholder="Select country"
+                    _disabled={{ color: "gray.600", bg: "gray.50", opacity: 1 }}
                   >
                     {countries.map(country => (
                       <option key={country.id} value={country.id}>
@@ -306,6 +308,7 @@ const AddVendorPricingModal = ({ isOpen, onClose, vendorId, pricingData = null, 
                     value={formData.area_codes}
                     onChange={handleChange}
                     placeholder="e.g. +212,+213 (comma separated)"
+                    _disabled={{ color: "gray.600", bg: "gray.50", opacity: 1 }}
                   />
                 </FormControl>
               </SimpleGrid>
@@ -327,6 +330,7 @@ const AddVendorPricingModal = ({ isOpen, onClose, vendorId, pricingData = null, 
                           value={formData[fieldName]}
                           onChange={handleChange}
                           placeholder="0.0000"
+                          _disabled={{ color: "gray.600", bg: "gray.50", opacity: 1 }}
                         />
                       </FormControl>
                     ))}
@@ -342,6 +346,7 @@ const AddVendorPricingModal = ({ isOpen, onClose, vendorId, pricingData = null, 
                     name="billing_pulse"
                     value={formData.billing_pulse}
                     onChange={handleChange}
+                    _disabled={{ color: "gray.600", bg: "gray.50", opacity: 1 }}
                   />
                 </FormControl>
 
@@ -352,6 +357,7 @@ const AddVendorPricingModal = ({ isOpen, onClose, vendorId, pricingData = null, 
                     name="estimated_lead_time"
                     value={formData.estimated_lead_time}
                     onChange={handleChange}
+                    _disabled={{ color: "gray.600", bg: "gray.50", opacity: 1 }}
                   />
                 </FormControl>
 
@@ -362,6 +368,7 @@ const AddVendorPricingModal = ({ isOpen, onClose, vendorId, pricingData = null, 
                     name="contract_term"
                     value={formData.contract_term}
                     onChange={handleChange}
+                    _disabled={{ color: "gray.600", bg: "gray.50", opacity: 1 }}
                   />
                 </FormControl>
 
@@ -372,6 +379,7 @@ const AddVendorPricingModal = ({ isOpen, onClose, vendorId, pricingData = null, 
                     name="disconnection_notice_term"
                     value={formData.disconnection_notice_term}
                     onChange={handleChange}
+                    _disabled={{ color: "gray.600", bg: "gray.50", opacity: 1 }}
                   />
                 </FormControl>
               </SimpleGrid>

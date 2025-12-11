@@ -82,6 +82,9 @@ const Orders = () => {
 
   const filteredOrders = orders.filter((order) => {
     const matchesSearch =
+      (String(order.orderNo) || "")
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
       (String(order.id) || "")
         .toLowerCase()
         .includes(searchTerm.toLowerCase()) ||
