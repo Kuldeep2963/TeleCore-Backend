@@ -335,13 +335,7 @@ function OrderNumberView({ userRole }) {
       
       if (response.success) {
         setOrderPricing(pricingData);
-        toast({
-          title: 'Pricing Updated',
-          description: 'Order pricing has been saved successfully',
-          status: 'success',
-          duration: 2000,
-          isClosable: true,
-        });
+       
       } else {
         throw new Error(response.message || 'Failed to save pricing');
       }
@@ -375,7 +369,7 @@ function OrderNumberView({ userRole }) {
 
         toast({
           title: 'Order Confirmed',
-          description: `Order confirmed successfully. Total Amount: $${response.data.total_amount?.toFixed(2) || '0.00'}`,
+          description: `Order confirmed successfully. Total Amount: $${(parseFloat(response.data.total_amount) || 0).toFixed(2)}`,
           status: 'success',
           duration: 3000,
           isClosable: true,

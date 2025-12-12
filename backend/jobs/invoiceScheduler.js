@@ -1,5 +1,6 @@
 const cron = require('node-cron');
 const { query } = require('../config/database');
+const emailService = require('../services/emailService');
 
 // Utility: Generate invoice number in format "orderNumber-month"
 const generateInvoiceNumber = (orderNumber, month) => {
@@ -123,13 +124,14 @@ const generateMonthlyInvoices = async () => {
         const toDate = new Date(Date.UTC(istCompletion.getUTCFullYear(), istCompletion.getUTCMonth() + 1, istCompletion.getUTCDate()));
 
         // Insert securely with duplicate prevention
-        await query(
+        const insertResult = await query(
           `
           INSERT INTO invoices 
             (invoice_number, customer_id, order_id, mrc_amount, usage_amount, amount, 
              due_date, period, from_date, to_date, status)
           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'Pending')
           ON CONFLICT (invoice_number) DO NOTHING
+          RETURNING id
         `,
           [
             invoiceNumber,
@@ -144,6 +146,19 @@ const generateMonthlyInvoices = async () => {
             toDate
           ]
         );
+
+        if (insertResult.rows.length > 0) {
+          try {
+            const customerResult = await query('SELECT u.email FROM customers c JOIN users u ON c.user_id = u.id WHERE c.id = $1', [order.customer_id]);
+            
+            if (customerResult.rows.length > 0) {
+              const customerEmail = customerResult.rows[0].email;
+              await emailService.sendInvoiceGeneratedEmail(customerEmail, invoiceNumber, amount, dueDate.toISOString().split('T')[0], period);
+            }
+          } catch (emailError) {
+            console.error(`Error sending invoice generated email for ${invoiceNumber}:`, emailError);
+          }
+        }
 
         console.log(`✅ Invoice generated for order ${order.id}: ${invoiceNumber} (Active numbers: ${activeCount}, MRC: ${mrcAmount})`);
       } catch (err) {
@@ -167,15 +182,27 @@ const updateOverdueInvoices = async () => {
       SET status = 'Overdue', updated_at = CURRENT_TIMESTAMP
       WHERE status = 'Pending' 
         AND due_date <= CURRENT_DATE
-      RETURNING id, invoice_number, due_date
+      RETURNING id, invoice_number, due_date, amount, customer_id
     `
     );
 
     if (result.rows.length > 0) {
       console.log(`✅ Updated ${result.rows.length} invoices to Overdue status`);
-      result.rows.forEach(invoice => {
+      
+      for (const invoice of result.rows) {
         console.log(`   - Invoice ${invoice.invoice_number} (Due: ${invoice.due_date})`);
-      });
+        
+        try {
+          const customerResult = await query('SELECT u.email FROM customers c JOIN users u ON c.user_id = u.id WHERE c.id = $1', [invoice.customer_id]);
+          
+          if (customerResult.rows.length > 0) {
+            const customerEmail = customerResult.rows[0].email;
+            await emailService.sendInvoiceOverdueEmail(customerEmail, invoice.invoice_number, invoice.amount, invoice.due_date.toISOString().split('T')[0]);
+          }
+        } catch (emailError) {
+          console.error(`Error sending overdue invoice email for ${invoice.invoice_number}:`, emailError);
+        }
+      }
     } else {
       console.log(`ℹ️  No overdue invoices found to update`);
     }
@@ -186,10 +213,51 @@ const updateOverdueInvoices = async () => {
   }
 };
 
+const checkInvoiceOverdueWarnings = async () => {
+  try {
+    console.log(`\n📋 Invoice Overdue Warning Check Started at ${new Date().toISOString()}`);
+
+    const result = await query(
+      `
+      SELECT i.id, i.invoice_number, i.due_date, i.amount, i.customer_id
+      FROM invoices i
+      WHERE i.status = 'Pending' 
+        AND i.due_date > CURRENT_DATE
+        AND i.due_date <= CURRENT_DATE + INTERVAL '4 days'
+    `
+    );
+
+    if (result.rows.length > 0) {
+      console.log(`✅ Found ${result.rows.length} invoices due in 4 days`);
+      
+      for (const invoice of result.rows) {
+        const daysRemaining = Math.ceil((new Date(invoice.due_date) - new Date()) / (1000 * 60 * 60 * 24));
+        
+        try {
+          const customerResult = await query('SELECT u.email FROM customers c JOIN users u ON c.user_id = u.id WHERE c.id = $1', [invoice.customer_id]);
+          
+          if (customerResult.rows.length > 0) {
+            const customerEmail = customerResult.rows[0].email;
+            await emailService.sendInvoiceOverdueWarningEmail(customerEmail, invoice.invoice_number, invoice.amount, invoice.due_date.toISOString().split('T')[0], daysRemaining);
+          }
+        } catch (emailError) {
+          console.error(`Error sending overdue warning email for ${invoice.invoice_number}:`, emailError);
+        }
+      }
+    } else {
+      console.log(`ℹ️  No invoices due in 4 days found`);
+    }
+
+    console.log(`✔ Invoice overdue warning check completed at ${new Date().toISOString()}`);
+  } catch (error) {
+    console.error("❌ Fatal invoice overdue warning check error:", error);
+  }
+};
+
 const startInvoiceScheduler = () => {
   // RUN EVERY DAY AT 00:00 (midnight) - Generate monthly invoices
   cron.schedule(
-    "48 14 * * *",
+    "13 17 * * *",
     async () => {
       console.log("Running daily invoice generation check at midnight...");
       await generateMonthlyInvoices();
@@ -207,9 +275,20 @@ const startInvoiceScheduler = () => {
     { timezone: "Asia/Kolkata" }
   );
 
+  // RUN EVERY DAY AT 06:00 AM IST - Check invoices due in 4 days
+  cron.schedule(
+    "30 6 * * *",
+    async () => {
+      console.log("Running invoice overdue warning check...");
+      await checkInvoiceOverdueWarnings();
+    },
+    { timezone: "Asia/Kolkata" }
+  );
+
   console.log("Invoice scheduler initialized:");
   console.log("  - Monthly invoice generation: daily at 00:00 UTC");
   console.log("  - Overdue invoice check: daily at 12:59 IST (07:29 UTC)");
+  console.log("  - Overdue warning check: daily at 06:00 AM IST");
 };
 
-module.exports = { startInvoiceScheduler, generateMonthlyInvoices, updateOverdueInvoices };
+module.exports = { startInvoiceScheduler, generateMonthlyInvoices, updateOverdueInvoices, checkInvoiceOverdueWarnings };

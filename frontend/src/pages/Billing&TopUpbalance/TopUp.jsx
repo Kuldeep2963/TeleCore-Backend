@@ -265,14 +265,13 @@ const TopUp = ({
 
   const paymentMethods = [
     { id: 'card', name: 'Credit/Debit Card', icon: FaCreditCard, color: 'blue' },
-    { id: 'stripe', name: 'Stripe', icon: SiStripe, color: 'purple' },
-    { id: 'wallet', name: 'Wallet', icon: FaWallet, color: 'green'}
+    { id: 'stripe', name: 'Stripe', icon: SiStripe, color: 'purple' }
   ];
 
   const isLowBalance = currentBalance < thresholdBalance;
 
   return (
-    <VStack spacing={8} align="stretch" w={"full"} mx="auto">
+    <VStack spacing={6} align="stretch" w={"full"} mx="auto">
       {/* Page Header */}
       <Box textAlign="left">
         <Heading size="lg" bgGradient="linear(to-r, blue.500, purple.500)" bgClip="text" mb={3}>
@@ -287,10 +286,12 @@ const TopUp = ({
         <Alert status="warning" borderRadius="xl" variant="left-accent">
           <AlertIcon />
           <Box>
-            <Text fontWeight="bold">Low Balance Alert</Text>
-            <Text fontSize="sm">
-              Your balance (${typeof currentBalance === 'number' ? currentBalance.toFixed(2) : '0.00'}) is below your threshold (${typeof thresholdBalance === 'number' ? thresholdBalance.toFixed(2) : '10.00'})
-            </Text>
+            <Text fontWeight="bold" color={"red.600"}>Low Balance Alert</Text>
+            <HStack>
+            
+              <Text>Your balance</Text> <Text fontWeight={"bold"}>${typeof currentBalance === 'number' ? currentBalance.toFixed(2) : '0.00'}</Text> <Text>is below your threshold</Text> <Text fontWeight={"bold"}>${typeof thresholdBalance === 'number' ? thresholdBalance.toFixed(2) : '10.00'}</Text>
+            
+            </HStack>
           </Box>
         </Alert>
       )}
@@ -318,7 +319,6 @@ const TopUp = ({
                       <Heading size="2xl" color={accentColor}>
                         ${typeof currentBalance === 'number' ? currentBalance.toFixed(2) : '0.00'}
                       </Heading>
-                      {isLoading && <Spinner size="lg" ml={6} />}
                     </Flex>
                   </VStack>
                   <Icon as={FaWallet} w={12} h={12} color={accentColor} opacity={0.8} />
@@ -400,7 +400,7 @@ const TopUp = ({
                 {/* Payment Methods */}
                 <Box>
                   <Text fontWeight="medium" mb={3}>Payment Method</Text>
-                  <SimpleGrid columns={{ base: 1, md: 3 }} gap={3}>
+                  <SimpleGrid columns={{ base: 1, md: 2}} gap={3}>
                     {paymentMethods.map((method) => (
                       <Button
                         key={method.id}
@@ -467,7 +467,7 @@ const TopUp = ({
               <VStack spacing={6} align="stretch">
                 <Flex align="center" justify="space-between">
                   <Heading size="md">Balance Alerts</Heading>
-                  <Badge colorScheme={isLowBalance ? 'red' : 'green'} fontSize="xs">
+                  <Badge colorScheme={isLowBalance ? 'red' : 'green'} px={2} borderRadius={"full"} fontSize="xs">
                     {isLowBalance ? 'ACTIVE' : 'MONITORING'}
                   </Badge>
                 </Flex>

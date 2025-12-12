@@ -1,5 +1,6 @@
 const express = require('express');
 const { query } = require('../config/database');
+const emailService = require('../services/emailService');
 
 const router = express.Router();
 
@@ -112,9 +113,9 @@ router.patch('/:id/wallet', async (req, res) => {
     try {
       await client.query('BEGIN');
 
-      // Get current balance
+      // Get current balance, email, name, and threshold
       const balanceResult = await client.query(
-        'SELECT wallet_balance FROM users WHERE id = $1',
+        'SELECT wallet_balance, email, first_name, last_name, wallet_threshold FROM users WHERE id = $1',
         [id]
       );
 
@@ -126,8 +127,12 @@ router.patch('/:id/wallet', async (req, res) => {
         });
       }
 
-      const currentBalance = parseFloat(balanceResult.rows[0].wallet_balance) || 0;
+      const user = balanceResult.rows[0];
+      const currentBalance = parseFloat(user.wallet_balance) || 0;
       const newBalance = currentBalance + parseFloat(amount);
+      const userEmail = user.email;
+      const userName = `${user.first_name} ${user.last_name}`;
+      const threshold = user.wallet_threshold ? parseFloat(user.wallet_threshold) : 10.00;
 
       // Update balance
       await client.query(
@@ -142,6 +147,13 @@ router.patch('/:id/wallet', async (req, res) => {
       `, [id, amount > 0 ? 'Credit' : 'Debit', Math.abs(amount), currentBalance, newBalance, description]);
 
       await client.query('COMMIT');
+
+      // Send email notification if new balance is below threshold
+      if (newBalance < threshold && currentBalance >= threshold) {
+        emailService.sendWalletBalanceLowEmail(userEmail, userName, newBalance, threshold).catch(err => {
+          console.error('Failed to send wallet balance low email:', err);
+        });
+      }
 
       res.json({
         success: true,
@@ -178,6 +190,24 @@ router.patch('/:id/wallet-threshold', async (req, res) => {
       });
     }
 
+    // Get current balance, email, and name before updating threshold
+    const userResult = await query(
+      'SELECT wallet_balance, email, first_name, last_name FROM users WHERE id = $1',
+      [id]
+    );
+
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    const user = userResult.rows[0];
+    const currentBalance = parseFloat(user.wallet_balance) || 0;
+    const userEmail = user.email;
+    const userName = `${user.first_name} ${user.last_name}`;
+
     const result = await query(`
       UPDATE users
       SET wallet_threshold = $1, updated_at = CURRENT_TIMESTAMP
@@ -189,6 +219,13 @@ router.patch('/:id/wallet-threshold', async (req, res) => {
       return res.status(404).json({
         success: false,
         message: 'User not found'
+      });
+    }
+
+    // Send email notification if balance is below new threshold
+    if (currentBalance < threshold) {
+      emailService.sendWalletBalanceLowEmail(userEmail, userName, currentBalance, threshold).catch(err => {
+        console.error('Failed to send wallet balance low email:', err);
       });
     }
 

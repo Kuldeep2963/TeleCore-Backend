@@ -1,10 +1,10 @@
-import React from 'react';
+import React from "react";
 import {
-  Box, 
-  Flex, 
-  Text, 
-  Avatar, 
-  HStack, 
+  Box,
+  Flex,
+  Text,
+  Avatar,
+  HStack,
   IconButton,
   Image,
   Menu,
@@ -14,22 +14,37 @@ import {
   MenuDivider,
   VStack,
   Badge,
-  useDisclosure
-} from '@chakra-ui/react';
-import { FaShoppingCart, FaUser, FaKey, FaSignOutAlt, FaWallet, FaDollarSign} from 'react-icons/fa';
-import { useNavigate } from 'react-router-dom';
-import ChangePasswordModal from '../Modals/ChangePasswordModal';
+  useDisclosure,
+} from "@chakra-ui/react";
+import {
+  FaShoppingCart,
+  FaUser,
+  FaKey,
+  FaSignOutAlt,
+  FaWallet,
+  FaDollarSign,
+} from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
+import ChangePasswordModal from "../Modals/ChangePasswordModal";
 
-function Navbar({ cartCount = 0, walletBalance = 0, profilePicture = null, onLogout = () => {}, userRole = 'Client', userProfile = {}, onToggleSidebar = () => {} }) {
+function Navbar({
+  cartCount = 0,
+  walletBalance = 0,
+  profilePicture = null,
+  onLogout = () => {},
+  userRole = "Client",
+  userProfile = {},
+  onToggleSidebar = () => {},
+}) {
   const navigate = useNavigate();
   const { isOpen, onOpen, onClose } = useDisclosure();
 
   const handleCartClick = () => {
-    navigate('/order-numbers/place-order');
+    navigate("/order-numbers/place-order");
   };
 
   const handleProfileClick = () => {
-    navigate('/my-profile');
+    navigate("/my-profile");
   };
 
   const handleChangePasswordClick = () => {
@@ -41,16 +56,17 @@ function Navbar({ cartCount = 0, walletBalance = 0, profilePicture = null, onLog
   };
 
   const handleRatesClick = () => {
-    navigate('/rates');
+    navigate("/rates");
   };
 
   const handleWalletClick = () => {
-    navigate('/billing-invoices?tab=topup');
+    navigate("/billing-invoices?tab=topup");
   };
 
   return (
     <Box
-      bgGradient="linear(to-r,whiteAlpha.200,gray.100, gray.200,gray.300)"
+      // bgGradient="linear(to-r,whiteAlpha.200,gray.100, gray.200,gray.300)"
+      bg={"white"}
       backdropFilter="blur(20px)"
       borderBottom="1px solid"
       borderColor="rgba(148, 163, 184, 0.1)"
@@ -68,14 +84,14 @@ function Navbar({ cartCount = 0, walletBalance = 0, profilePicture = null, onLog
     >
       <Flex justify="space-between" align="center" height="100%">
         {/* Logo - Clickable on Mobile */}
-        <Image 
-          src="/TeleCore.png" 
-          alt="TeleCore Logo" 
+        <Image
+          src="/TeleCore.png"
+          alt="TeleCore Logo"
           width="160px"
           height="100px"
           objectFit="contain"
-          display={{ base: 'block', md: 'block' }}
-          cursor={{ base: 'pointer', md: 'default' }}
+          display={{ base: "block", md: "block" }}
+          cursor={{ base: "pointer", md: "default" }}
           onClick={() => {
             if (window.innerWidth < 768) {
               onToggleSidebar();
@@ -83,42 +99,42 @@ function Navbar({ cartCount = 0, walletBalance = 0, profilePicture = null, onLog
           }}
           _hover={{ base: { opacity: 0.8 }, md: {} }}
         />
-        
+
         {/* Right Section - All items in a single row */}
-        <HStack spacing={{base:2,md:4}}>
-          {userRole === 'Internal' &&(
+        <HStack spacing={{ base: 2, md: 4 }}>
+          {userRole === "Internal" && (
             <>
-            <IconButton
-              icon={<FaDollarSign/>}
-              variant="ghost"
-              color="#1a3a52"
-              _hover={{ 
-                bg: 'rgba(26, 58, 82, 0.1)',
-                transform: 'scale(1.1)',
-                borderRadius:'full'
-        
-              }}
-              size="lg"
-              transition="all 0.2s ease"
-              onClick={handleRatesClick}
-            />
+              <IconButton
+                icon={<FaDollarSign />}
+                variant="ghost"
+                color="#178930ff"
+                _hover={{
+                  bg: "rgba(183, 201, 215, 0.1)",
+                  transform: "scale(1.1)",
+                  borderRadius: "full",
+                }}
+                size="lg"
+                transition="all 0.2s ease"
+                onClick={handleRatesClick}
+              />
+              {/* <Text>Rates</Text> */}
             </>
           )}
-            
-           
+
           {/* Cart and Wallet - Only for Clients */}
-          {userRole === 'Client' && (
+          {userRole === "Client" && (
             <>
               {/* Cart Icon */}
               <Box position="relative" display="inline-block">
                 <IconButton
-                  icon={<FaShoppingCart />}
+                  icon={<FaShoppingCart/>}
+
                   variant="ghost"
                   color="#1a3a52"
                   _hover={{
-                    bg: 'rgba(26, 58, 82, 0.1)',
-                      borderRadius:'full',
-                    transform: 'scale(1.1)'
+                    bg: "rgba(198, 209, 217, 0.1)",
+                    borderRadius: "full",
+                    transform: "scale(1.1)",
                   }}
                   size="lg"
                   transition="all 0.2s ease"
@@ -152,109 +168,138 @@ function Navbar({ cartCount = 0, walletBalance = 0, profilePicture = null, onLog
                 alignItems="center"
                 gap={2}
                 px={3}
-                py={2}
+                py={1}
                 borderRadius="full"
-                bg="rgba(26, 58, 82, 0.1)"
+                bg="green.50"
                 cursor="pointer"
                 onClick={handleWalletClick}
               >
-                <FaWallet color="#1a3a52" size={16} />
+                <FaWallet color="#064678ff" size={16} />
                 <Text fontWeight="bold" fontSize="18px" color="green.600">
-                  ${(walletBalance).toFixed(2)}
+                  ${walletBalance.toFixed(2)}
                 </Text>
               </Box>
             </>
           )}
-          
+
           {/* Profile with Chakra Menu */}
           <Menu>
-              <MenuButton 
-                as={IconButton}
-                icon={
-                  <HStack spacing={2}>
-                    <Avatar
-                      size="sm"
-                      src={profilePicture}
-                      name={`${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim() || 'User'}
-                      bg={profilePicture ? "transparent" : "linear(135deg, #667eea 0%, #764ba2 100%)"}
-                      bgGradient={profilePicture ? "none" : "linear(135deg, #667eea 0%, #764ba2 100%)"}
-                      color="white"
-                      fontWeight="600"
-                      width="30px"
-                      height="30px"
-                      fontSize="10px"
-                    />
-                    <VStack align={"flex-end"} >
-                    <Text fontWeight="bold" fontSize="14px" color="gray.700" display={{ base: 'none', md: 'block' }}>
-                      {`${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim() || 'User'}
+            <MenuButton
+              as={IconButton}
+              icon={
+                <HStack spacing={2}>
+                  <Avatar
+                    size="sm"
+                    src={profilePicture}
+                    name={
+                      `${userProfile.firstName || ""} ${
+                        userProfile.lastName || ""
+                      }`.trim() || "User"
+                    }
+                    bg={
+                      profilePicture
+                        ? "transparent"
+                        : "linear(135deg, #667eea 0%, #764ba2 100%)"
+                    }
+                    bgGradient={
+                      profilePicture
+                        ? "none"
+                        : "linear(135deg, #667eea 0%, #764ba2 100%)"
+                    }
+                    color="white"
+                    fontWeight="600"
+                    width="30px"
+                    height="30px"
+                    fontSize="10px"
+                  />
+                  <VStack align={"flex-end"}>
+                    <Text
+                      fontWeight="bold"
+                      fontSize="14px"
+                      color="gray.700"
+                      display={{ base: "none", md: "block" }}
+                    >
+                      {`${userProfile.firstName || ""} ${
+                        userProfile.lastName || ""
+                      }`.trim() || "User"}
                     </Text>
-                    <Text fontSize={"12px"} color={"gray.600"} fontWeight={"semibold"} display={{ base: 'none', md: 'block' }}>{userRole}</Text>
-                    </VStack>
-                  </HStack>
-                }
-                variant="ghost"
-                color="#1a3a52"
-                _hover={{ 
-                  bg: 'rgba(26, 58, 82, 0.1)',
-                  borderRadius:'full'
-                }}
-                size="md"
-                transition="all 0.2s ease"
-                px={3}
-                py={6}
-              />
+                    <Badge
+                      colorScheme={userRole === "Client" ? "green" : "purple"}
+                      fontSize="10px"
+                      px={1.5}
+                      py={0.5}
+                      borderRadius="full"
+                    >
+                      <Text>{userRole}</Text>
+                    </Badge>
+                  </VStack>
+                </HStack>
+              }
+              variant="ghost"
+              color="#1a3a52"
+              _hover={{
+                bg: "rgba(185, 194, 200, 0.1)",
+                // borderRadius:'full'
+              }}
+              size="md"
+              transition="all 0.2s ease"
+              px={3}
+              py={6}
+            />
 
-            <MenuList 
-              minW="200px" 
-              borderRadius="8px" 
+            <MenuList
+              minW="200px"
+              borderRadius="8px"
               boxShadow="0 4px 20px rgba(0, 0, 0, 0.15)"
               border="1px solid"
               borderColor="gray.200"
               py={0}
             >
               {/* Profile Section */}
-              <VStack 
-                spacing={1} 
-                px={3} 
-                py={3} 
-                borderBottom="1px solid" 
+              <VStack
+                spacing={1}
+                px={3}
+                py={3}
+                borderBottom="1px solid"
                 borderColor="gray.100"
                 align="stretch"
               >
                 <Text fontWeight="600" fontSize="14px" color="#1a3a52">
-                  {`${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim() || 'User'}
+                  {`${userProfile.firstName || ""} ${
+                    userProfile.lastName || ""
+                  }`.trim() || "User"}
                 </Text>
                 <Text fontSize="12px" color="gray.600">
-                  {userProfile.email || ''}
+                  {userProfile.email || ""}
                 </Text>
               </VStack>
 
               {/* Menu Items */}
               <MenuItem
                 icon={<FaUser size={14} />}
-                _hover={{ bg: 'blue.50', color: 'blue.600' }}
+                _hover={{ bg: "blue.50", color: "blue.600" }}
                 py={2}
                 px={3}
                 onClick={handleProfileClick}
               >
                 <Text fontSize="14px">Profile</Text>
               </MenuItem>
-              
+
               <MenuItem
                 icon={<FaKey size={14} />}
-                _hover={{ bg: 'blue.50', color: 'blue.600' }}
+                _hover={{ bg: "blue.50", color: "blue.600" }}
                 py={2}
                 px={3}
                 onClick={handleChangePasswordClick}
               >
                 <Text fontSize="14px">Change Password</Text>
               </MenuItem>
-              
+
               <MenuDivider />
 
               <MenuItem
                 icon={<FaSignOutAlt size={14} />}
-                _hover={{ bg: 'red.50', color: 'red.600' }}
+                _hover={{ bg: "red.50", color: "red.600" }}
                 py={2}
                 px={3}
                 onClick={handleLogoutClick}

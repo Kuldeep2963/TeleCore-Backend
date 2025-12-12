@@ -1,6 +1,7 @@
 const express = require('express');
 const { query } = require('../config/database');
 const { requireClient, requireInternal } = require('../middleware/auth');
+const emailService = require('../services/emailService');
 
 const router = express.Router();
 
@@ -266,6 +267,20 @@ router.post('/', requireClient, async (req, res) => {
 
     const returnData = result.rows[0];
 
+    try {
+      const customerResult = await query('SELECT u.email FROM customers c JOIN users u ON c.user_id = u.id WHERE c.id = $1', [customer_id]);
+      const productResult = await query('SELECT name FROM products WHERE id = $1', [product_id]);
+      
+      if (customerResult.rows.length > 0 && productResult.rows.length > 0) {
+        const customerEmail = customerResult.rows[0].email;
+        const productName = productResult.rows[0].name;
+        
+        await emailService.sendOrderPlacedEmail(customerEmail, orderNumber, productName, quantity || 1);
+      }
+    } catch (emailError) {
+      console.error('Error sending order placed email:', emailError);
+    }
+
     res.status(201).json({
       success: true,
       message: 'Order created successfully',
@@ -396,7 +411,7 @@ router.get('/:orderId/pricing', async (req, res) => {
 router.patch('/:id/status', async (req, res) => {
   try {
     const { id } = req.params;
-    const { status } = req.body;
+    const { status, reason } = req.body;
 
     if (!status) {
       return res.status(400).json({
@@ -420,10 +435,36 @@ router.patch('/:id/status', async (req, res) => {
       });
     }
 
+    const updatedOrder = result.rows[0];
+
+    try {
+      const customerResult = await query('SELECT u.email FROM customers c JOIN users u ON c.user_id = u.id WHERE c.id = $1', [updatedOrder.customer_id]);
+      const productResult = await query('SELECT name FROM products WHERE id = $1', [updatedOrder.product_id]);
+      
+      if (customerResult.rows.length > 0 && productResult.rows.length > 0) {
+        const customerEmail = customerResult.rows[0].email;
+        const productName = productResult.rows[0].name;
+        const statusLower = status.toLowerCase();
+        
+        if (statusLower === 'confirmed') {
+          const deliveryDate = new Date();
+          deliveryDate.setDate(deliveryDate.getDate() + 5);
+          await emailService.sendOrderConfirmedEmail(customerEmail, updatedOrder.order_number, productName, deliveryDate.toISOString().split('T')[0]);
+        } else if (statusLower === 'delivered') {
+          const deliveryDate = new Date().toISOString().split('T')[0];
+          await emailService.sendOrderDeliveredEmail(customerEmail, updatedOrder.order_number, productName, deliveryDate);
+        } else if (statusLower === 'rejected') {
+          await emailService.sendOrderRejectedEmail(customerEmail, updatedOrder.order_number, productName, reason || 'Not specified');
+        }
+      }
+    } catch (emailError) {
+      console.error('Error sending order status email:', emailError);
+    }
+
     res.json({
       success: true,
       message: 'Order status updated successfully',
-      data: result.rows[0]
+      data: updatedOrder
     });
   } catch (error) {
     console.error('Update order status error:', error);
@@ -482,11 +523,29 @@ router.patch('/:id/confirm', requireInternal, async (req, res) => {
       ['Confirmed', totalAmount, id]
     );
 
+    const confirmedOrder = updateResult.rows[0];
+
+    try {
+      const customerResult = await query('SELECT u.email FROM customers c JOIN users u ON c.user_id = u.id WHERE c.id = $1', [confirmedOrder.customer_id]);
+      const productResult = await query('SELECT name FROM products WHERE id = $1', [confirmedOrder.product_id]);
+      
+      if (customerResult.rows.length > 0 && productResult.rows.length > 0) {
+        const customerEmail = customerResult.rows[0].email;
+        const productName = productResult.rows[0].name;
+        const deliveryDate = new Date();
+        deliveryDate.setDate(deliveryDate.getDate() + 5);
+        
+        await emailService.sendOrderConfirmedEmail(customerEmail, confirmedOrder.order_number, productName, deliveryDate.toISOString().split('T')[0]);
+      }
+    } catch (emailError) {
+      console.error('Error sending order confirmed email:', emailError);
+    }
+
     res.json({
       success: true,
       message: 'Order confirmed successfully',
       data: {
-        ...updateResult.rows[0],
+        ...confirmedOrder,
         calculatedAmount: totalAmount,
         calculation: `(NRC: $${nrc.toFixed(2)} + MRC: $${mrc.toFixed(2)}) × ${quantity} = $${totalAmount.toFixed(2)}`
       }

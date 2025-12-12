@@ -439,7 +439,7 @@ const Billing = ({ walletBalance = 50.00, onUpdateBalance = () => {}, userId }) 
                 <HStack spacing={2}><FaFileInvoice /><Text>Billing & Invoices</Text></HStack>
               </Tab>
               <Tab fontWeight="semibold" fontSize="md">
-                <HStack spacing={2}><FaWallet /><Text>TopUp/Balance</Text></HStack>
+                <HStack spacing={2}><FaWallet /><Text>Accounts</Text></HStack>
               </Tab>
             </HStack>
           </TabList>

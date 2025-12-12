@@ -16,11 +16,15 @@ import {
   Image,
   Select,
   HStack,
+  useDisclosure,
+  Tooltip,
 } from "@chakra-ui/react";
 import { ViewIcon, ViewOffIcon } from "@chakra-ui/icons";
 import { useNavigate } from "react-router-dom";
 import { HiArrowRight } from "react-icons/hi";
-
+import ForgotPasswordModal from "../Modals/ForgotPasswordModal";
+import { FaUser } from "react-icons/fa";
+import { FiMail } from "react-icons/fi";
 
 const Login = ({
   onLogin = () => ({ success: false }),
@@ -28,6 +32,7 @@ const Login = ({
   internalCredentials,
 }) => {
   const navigate = useNavigate();
+  const { isOpen, onOpen, onClose } = useDisclosure();
   const [showPassword, setShowPassword] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -68,7 +73,7 @@ const Login = ({
   };
 
   const handleForgotPassword = () => {
-    console.log("Forgot password clicked");
+    onOpen();
   };
 
   const handleFillClientCredentials = () => {
@@ -79,7 +84,7 @@ const Login = ({
       email: clientCredentials.email || "",
       password: clientCredentials.password || "",
     });
-    setShowPassword(false);
+    setShowPassword(true);
     setErrorMessage("");
   };
 
@@ -127,7 +132,7 @@ const Login = ({
           {/* Login Form */}
           <Box
             bg={cardBg}
-            p={8}
+            p={{base:4,md:8}}
             borderRadius="xl"
             boxShadow="lg"
             border="1px solid"
@@ -147,7 +152,7 @@ const Login = ({
                 <FormLabel
                   fontSize="sm"
                   fontWeight="semibold"
-                  color="gray.700"
+                  color="gray.600"
                   mb={2}
                 >
                   User Email
@@ -159,6 +164,7 @@ const Login = ({
                   placeholder="Enter your email"
                   size="md"
                   bg="gray.100"
+                  color={"gray.600"}
                   // borderColor="gray.300"
                   _hover={{ borderColor: "gray.400" }}
                   _focus={{
@@ -188,6 +194,8 @@ const Login = ({
                     placeholder="Enter your Password"
                     size="md"
                     bg="gray.100"
+                  color={"gray.600"}
+
                     // borderColor="gray.300"
                     _hover={{ borderColor: "gray.400" }}
                     _focus={{
@@ -217,6 +225,7 @@ const Login = ({
 
               {/* Login Button */}
               <Button
+                mt={4}
                 isLoading={isLoading}
                 rightIcon={<HiArrowRight size={20}/>}
                 colorScheme="blue"
@@ -249,28 +258,46 @@ const Login = ({
                 Forgot password?
               </Button>
 
-              <HStack spacing={3} justify={"center"}>
+              <HStack justify={"center"} spacing={10}>
+                <Tooltip
+                  label= "Client"
+                  placement="left"
+                  bg={"blue.50"}
+                  fontStyle={"italic"}
+                  color={"black"}
+                  >
                 <Button
                   size="sm"
                   colorScheme="blue"
-                  variant="outline"
+                  variant="ghost"
                   onClick={handleFillClientCredentials}
                 >
-                  Client Login
+                  <FaUser/>
                 </Button>
+                </Tooltip>
+                <Tooltip
+                  label="Internal"
+                  placement="right"
+                  bg={"green.50"}
+                  color={"black"}
+                  fontStyle={"italic"}
+                >
                 <Button
                   size="sm"
                   colorScheme="green"
-                  variant="outline"
+                  variant="ghost"
                   onClick={handleFillInternalCredentials}
                 >
-                  Internal Login
+                  <FaUser/>
                 </Button>
+                </Tooltip>
               </HStack>
             </VStack>
           </Box>
         </VStack>
       </Box>
+
+      <ForgotPasswordModal isOpen={isOpen} onClose={onClose} />
     </Box>
   );
 };

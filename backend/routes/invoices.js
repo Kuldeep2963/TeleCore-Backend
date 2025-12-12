@@ -2,6 +2,7 @@ const express = require('express');
 const { query } = require('../config/database');
 const { authenticateToken, requireInternal } = require('../middleware/auth');
 const { generateMonthlyInvoices, updateOverdueInvoices } = require('../jobs/invoiceScheduler');
+const emailService = require('../services/emailService');
 const PDFDocument = require('pdfkit');
 const router = express.Router();
 

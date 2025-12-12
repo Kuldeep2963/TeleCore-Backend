@@ -60,6 +60,9 @@ const api = {
     register: (data) => apiCall('/auth/register', { method: 'POST', body: JSON.stringify(data) }),
     getProfile: () => apiCall('/auth/profile'),
     changePassword: (data) => apiCall('/auth/change-password', { method: 'PUT', body: JSON.stringify(data) }),
+    forgotPasswordRequest: (email) => apiCall('/auth/forgot-password-request', { method: 'POST', body: JSON.stringify({ email }) }),
+    verifyOTP: (email, otp) => apiCall('/auth/verify-otp', { method: 'POST', body: JSON.stringify({ email, otp }) }),
+    resetPasswordWithOTP: (resetToken, newPassword) => apiCall('/auth/reset-password-with-otp', { method: 'POST', body: JSON.stringify({ resetToken, newPassword }) }),
   },
 
   vendors: {

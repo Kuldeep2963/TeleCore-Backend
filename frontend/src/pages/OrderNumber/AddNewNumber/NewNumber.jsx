@@ -621,7 +621,7 @@ function NewNumbers({ onAddToCart = () => {} }) {
                     handleInputChange("productType", e.target.value)
                   }
                   onKeyDown={(e) => handleKeyDown(e, areaCodeRef)}
-                  // disabled={!formData.country}
+                  disabled={!formData.country}
                 >
                   {availableProducts.map((product) => (
                     <option key={product.code} value={product.code}>

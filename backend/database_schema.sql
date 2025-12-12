@@ -275,6 +275,18 @@ CREATE TABLE required_documents (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(product_id, country_id, document_code)
 );
+
+-- Password Reset OTP table
+CREATE TABLE password_reset_otp (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    email VARCHAR(255) NOT NULL,
+    otp VARCHAR(6) NOT NULL,
+    attempts INTEGER DEFAULT 0,
+    is_verified BOOLEAN DEFAULT FALSE,
+    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
 -- Indexes for better performance
 CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_users_role ON users(role);
@@ -295,6 +307,9 @@ CREATE INDEX idx_wallet_transactions_user_id ON wallet_transactions(user_id);
 CREATE INDEX idx_service_details_product_country ON service_details(product_id, country_id);
 CREATE INDEX idx_required_documents_product_country ON required_documents(product_id, country_id);
 CREATE INDEX idx_required_documents_code ON required_documents(document_code);
+CREATE INDEX idx_password_reset_otp_email ON password_reset_otp(email);
+CREATE INDEX idx_password_reset_otp_user_id ON password_reset_otp(user_id);
+CREATE INDEX idx_password_reset_otp_expires_at ON password_reset_otp(expires_at);
 
 -- Triggers for updated_at timestamps
 CREATE OR REPLACE FUNCTION update_updated_at_column()

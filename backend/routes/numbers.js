@@ -1,6 +1,7 @@
 const express = require('express');
 const { query } = require('../config/database');
 const { requireClient, requireInternal } = require('../middleware/auth');
+const emailService = require('../services/emailService');
 
 const router = express.Router();
 
@@ -310,9 +311,26 @@ router.patch('/:id/disconnect', requireInternal, async (req, res) => {
       });
     }
 
+    const disconnectedNumber = result.rows[0];
+
+    try {
+      const orderResult = await query('SELECT o.order_number, o.customer_id FROM orders o WHERE o.id = $1', [disconnectedNumber.order_id]);
+      const customerResult = await query('SELECT u.email FROM customers c JOIN users u ON c.user_id = u.id WHERE c.id = $1', [orderResult.rows[0]?.customer_id]);
+
+      if (orderResult.rows.length > 0 && customerResult.rows.length > 0) {
+        const orderNumber = orderResult.rows[0].order_number;
+        const customerEmail = customerResult.rows[0].email;
+        const disconnectionDate = new Date().toISOString().split('T')[0];
+
+        await emailService.sendNumberDisconnectedEmail(customerEmail, disconnectedNumber.number, orderNumber, disconnectionDate);
+      }
+    } catch (emailError) {
+      console.error('Error sending number disconnected email:', emailError);
+    }
+
     res.json({
       success: true,
-      data: result.rows[0],
+      data: disconnectedNumber,
       message: 'Number disconnected successfully'
     });
   } catch (error) {

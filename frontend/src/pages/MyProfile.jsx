@@ -31,8 +31,8 @@ import {
   AlertIcon
 } from '@chakra-ui/react';
 import { EditIcon, PhoneIcon, EmailIcon, LockIcon } from '@chakra-ui/icons';
-import { FaUser, FaMapMarkerAlt, FaCamera, FaShieldAlt, FaWallet } from 'react-icons/fa';
-import { FiBriefcase } from 'react-icons/fi';
+import {  FaMapMarkerAlt, FaCamera, FaPlus } from 'react-icons/fa';
+import { FiBriefcase, FiXCircle } from 'react-icons/fi';
 import { MdSecurity, MdPerson } from 'react-icons/md';
 import api from '../services/api';
 
@@ -423,7 +423,7 @@ function Profile({ profilePicture, onProfilePictureUpdate, userId, userProfile, 
                         Personal Information
                       </Heading>
                       <Button
-                        leftIcon={<EditIcon />}
+                        leftIcon={isEditing ? <FiXCircle/> :<EditIcon />}
                         borderRadius={"full"}
                         colorScheme={isEditing ? "gray" : "blue"}
                         variant={isEditing ? "outline" : "outline"}
@@ -566,14 +566,18 @@ function Profile({ profilePicture, onProfilePictureUpdate, userId, userProfile, 
                       <HStack spacing={3} justify="flex-end" pt={4}>
                         <Button
                           size={"sm"}
+                          leftIcon={<FiXCircle/>}
+                          borderRadius={"full"}
                           variant="outline"
                           onClick={handleCancelEdit}
                         >
                           Cancel
                         </Button>
                         <Button
+                          leftIcon={<FaPlus/>}
                           size={"sm"}
                           colorScheme="blue"
+                          borderRadius={"full"}
                           onClick={handleSaveChanges}
                         >
                           Save Changes
