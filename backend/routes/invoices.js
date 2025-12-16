@@ -3,6 +3,7 @@ const { query } = require('../config/database');
 const { authenticateToken, requireInternal } = require('../middleware/auth');
 const { generateMonthlyInvoices, updateOverdueInvoices } = require('../jobs/invoiceScheduler');
 const emailService = require('../services/emailService');
+const { processPayment } = require('../services/walletService');
 const PDFDocument = require('pdfkit');
 const router = express.Router();
 
@@ -310,7 +311,7 @@ router.post('/', async (req, res) => {
       
       if (!isNaN(rate) && !isNaN(durationSeconds) && isFinite(rate) && isFinite(durationSeconds)) {
         const durationMinutes = durationSeconds / 60;
-        finalUsageAmount = parseFloat((rate * durationMinutes).toFixed(2));
+        finalUsageAmount = parseFloat((rate * durationMinutes).toFixed(4));
         finalRate = rate;
         finalDuration = durationSeconds;
       } else if (usage_amount !== undefined && usage_amount !== null) {
@@ -322,7 +323,7 @@ router.post('/', async (req, res) => {
 
     // Calculate total amount
     const mrcValue = parseFloat(mrc_amount || 0);
-    const totalAmount = amount || parseFloat((mrcValue + finalUsageAmount).toFixed(2));
+    const totalAmount = amount || parseFloat((mrcValue + finalUsageAmount).toFixed(4));
 
     // Generate invoice number
     const invoiceNumber = `INV-${Date.now()}`;
@@ -346,6 +347,109 @@ router.post('/', async (req, res) => {
       success: false,
       message: 'Internal server error',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+// Pay for invoice using wallet
+router.post('/:id/pay', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+
+    // Get invoice details
+    const invoiceResult = await query(
+      'SELECT id, amount, status, invoice_number, customer_id FROM invoices WHERE id = $1',
+      [id]
+    );
+
+    if (invoiceResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Invoice not found'
+      });
+    }
+
+    const invoice = invoiceResult.rows[0];
+
+    // Check if user owns the invoice (via customer)
+    // Only check ownership if user is a Client
+    if (req.user.role === 'Client') {
+      const customerResult = await query(
+        'SELECT user_id FROM customers WHERE id = $1',
+        [invoice.customer_id]
+      );
+
+      if (customerResult.rows.length === 0 || customerResult.rows[0].user_id !== userId) {
+        return res.status(403).json({
+          success: false,
+          message: 'Unauthorized access to invoice'
+        });
+      }
+    }
+
+    if (invoice.status === 'Paid') {
+      return res.status(400).json({
+        success: false,
+        message: 'Invoice is already paid'
+      });
+    }
+
+    if (invoice.amount <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid invoice amount'
+      });
+    }
+
+    // Process payment
+    // If internal user is paying, we still need to know WHICH user's wallet to deduct.
+    // Assuming internal users trigger payment on behalf of the customer.
+    
+    let payerUserId = userId;
+    if (req.user.role !== 'Client') {
+       const customerResult = await query(
+        'SELECT user_id FROM customers WHERE id = $1',
+        [invoice.customer_id]
+      );
+      if (customerResult.rows.length > 0) {
+        payerUserId = customerResult.rows[0].user_id;
+      } else {
+         return res.status(400).json({
+          success: false,
+          message: 'Customer user not found'
+        });
+      }
+    }
+
+    await processPayment(
+      payerUserId,
+      invoice.amount,
+      `Payment for Invoice ${invoice.invoice_number}`,
+      invoice.id,
+      'Debit'
+    );
+
+    // Update invoice status
+    const updateResult = await query(
+      `UPDATE invoices 
+       SET status = 'Paid', paid_date = CURRENT_DATE, updated_at = CURRENT_TIMESTAMP 
+       WHERE id = $1 
+       RETURNING *`,
+      [id]
+    );
+
+    res.json({
+      success: true,
+      message: 'Payment successful',
+      data: updateResult.rows[0]
+    });
+
+  } catch (error) {
+    console.error('Invoice payment error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Internal server error'
     });
   }
 });
@@ -404,7 +508,7 @@ router.put('/:id', async (req, res) => {
       
       if (!isNaN(rate) && !isNaN(durationSec) && isFinite(rate) && isFinite(durationSec)) {
         const durationMin = durationSec / 60;
-        finalUsageAmount = parseFloat((rate * durationMin).toFixed(2));
+        finalUsageAmount = parseFloat((rate * durationMin).toFixed(4));
       }
     }
 
@@ -443,7 +547,7 @@ router.put('/:id', async (req, res) => {
       if (currentResult.rows.length > 0) {
         const mrc = parseFloat(currentResult.rows[0].mrc_amount || 0);
         const usage = finalUsageAmount !== undefined ? finalUsageAmount : parseFloat(usage_amount || 0);
-        const totalAmount = parseFloat((mrc + usage).toFixed(2));
+        const totalAmount = parseFloat((mrc + usage).toFixed(4));
         updates.push(`amount = $${paramIndex}`);
         params.push(totalAmount);
         paramIndex++;
@@ -676,7 +780,7 @@ router.get('/:id/pdf', authenticateToken, async (req, res) => {
       });
     };
 
-    const currency = (amount) => `$${Number(amount || 0).toFixed(2)}`;
+    const currency = (amount) => `$${Number(amount || 0).toFixed(4)}`;
 
     const formatStatus = (status) => {
       const statusColors = {
@@ -776,7 +880,7 @@ router.get('/:id/pdf', authenticateToken, async (req, res) => {
     const boxX = doc.page.width - boxWidth - 40;
     let detailY = 105;
     
-    doc.rect(boxX, detailY, boxWidth, 85)
+    doc.rect(boxX, detailY, boxWidth, 110)
        .fill(colors.lightGray);
     
     doc.fontSize(15)
@@ -792,7 +896,9 @@ router.get('/:id/pdf', authenticateToken, async (req, res) => {
     const details = [
       { label: 'Invoice Date', value: formatDate(invoice.invoice_date || invoice.created_at) },
       { label: 'Due Date', value: formatDate(invoice.due_date) },
-      { label: 'Status', value: formatStatus(invoice.status).text, color: formatStatus(invoice.status).color }
+      { label: 'Status', value: formatStatus(invoice.status).text, color: formatStatus(invoice.status).color },
+      { label: 'Paid Date', value: formatDate(invoice.paid_date) }
+
     ];
     
     details.forEach((detail, index) => {
@@ -804,7 +910,7 @@ router.get('/:id/pdf', authenticateToken, async (req, res) => {
          .fillColor(colors.darkGray);
     });
     
-    y = Math.max(y + 15, detailY + 50);
+    y = Math.max(y + 15, detailY + 75);
     y += 15;
 
     // Additional Information Section (Before Invoice Summary)

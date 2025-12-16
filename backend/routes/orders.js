@@ -2,6 +2,7 @@ const express = require('express');
 const { query } = require('../config/database');
 const { requireClient, requireInternal } = require('../middleware/auth');
 const emailService = require('../services/emailService');
+const { processPayment } = require('../services/walletService');
 
 const router = express.Router();
 
@@ -547,11 +548,124 @@ router.patch('/:id/confirm', requireInternal, async (req, res) => {
       data: {
         ...confirmedOrder,
         calculatedAmount: totalAmount,
-        calculation: `(NRC: $${nrc.toFixed(2)} + MRC: $${mrc.toFixed(2)}) × ${quantity} = $${totalAmount.toFixed(2)}`
+        calculation: `(NRC: $${nrc.toFixed(4)} + MRC: $${mrc.toFixed(4)}) × ${quantity} = $${totalAmount.toFixed(4)}`
       }
     });
   } catch (error) {
     console.error('Confirm order error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Internal server error'
+    });
+  }
+});
+
+// Pay for order using wallet
+router.post('/:id/pay', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Check if user is authenticated
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
+
+    const userId = req.user.id;
+
+    // Get order details
+    const orderResult = await query(
+      'SELECT id, total_amount, status, order_number, customer_id FROM orders WHERE id = $1',
+      [id]
+    );
+
+    if (orderResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Order not found'
+      });
+    }
+
+    const order = orderResult.rows[0];
+
+    // Check if user owns the order (via customer)
+    // Only check ownership if user is a Client
+    if (req.user.role === 'Client') {
+      const customerResult = await query(
+        'SELECT user_id FROM customers WHERE id = $1',
+        [order.customer_id]
+      );
+
+      if (customerResult.rows.length === 0 || customerResult.rows[0].user_id !== userId) {
+        return res.status(403).json({
+          success: false,
+          message: 'Unauthorized access to order'
+        });
+      }
+    }
+
+    if (['Amount Paid', 'Delivered', 'Cancelled'].includes(order.status)) {
+      return res.status(400).json({
+        success: false,
+        message: `Order is already ${order.status}`
+      });
+    }
+
+    if (order.total_amount <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid order amount'
+      });
+    }
+
+    // Process payment
+    // If internal user is paying, we still need to know WHICH user's wallet to deduct.
+    // Assuming internal users trigger payment on behalf of the customer.
+    // So we need to get the user_id associated with the customer.
+    
+    let payerUserId = userId;
+    if (req.user.role !== 'Client') {
+       const customerResult = await query(
+        'SELECT user_id FROM customers WHERE id = $1',
+        [order.customer_id]
+      );
+      if (customerResult.rows.length > 0) {
+        payerUserId = customerResult.rows[0].user_id;
+      } else {
+         return res.status(400).json({
+          success: false,
+          message: 'Customer user not found'
+        });
+      }
+    }
+
+    await processPayment(
+      payerUserId,
+      order.total_amount,
+      `Payment for Order ${order.order_number}`,
+      order.id,
+      'Debit'
+    );
+
+    // Update order status
+    const updateResult = await query(
+      `UPDATE orders 
+       SET status = 'Amount Paid', updated_at = CURRENT_TIMESTAMP 
+       WHERE id = $1 
+       RETURNING *`,
+      [id]
+    );
+
+    res.json({
+      success: true,
+      message: 'Payment successful',
+      data: updateResult.rows[0]
+    });
+
+  } catch (error) {
+    console.error('Order payment error:', error);
     res.status(500).json({
       success: false,
       message: error.message || 'Internal server error'

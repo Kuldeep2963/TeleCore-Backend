@@ -30,6 +30,7 @@ import {
   ListItem,
   useDisclosure,
   Portal,
+  Tooltip,
 } from "@chakra-ui/react";
 import {
   FaFileExcel,
@@ -38,10 +39,13 @@ import {
   FaUnlink,
   FaChevronCircleLeft,
   FaChevronCircleRight,
+  FaExclamationCircle,
 } from "react-icons/fa";
 import { FiRefreshCw } from "react-icons/fi";
 import NumberPricingModal from "../Modals/NumberPricingModal";
 import api from "../services/api";
+import * as XLSX from 'xlsx';
+
 
 function MyNumbers({ onRequestDisconnection, refreshTrigger }) {
   const [currentPage, setCurrentPage] = useState(1);
@@ -59,6 +63,7 @@ function MyNumbers({ onRequestDisconnection, refreshTrigger }) {
     onClose: onOrderDropdownClose,
   } = useDisclosure();
   const [loading, setLoading] = useState(true);
+  const [disconnectionRequests, setDisconnectionRequests] = useState([]);
 
   const toast = useToast();
 
@@ -75,9 +80,13 @@ function MyNumbers({ onRequestDisconnection, refreshTrigger }) {
   const fetchNumbers = async () => {
     try {
       setLoading(true);
-      const response = await api.numbers.getAll();
-      if (response.success) {
-        setNumbers(response.data);
+      const [numbersResponse, requestsResponse] = await Promise.all([
+        api.numbers.getAll(),
+        api.disconnectionRequests.getAll(),
+      ]);
+
+      if (numbersResponse.success) {
+        setNumbers(numbersResponse.data);
       } else {
         toast({
           title: "Error",
@@ -86,6 +95,10 @@ function MyNumbers({ onRequestDisconnection, refreshTrigger }) {
           duration: 3000,
           isClosable: true,
         });
+      }
+
+      if (requestsResponse.success) {
+        setDisconnectionRequests(requestsResponse.data);
       }
     } catch (error) {
       console.error("Error fetching numbers:", error);
@@ -99,6 +112,10 @@ function MyNumbers({ onRequestDisconnection, refreshTrigger }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const getDisconnectionRequest = (numberId) => {
+    return disconnectionRequests.find((req) => req.number_id === numberId);
   };
 
   // Get unique orders with order number and ID
@@ -185,40 +202,23 @@ function MyNumbers({ onRequestDisconnection, refreshTrigger }) {
     }
   }, [isOrderDropdownOpen, onOrderDropdownClose]);
 
-  const handleExportToExcel = () => {
-    const headers = [
-      "S. No.",
-      "Country",
-      "Product Type",
-      "Area Code",
-      "Number",
-      "Status",
-    ];
-    const rows = filteredNumbers.map((num, index) => [
-      index + 1,
-      num.country_name,
-      num.product_name,
-      num.area_code,
-      num.number,
-      num.status || "N/A",
-    ]);
 
-    const csvContent = [
-      headers.join(","),
-      ...rows.map((row) => row.join(",")),
-    ].join("\n");
+const handleExportToExcel = () => {
+  const exportData = filteredNumbers.map((number, index) => ({
+    "No.": startIndex + index + 1,
+    Country: number.country_name,
+    "Product Type": number.product_name,
+    "Area Code": number.area_code,
+    Number: number.number,
+    Status: number.status,
+  }));
 
-    const element = document.createElement("a");
-    element.setAttribute(
-      "href",
-      "data:text/csv;charset=utf-8," + encodeURIComponent(csvContent)
-    );
-    element.setAttribute("download", "my-numbers.csv");
-    element.style.display = "none";
-    document.body.appendChild(element);
-    element.click();
-    document.body.removeChild(element);
-  };
+  const worksheet = XLSX.utils.json_to_sheet(exportData);
+  const workbook = XLSX.utils.book_new();
+
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'My Numbers');
+  XLSX.writeFile(workbook, 'My_Numbers.xlsx');
+};
 
   const handlePageChange = (newPage) => {
     setCurrentPage(newPage);
@@ -432,24 +432,30 @@ function MyNumbers({ onRequestDisconnection, refreshTrigger }) {
           boxShadow="0 2px 4px rgba(0, 0, 0, 0.05)"
           border="1px solid"
           borderColor="gray.100"
-          overflow={{ base: "scroll", md: "hidden" }}
+          overflow={"auto"}
           h="470px"
         >
           <Table variant="simple">
             <Thead position="sticky" top={0} bg="white" zIndex={1}>
               <Tr
-                sx={{
-                  "& > th": {
-                    bg: "gray.200",
-                    color: "gray.700",
-                    fontWeight: "semibold",
-                    fontSize: "sm",
-                    letterSpacing: "0.3px",
-                    borderBottom: "2px solid",
-                    borderColor: "gray.400",
-                    textAlign: "center",
-                  },
-                }}
+               sx={{
+                          '& > th': {
+                            bg: "blue.500",
+                            color: "white",
+                            fontWeight: "semibold",
+                            fontSize: "sm",
+                            position: "sticky",
+                            top:0,
+                            zIndex:1,
+                            boxShadow: "inset 0 -1px 0 0 rgba(0,0,0,0.1)",
+                            letterSpacing: "0.3px",
+                            borderBottom: "2px solid",
+                            borderColor: "gray.400",
+                            textAlign: "center",
+                            cursor: "pointer",
+                            _hover: { bg: "blue.600" }
+                          }
+                        }}
               >
                 <Th width="10%">No.</Th>
                 <Th>Country</Th>
@@ -509,29 +515,49 @@ function MyNumbers({ onRequestDisconnection, refreshTrigger }) {
                         >
                           View
                         </Button>
-                        {number.status !== "Disconnected" && (
-                          <Button
-                            size="sm"
-                            colorScheme="red"
-                            variant="ghost"
-                            leftIcon={<Icon as={FaUnlink} />}
-                            onClick={() => handleDisconnectClick(number)}
-                            isDisabled={
-                              number.disconnection_status === "Pending" ||
-                              number.disconnection_status === "Approved" ||
-                              number.disconnection_status === "Completed"
-                            }
-                          >
-                            {number.disconnection_status === "Pending"
-                              ? "Pending..."
-                              : //  number.disconnection_status === 'Approved' ? 'Approved' :
-                              number.disconnection_status === "Rejected"
-                              ? "Rejected"
-                              : number.disconnection_status === "Completed"
-                              ? "Disconnected"
-                              : "Disconnect"}
-                          </Button>
-                        )}
+                        {number.status !== "Disconnected" && (() => {
+                          const disconnectionRequest = getDisconnectionRequest(number.id);
+                          const status = disconnectionRequest?.status;
+                          const rejectionReason = disconnectionRequest?.notes;
+
+                          return (
+                            <Tooltip
+                              label={status === "Rejected" ? (rejectionReason || "No reason provided") : ""}
+                              isDisabled={status !== "Rejected"}
+                              hasArrow
+                              placement="top"
+                              borderRadius="lg"
+                              bg="orange.50"
+                              color="black"
+                              fontSize="sm"
+                              fontStyle="italic"
+                              padding={2}
+                              maxW={"200px"}
+                            >
+                              <Button
+                                size="sm"
+                                colorScheme={status === "Rejected" ? "orange" : "red"}
+                                variant="ghost"
+                                leftIcon={status === "Rejected" ? <Icon as={FaExclamationCircle}/>
+                                : <Icon as={FaUnlink} />}
+                                onClick={() => handleDisconnectClick(number)}
+                                isDisabled={
+                                  status === "Pending" ||
+                                  status === "Approved" ||
+                                  status === "Completed"
+                                }
+                              >
+                                {status === "Pending"
+                                  ? "Pending..."
+                                  : status === "Rejected"
+                                  ? "Rejected"
+                                  : status === "Completed"
+                                  ? "Disconnected"
+                                  : "Disconnect"}
+                              </Button>
+                            </Tooltip>
+                          );
+                        })()}
                       </HStack>
                     </Td>
                   </Tr>

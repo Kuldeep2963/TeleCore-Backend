@@ -26,6 +26,7 @@ import {
   Divider,
   Alert,
   AlertIcon,
+  CardHeader,
 } from "@chakra-ui/react";
 import {
   FiUsers,
@@ -261,7 +262,7 @@ const AddVendorCustomer = () => {
   return (
     <Box
       flex={1}
-      p={{base:5,md:8}}
+      p={{ base: 5, md: 8 }}
       pr={5}
       pb={5}
       minH="calc(100vh - 76px)"
@@ -292,7 +293,10 @@ const AddVendorCustomer = () => {
             <CardBody>
               <HStack spacing={4}>
                 <Box
-                  p={3}
+                  display="flex" // Add this
+                  alignItems="center" // Center vertically
+                  justifyContent="center"
+                  p={2}
                   borderRadius="full"
                   bgGradient="linear(135deg, blue.50, blue.100)"
                   color="blue.600"
@@ -315,7 +319,10 @@ const AddVendorCustomer = () => {
             <CardBody>
               <HStack spacing={4}>
                 <Box
-                  p={3}
+                  display="flex" // Add this
+                  alignItems="center" // Center vertically
+                  justifyContent="center"
+                  p={2}
                   borderRadius="full"
                   bgGradient="linear(135deg, green.50, green.100)"
                   color="green.600"
@@ -338,7 +345,10 @@ const AddVendorCustomer = () => {
             <CardBody>
               <HStack spacing={4}>
                 <Box
-                  p={3}
+                  display="flex" // Add this
+                  alignItems="center" // Center vertically
+                  justifyContent="center"
+                  p={2}
                   borderRadius="full"
                   bgGradient="linear(135deg, purple.50, purple.100)"
                   color="purple.600"
@@ -361,7 +371,10 @@ const AddVendorCustomer = () => {
             <CardBody>
               <HStack spacing={4}>
                 <Box
-                  p={3}
+                  display="flex" // Add this
+                  alignItems="center" // Center vertically
+                  justifyContent="center"
+                  p={2}
                   borderRadius="full"
                   bgGradient="linear(135deg, orange.50, orange.100)"
                   color="orange.600"
@@ -383,42 +396,44 @@ const AddVendorCustomer = () => {
 
         {/* Main Form */}
         <Card w="full">
-          <CardBody>
-            <Tabs index={activeTab} onChange={setActiveTab} variant="enclosed">
-              <TabList>
-                <Tab>
+          <Tabs index={activeTab} onChange={setActiveTab} variant="line">
+            <CardHeader
+              bgGradient="linear(to-r, blue.400, blue.500)"
+              borderTopRadius="15px"
+              pb={0}
+            >
+              <TabList border="none">
+                <Tab _selected={{ color: "white", borderColor: "blue.700" }}>
                   <HStack spacing={2}>
                     <Icon as={FiUsers} />
-                    <Text>Add Vendor</Text>
+                    <Text fontWeight="bold">Add Vendor</Text>
                   </HStack>
                 </Tab>
-                <Tab>
+                <Tab _selected={{ color: "white", borderColor: "blue.700" }}>
                   <HStack spacing={2}>
                     <Icon as={FiUsers} />
-                    <Text>Add Customer</Text>
+                    <Text fontWeight="bold">Add Customer</Text>
                   </HStack>
                 </Tab>
               </TabList>
+            </CardHeader>
 
+            <CardBody>
               <TabPanels>
                 {/* Vendor Form */}
                 <TabPanel>
                   <form onSubmit={handleVendorSubmit}>
                     <VStack spacing={6} align="start">
-                      {/* <Alert status="info" borderRadius="md">
-                        <AlertIcon />
-                        Add a new vendor to your supplier network. All fields marked with * are required.
-                      </Alert> */}
-
                       <SimpleGrid
-                        columns={{ base: 1, md: 2 }}
+                        columns={{ base: 1, md: 3 }}
                         spacing={4}
                         w="full"
                       >
                         <FormControl isRequired>
                           <FormLabel>Vendor Name</FormLabel>
                           <Input
-                            borderRadius={"full"}
+                            bg={"gray.100"}
+                            borderRadius="full"
                             placeholder="Enter vendor name"
                             value={vendorForm.name}
                             onChange={(e) =>
@@ -430,7 +445,9 @@ const AddVendorCustomer = () => {
                         <FormControl isRequired>
                           <FormLabel>Email</FormLabel>
                           <Input
-                            borderRadius={"full"}
+                            bg={"gray.100"}
+                            
+                            borderRadius="full"
                             type="email"
                             placeholder="Enter email address"
                             value={vendorForm.email}
@@ -443,7 +460,9 @@ const AddVendorCustomer = () => {
                         <FormControl isRequired>
                           <FormLabel>Phone</FormLabel>
                           <Input
-                            borderRadius={"full"}
+                            bg={"gray.100"}
+
+                            borderRadius="full"
                             placeholder="Enter phone number"
                             value={vendorForm.phone}
                             onChange={(e) =>
@@ -455,7 +474,9 @@ const AddVendorCustomer = () => {
                         <FormControl isRequired>
                           <FormLabel>Location</FormLabel>
                           <Input
-                            borderRadius={"full"}
+                            bg={"gray.100"}
+
+                            borderRadius="full"
                             placeholder="City, Country"
                             value={vendorForm.location}
                             onChange={(e) =>
@@ -467,7 +488,9 @@ const AddVendorCustomer = () => {
                         <FormControl isRequired>
                           <FormLabel>Status</FormLabel>
                           <Select
-                            borderRadius={"full"}
+                            bg={"gray.100"}
+
+                            borderRadius="full"
                             value={vendorForm.status}
                             onChange={(e) =>
                               handleVendorChange("status", e.target.value)
@@ -483,7 +506,7 @@ const AddVendorCustomer = () => {
 
                       <HStack spacing={4} w="full" justify="end">
                         <Button
-                          borderRadius={"full"}
+                          borderRadius="full"
                           leftIcon={<FiX />}
                           variant="ghost"
                           onClick={() =>
@@ -499,8 +522,9 @@ const AddVendorCustomer = () => {
                         >
                           Clear
                         </Button>
+
                         <Button
-                          borderRadius={"full"}
+                          borderRadius="full"
                           leftIcon={<FiSave />}
                           colorScheme="blue"
                           type="submit"
@@ -518,20 +542,17 @@ const AddVendorCustomer = () => {
                 <TabPanel>
                   <form onSubmit={handleCustomerSubmit}>
                     <VStack spacing={6} align="start">
-                      {/* <Alert status="info" borderRadius="md">
-                        <AlertIcon />
-                        Add a new customer to your database. All fields marked with * are required.
-                      </Alert> */}
-
                       <SimpleGrid
-                        columns={{ base: 1, md: 2 }}
+                        columns={{ base: 1, md: 3 }}
                         spacing={4}
                         w="full"
                       >
                         <FormControl isRequired>
                           <FormLabel>Company Name</FormLabel>
                           <Input
-                            borderRadius={"full"}
+                            bg={"gray.100"}
+
+                            borderRadius="full"
                             placeholder="Enter company name"
                             value={customerForm.company_name}
                             onChange={(e) =>
@@ -546,7 +567,9 @@ const AddVendorCustomer = () => {
                         <FormControl isRequired>
                           <FormLabel>Contact Person</FormLabel>
                           <Input
-                            borderRadius={"full"}
+                            bg={"gray.100"}
+
+                            borderRadius="full"
                             placeholder="Enter contact person name"
                             value={customerForm.contact_person}
                             onChange={(e) =>
@@ -561,7 +584,9 @@ const AddVendorCustomer = () => {
                         <FormControl isRequired>
                           <FormLabel>Email</FormLabel>
                           <Input
-                            borderRadius={"full"}
+                            bg={"gray.100"}
+
+                            borderRadius="full"
                             type="email"
                             placeholder="Enter email address"
                             value={customerForm.email}
@@ -574,7 +599,9 @@ const AddVendorCustomer = () => {
                         <FormControl isRequired>
                           <FormLabel>Phone</FormLabel>
                           <Input
-                            borderRadius={"full"}
+                            bg={"gray.100"}
+
+                            borderRadius="full"
                             placeholder="Enter phone number"
                             value={customerForm.phone}
                             onChange={(e) =>
@@ -586,7 +613,9 @@ const AddVendorCustomer = () => {
                         <FormControl isRequired>
                           <FormLabel>Location</FormLabel>
                           <Input
-                            borderRadius={"full"}
+                            bg={"gray.100"}
+
+                            borderRadius="full"
                             placeholder="City, Country"
                             value={customerForm.location}
                             onChange={(e) =>
@@ -598,7 +627,9 @@ const AddVendorCustomer = () => {
                         <FormControl isRequired>
                           <FormLabel>Status</FormLabel>
                           <Select
-                            borderRadius={"full"}
+                            bg={"gray.100"}
+
+                            borderRadius="full"
                             value={customerForm.status}
                             onChange={(e) =>
                               handleCustomerChange("status", e.target.value)
@@ -614,7 +645,7 @@ const AddVendorCustomer = () => {
 
                       <HStack spacing={4} w="full" justify="end">
                         <Button
-                          borderRadius={"full"}
+                          borderRadius="full"
                           leftIcon={<FiX />}
                           variant="ghost"
                           onClick={() =>
@@ -631,8 +662,9 @@ const AddVendorCustomer = () => {
                         >
                           Clear
                         </Button>
+
                         <Button
-                          borderRadius={"full"}
+                          borderRadius="full"
                           leftIcon={<FiSave />}
                           colorScheme="blue"
                           type="submit"
@@ -646,8 +678,8 @@ const AddVendorCustomer = () => {
                   </form>
                 </TabPanel>
               </TabPanels>
-            </Tabs>
-          </CardBody>
+            </CardBody>
+          </Tabs>
         </Card>
       </VStack>
     </Box>

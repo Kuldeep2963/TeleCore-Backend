@@ -9,12 +9,13 @@ import {
   FaSearch,FaEye, FaFileInvoice, FaCreditCard, FaWallet, FaChevronDown, FaChevronUp,
   FaFilter, FaCalendarAlt, FaTimes,
   FaChevronCircleRight,
-  FaChevronCircleLeft
+  FaChevronCircleLeft,FaDollarSign
 } from 'react-icons/fa';
 import TopUp from './TopUp';
 import InvoiceDetailsModal from '../../Modals/InvoiceDetailsModal';
+import PaymentModal from '../../Modals/PaymentModal';
 import api from '../../services/api';
-import { FiCheckCircle, FiClock, FiXCircle, FiFileText, FiRefreshCcw, FiDownload } from 'react-icons/fi';
+import { FiCheckCircle, FiClock, FiXCircle, FiFileText, FiRefreshCcw, FiDownload,FiDollarSign } from 'react-icons/fi';
 
 const Billing = ({ walletBalance = 50.00, onUpdateBalance = () => {}, userId }) => {
   const [invoices, setInvoices] = useState([]); // transformed invoices used by the table
@@ -41,6 +42,11 @@ const Billing = ({ walletBalance = 50.00, onUpdateBalance = () => {}, userId }) 
   // Modal
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [selectedInvoice, setSelectedInvoice] = useState(null);
+  
+  // Payment Modal
+  const { isOpen: isPaymentOpen, onOpen: onPaymentOpen, onClose: onPaymentClose } = useDisclosure();
+  const [selectedInvoiceForPayment, setSelectedInvoiceForPayment] = useState(null);
+  const [paymentLoading, setPaymentLoading] = useState(false);
 
   const cardBg = useColorModeValue('white', 'gray.800');
   const borderColor = useColorModeValue('gray.200', 'gray.600');
@@ -82,6 +88,7 @@ const Billing = ({ walletBalance = 50.00, onUpdateBalance = () => {}, userId }) 
           const quantity = order?.quantity || 1;
           return {
             id: invoice.invoice_number,
+            invoiceId: invoice.id,
             invoiceRaw: invoice,
             date: safeDate(invoice.invoice_date) || '',
             dueDate: safeDate(invoice.due_date) || '',
@@ -141,6 +148,7 @@ const Billing = ({ walletBalance = 50.00, onUpdateBalance = () => {}, userId }) 
 
             const serviceObj = {
               id: inv.invoice_number,
+              invoiceId: inv.id,
               invoiceNumber: inv.invoice_number,
               name,
               price,
@@ -249,6 +257,56 @@ const Billing = ({ walletBalance = 50.00, onUpdateBalance = () => {}, userId }) 
         duration: 3000,
         isClosable: true
       });
+    }
+  };
+
+  const handleOpenPaymentModal = (invoice) => {
+    setSelectedInvoiceForPayment(invoice);
+    onPaymentOpen();
+  };
+
+  const handlePaymentConfirm = async (paymentMethod) => {
+    if (!selectedInvoiceForPayment) return;
+
+    setPaymentLoading(true);
+    try {
+      const invoiceId = selectedInvoiceForPayment.invoiceId;
+      
+      if (!invoiceId) {
+        throw new Error('Invalid invoice ID');
+      }
+
+      const response = await api.invoices.pay(invoiceId, {
+        amount: selectedInvoiceForPayment.amount,
+        paymentMethod
+      });
+
+      if (response.success) {
+        toast({
+          title: 'Payment Successful',
+          description: `Invoice ${selectedInvoiceForPayment.id || invoiceId} has been paid.`,
+          status: 'success',
+          duration: 3000,
+          isClosable: true
+        });
+        
+        onPaymentClose();
+        setSelectedInvoiceForPayment(null);
+        fetchBillingData();
+      } else {
+        throw new Error(response.message || 'Payment failed');
+      }
+    } catch (error) {
+      console.error('Payment error:', error);
+      toast({
+        title: 'Payment Failed',
+        description: error.message || 'Unable to process payment. Please try again.',
+        status: 'error',
+        duration: 3000,
+        isClosable: true
+      });
+    } finally {
+      setPaymentLoading(false);
     }
   };
 
@@ -487,7 +545,7 @@ const Billing = ({ walletBalance = 50.00, onUpdateBalance = () => {}, userId }) 
                                 <Box flex={1}>
                                   <Text fontWeight="semibold" color="purple" fontSize="md">{service.name}</Text>
                                   <Text fontSize="sm" fontWeight="bold" color="green.600">
-                                    ${Number(service.price)/(service.quantity).toFixed(2)} × {service.quantity} numbers
+                                    ${Number(service.price)/(service.quantity).toFixed(4)} × {service.quantity} numbers
                                   </Text>
                                 </Box>
                                 <HStack spacing={3}>
@@ -525,15 +583,15 @@ const Billing = ({ walletBalance = 50.00, onUpdateBalance = () => {}, userId }) 
                                 </Box>
                                 <Box textAlign="center">
                                   <Text fontSize="xs" color="gray.600" fontWeight="medium" mb={1}>MRC Cost</Text>
-                                  <Text fontWeight="bold" fontSize="sm" color="purple.600">${(Number(service.price)).toFixed(2)}</Text>
+                                  <Text fontWeight="bold" fontSize="sm" color="purple.600">${(Number(service.price)).toFixed(4)}</Text>
                                 </Box>
                                 <Box textAlign="center">
                                   <Text fontSize="xs" color="gray.600" fontWeight="medium" mb={1}>Usage Cost</Text>
-                                  <Text fontWeight="bold" fontSize="sm" color="purple.600">${Number(service.usageAmount).toFixed(2)}</Text>
+                                  <Text fontWeight="bold" fontSize="sm" color="purple.600">${Number(service.usageAmount).toFixed(4)}</Text>
                                 </Box>
                                 <Box textAlign="center">
                                   <Text fontSize="xs" color="gray.600" fontWeight="medium" mb={1}>Total Cost</Text>
-                                  <Text fontWeight="bold" fontSize="lg" color="green.700">${Number(service.totalCost || 0).toFixed(2)}</Text>
+                                  <Text fontWeight="bold" fontSize="lg" color="green.700">${Number(service.totalCost || 0).toFixed(4)}</Text>
                                 </Box>
                               </Grid>
                             </VStack>
@@ -544,12 +602,23 @@ const Billing = ({ walletBalance = 50.00, onUpdateBalance = () => {}, userId }) 
                       <Divider my={4} />
 
                      <Flex justify="flex-end" align="center" px={8} gap={5}>
-                      <Button px={{base:8,md:4}} variant={"outline"} borderRadius={"full"} leftIcon={<FaCreditCard />} colorScheme="green" >
+                      <Button 
+                        px={{base:8,md:4}} 
+                        variant={"outline"} 
+                        borderRadius={"full"} 
+                        leftIcon={<FaCreditCard />} 
+                        colorScheme="green"
+                        onClick={() => handleOpenPaymentModal({
+                          id: 'total-invoice',
+                          amount: calculateTotalDue()
+                        })}
+                        isDisabled={calculateTotalDue() === 0 || activeServices.length === 0}
+                      >
                           Pay Now
                         </Button>
                       <Text fontSize="md" color="gray.600">Total Due</Text>
                       <Text fontWeight="bold" fontSize="2xl" color="green.600">
-                          ${calculateTotalDue().toFixed(2)}
+                          ${calculateTotalDue().toFixed(4)}
                       </Text>
                      </Flex>
                     </CardBody>
@@ -575,7 +644,7 @@ const Billing = ({ walletBalance = 50.00, onUpdateBalance = () => {}, userId }) 
                     </Flex>
 
                     <Collapse in={showFilters} animateOpacity>
-                      <Card bg="gray.50" mb={4} borderRadius="md">
+                      <Card>
                         <CardBody py={4}>
                           <VStack spacing={4} align="stretch">
                             <Box>
@@ -632,26 +701,30 @@ const Billing = ({ walletBalance = 50.00, onUpdateBalance = () => {}, userId }) 
                       </InputGroup>
                       <Text fontSize="sm" color="gray.600">{totalResults} invoice{totalResults !== 1 ? 's' : ''} found</Text>
                     </Flex>
-                   <Box  h={"350px"} overflow={"auto"}>
+                   <Box  h={"400px"} overflow={"auto"}>
                     <Table variant="simple">
                       <Thead>
                         <Tr sx={{
                           '& > th': {
-                            bg: "gray.100",
-                            color: "gray.700",
+                            bg: "blue.500",
+                            color: "white",
                             fontWeight: "semibold",
                             fontSize: "sm",
+                            position: "sticky",
+                            top:0,
+                            zIndex:1,
+                            boxShadow: "inset 0 -1px 0 0 rgba(0,0,0,0.1)",
                             letterSpacing: "0.3px",
                             borderBottom: "2px solid",
                             borderColor: "blue.400",
                             textAlign: "center",
                             cursor: "pointer",
-                            _hover: { bg: "gray.200" }
+                            _hover: { bg: "blue.600" }
                           }
                         }}>
                           <Th>Invoice ID</Th>
                           <Th onClick={() => handleSort('service')} _hover={{ bg: "gray.200" }}>
-                            <Flex align="center" justify="center">Service Name {sortField === 'service' && <Icon as={sortDirection === 'asc' ? FaChevronUp : FaChevronDown} ml={1} boxSize={3} />}</Flex>
+                            <Flex align="center" justify="center">Customer Name {sortField === 'service' && <Icon as={sortDirection === 'asc' ? FaChevronUp : FaChevronDown} ml={1} boxSize={3} />}</Flex>
                           </Th>
                           <Th onClick={() => handleSort('date')} _hover={{ bg: "gray.200" }}>
                             <Flex align="center" justify="center">Invoice Date {sortField === 'date' && <Icon as={sortDirection === 'asc' ? FaChevronUp : FaChevronDown} ml={1} boxSize={3} />}</Flex>
@@ -673,9 +746,9 @@ const Billing = ({ walletBalance = 50.00, onUpdateBalance = () => {}, userId }) 
                             <Td color={"blue.500"} textAlign="center" fontWeight="medium">{invoice.id}</Td>
                             <Td textAlign="center" fontWeight="500">{invoice.service}</Td>
                             <Td textAlign="center" fontSize="sm" color="gray.600">{invoice.date}</Td>
-                            <Td textAlign="center" isNumeric fontWeight="semibold" color="blue.600">${(Number(invoice.mrcAmount) ).toFixed(2)}</Td>
-                            <Td  isNumeric fontWeight="semibold" color="purple.600">${Number(invoice.usageAmount).toFixed(2)}</Td>
-                            <Td  isNumeric fontWeight="bold" color="green.600">${(Number(invoice.mrcAmount)  + Number(invoice.usageAmount)).toFixed(2)}</Td>
+                            <Td textAlign="center" isNumeric fontWeight="semibold" color="blue.600">${(Number(invoice.mrcAmount) ).toFixed(4)}</Td>
+                            <Td  isNumeric fontWeight="semibold" color="purple.600">${Number(invoice.usageAmount).toFixed(4)}</Td>
+                            <Td  isNumeric fontWeight="bold" color="green.600">${(Number(invoice.mrcAmount)  + Number(invoice.usageAmount)).toFixed(4)}</Td>
                             <Td textAlign="center">
                               <Badge px={2} colorScheme={getStatusColor(invoice.status)} borderRadius={"full"}>
                                 <HStack spacing={1}><Icon as={getStatusIcon(invoice.status)} boxSize={3} /><Text>{invoice.status}</Text></HStack>
@@ -685,6 +758,21 @@ const Billing = ({ walletBalance = 50.00, onUpdateBalance = () => {}, userId }) 
                               <HStack justify="center" spacing={2}>
                                 <IconButton icon={<FaEye />} colorScheme="blue" variant="ghost" size="sm" onClick={() => handleViewInvoice(invoice)} aria-label="View invoice" />
                                 <IconButton icon={<FiDownload />} colorScheme="green" variant="ghost" size="md" onClick={() => handleDownloadInvoice(invoice.id)} aria-label="Download invoice" />
+                                {invoice.status?.toLowerCase() !== 'paid' && (
+                                  <Button 
+                                    leftIcon={<FaDollarSign/>}
+                                    size="sm" 
+                                    px={3}
+                                    py={0}
+                                    colorScheme="green" 
+                                    variant="solid"
+                                    fontWeight={"bold"}
+                                    borderRadius={"full"}
+                                    onClick={() => handleOpenPaymentModal(invoice)}
+                                  >
+                                    Pay
+                                  </Button>
+                                )}
                               </HStack>
                             </Td>
                           </Tr>
@@ -748,6 +836,16 @@ const Billing = ({ walletBalance = 50.00, onUpdateBalance = () => {}, userId }) 
           isOpen={isOpen}
           onClose={onClose}
           invoice={selectedInvoice}
+        />
+
+        {/* Payment Modal */}
+        <PaymentModal
+          isOpen={isPaymentOpen}
+          onClose={onPaymentClose}
+          amount={selectedInvoiceForPayment?.amount || 0}
+          onConfirm={handlePaymentConfirm}
+          title={selectedInvoiceForPayment?.id === 'total-invoice' ? 'Pay All Invoices' : `Pay Invoice ${selectedInvoiceForPayment?.id}`}
+          loading={paymentLoading}
         />
       </VStack>
     </Box>

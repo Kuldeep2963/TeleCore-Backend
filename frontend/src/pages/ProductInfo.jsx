@@ -311,7 +311,7 @@ function Products() {
           >
             Products
           </Heading>
-          <Spacer/>
+          {/* <Spacer/>
           <Button
               size={"sm"}
               leftIcon={<FiUpload />}
@@ -322,7 +322,7 @@ function Products() {
             >
               Export
             </Button>
-            
+             */}
           </HStack>
 
         </VStack>
@@ -413,23 +413,41 @@ function Products() {
         </Box>
             
         <Box
+        h={"500px"}
          bg="white"
             borderRadius="xl"
             boxShadow="0 2px 4px rgba(0, 0, 0, 0.05)"
             border="1px solid"
             borderColor="gray.100"
-            overflow={{base:"scroll",md:"hidden"}}
+            overflow={"auto"}
         >
           
           <Table variant="simple" size="md">
             <Thead bg={headerBg} borderTopRadius={"12px"}>
-              <Tr>
+              <Tr sx={{
+                          '& > th': {
+                            bg: "blue.500",
+                            color: "white",
+                            fontWeight: "semibold",
+                            fontSize: "sm",
+                            position: "sticky",
+                            top:0,
+                            zIndex:1,
+                            boxShadow: "inset 0 -1px 0 0 rgba(0,0,0,0.1)",
+                            letterSpacing: "0.3px",
+                            borderBottom: "2px solid",
+                            borderColor: "gray.400",
+                            textAlign: "center",
+                            cursor: "pointer",
+                            _hover: { bg: "blue.600" }
+                          }
+                        }}>
                 <Th
                   fontSize={"sm"}
                   color={subheadingColor}
                   fontWeight="semibold"
                 >
-                  #
+                  No.
                 </Th>
                 <Th
                   fontSize={"sm"}
@@ -484,24 +502,24 @@ function Products() {
                     _hover={{ bg: rowHoverBg }}
                     transition="background-color 0.2s"
                   >
-                    <Td color={"blue.600"} fontWeight="medium">
+                    <Td textAlign={"center"} color={"blue.600"} fontWeight="medium">
                       {product.id}
                     </Td>
-                    <Td fontWeight={"semibold"} color={textColor}>
+                    <Td textAlign={"center"} fontWeight={"semibold"} color={textColor}>
                       {product.country}
                     </Td>
-                    <Td fontWeight={"medium"} color="green">
+                    <Td textAlign={"center"} fontWeight={"medium"} color="green">
                       {product.region}
                     </Td>
-                    <Td color={"Gray.00"}>
+                    <Td color={"Gray.00"} textAlign={"center"}>
                       <Badge bg="blue.100" borderRadius={"full"} px={2}>
                         {product.productType}
                       </Badge>
                     </Td>
-                    <Td color={textColor}fontWeight={"medium"}>{product.areaCode}</Td>
-                    <Td color={"green"} >{product.edt}</Td>
+                    <Td textAlign={"center"} color={textColor}fontWeight={"medium"}>{product.areaCode}</Td>
+                    <Td textAlign={"center"} color={"green"} >{product.edt}</Td>
                     {/* <Td color={textColor}>{product.inventoryCount}</Td> */}
-                    <Td>
+                    <Td textAlign={"center"}>
                       <Button
                         variant="ghost"
                         colorScheme="blue"

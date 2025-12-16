@@ -369,7 +369,7 @@ function OrderNumberView({ userRole }) {
 
         toast({
           title: 'Order Confirmed',
-          description: `Order confirmed successfully. Total Amount: $${(parseFloat(response.data.total_amount) || 0).toFixed(2)}`,
+          description: `Order confirmed successfully. Total Amount: $${(parseFloat(response.data.total_amount) || 0).toFixed(4)}`,
           status: 'success',
           duration: 3000,
           isClosable: true,

@@ -45,11 +45,11 @@ const InvoiceDetailsModal = ({ isOpen, onClose, invoice }) => {
             <Grid templateColumns="1fr 1fr" gap={2}>
               <Box>
                 <Text fontWeight="semibold" color="gray.600">MRC Amount:</Text>
-                <Text fontWeight="500" color="blue.600">${Number(invoice.mrcAmount || invoice.price || 0).toFixed(2)}</Text>
+                <Text fontWeight="500" color="blue.600">${Number(invoice.mrcAmount || invoice.price || 0).toFixed(4)}</Text>
               </Box>
               <Box>
                 <Text fontWeight="semibold" color="gray.600">Usage Amount:</Text>
-                <Text fontWeight="500" color="purple.600">${Number(invoice.usageAmount || 0).toFixed(2)}</Text>
+                <Text fontWeight="500" color="purple.600">${Number(invoice.usageAmount || 0).toFixed(4)}</Text>
               </Box>
               <Box>
                 <Text fontWeight="semibold" color="gray.600">Quantity:</Text>
@@ -57,7 +57,7 @@ const InvoiceDetailsModal = ({ isOpen, onClose, invoice }) => {
               </Box>
               <Box>
                 <Text fontWeight="semibold" color="gray.600">Total Cost:</Text>
-                <Text fontWeight="500" color="green.600">${Number(invoice.mrcAmount + invoice.usageAmount).toFixed(2)}</Text>
+                <Text fontWeight="500" color="green.600">${Number(invoice.mrcAmount + invoice.usageAmount).toFixed(4)}</Text>
               </Box>
             </Grid>
 
@@ -111,7 +111,7 @@ const InvoiceDetailsModal = ({ isOpen, onClose, invoice }) => {
               <Box textAlign="right">
                 <Text fontWeight="bold">Total Amount:</Text>
                 <Text fontWeight="bold" fontSize="xl" color="green.600">
-                  ${Number(invoice.mrcAmount + invoice.usageAmount).toFixed(2)}
+                  ${Number(invoice.mrcAmount + invoice.usageAmount).toFixed(4)}
                 </Text>
               </Box>
             </Flex>

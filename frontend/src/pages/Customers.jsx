@@ -40,6 +40,7 @@ import {
   FiDollarSign
 } from 'react-icons/fi';
 import CustomerDetailModal from '../Modals/CustomerDetailModal';
+import ConfirmationModal from '../Modals/DeleteConfirmationModal';
 import api from '../services/api';
 
 const Customers = () => {
@@ -48,7 +49,9 @@ const Customers = () => {
   const [filterStatus, setFilterStatus] = useState('All');
   const toast = useToast();
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onClose: onDeleteClose } = useDisclosure();
   const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [customerToDelete, setCustomerToDelete] = useState(null);
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -92,11 +95,18 @@ const Customers = () => {
     return matchesSearch && matchesStatus;
   });
 
-  const handleDeleteCustomer = async (customerId) => {
+  const handleOpenDeleteConfirmation = (customer) => {
+    setCustomerToDelete(customer);
+    onDeleteOpen();
+  };
+
+  const handleDeleteCustomer = async () => {
+    if (!customerToDelete) return;
+
     try {
-      const response = await api.customers.delete(customerId);
+      const response = await api.customers.delete(customerToDelete.id);
       if (response.success) {
-        setCustomers(customers.filter(customer => customer.id !== customerId));
+        setCustomers(customers.filter(customer => customer.id !== customerToDelete.id));
         toast({
           title: 'Customer deleted',
           description: 'The customer has been successfully removed.',
@@ -206,7 +216,10 @@ const Customers = () => {
             >
               <HStack spacing={4}>
                 <Box
-                  p={3}
+                  display="flex" // Add this
+                  alignItems="center" // Center vertically
+                  justifyContent="center"
+                  p={2}
                   borderRadius="full"
                   bgGradient="linear(135deg, blue.50, blue.100)"
                   color="blue.600"
@@ -241,7 +254,10 @@ const Customers = () => {
             >
               <HStack spacing={4}>
                 <Box
-                  p={3}
+                  display="flex" // Add this
+                  alignItems="center" // Center vertically
+                  justifyContent="center"
+                  p={2}
                   borderRadius="full"
                   bgGradient="linear(135deg, green.50, green.100)"
                   color="green.600"
@@ -276,7 +292,10 @@ const Customers = () => {
             >
               <HStack spacing={4}>
                 <Box
-                  p={3}
+                  display="flex" // Add this
+                  alignItems="center" // Center vertically
+                  justifyContent="center"
+                  p={2}
                   borderRadius="full"
                   bgGradient="linear(135deg, purple.50, purple.100)"
                   color="purple.600"
@@ -310,7 +329,10 @@ const Customers = () => {
             >
               <HStack spacing={4}>
                 <Box
-                  px={2}
+                  display="flex" // Add this
+                  alignItems="center" // Center vertically
+                  justifyContent="center"
+                  p={2}
                   borderRadius="full"
                   bgGradient="linear(135deg, orange.50, orange.100)"
                   color="orange.600"
@@ -363,11 +385,28 @@ const Customers = () => {
             boxShadow="0 2px 4px rgba(0, 0, 0, 0.05)"
             border="1px solid"
             borderColor="gray.100"
-            overflow={{base:"scroll",md:"hidden"}}
+            overflow={"auto"}
           >
             <Table variant="simple">
               <Thead bg="gray.200">
-                <Tr>
+                <Tr sx={{
+                          '& > th': {
+                            bg: "blue.500",
+                            color: "white",
+                            fontWeight: "semibold",
+                            fontSize: "sm",
+                            position: "sticky",
+                            top:0,
+                            zIndex:1,
+                            boxShadow: "inset 0 -1px 0 0 rgba(0,0,0,0.1)",
+                            letterSpacing: "0.3px",
+                            borderBottom: "2px solid",
+                            borderColor: "gray.400",
+                            textAlign: "center",
+                            cursor: "pointer",
+                            _hover: { bg: "blue.600" }
+                          }
+                        }}>
                   <Th color={"gray.700"} >Customer</Th>
                   <Th color={"gray.700"} >Contact</Th>
                   <Th color={"gray.700"} >Location</Th>
@@ -433,7 +472,7 @@ const Customers = () => {
                           size="sm"
                           variant="ghost"
                           colorScheme="red"
-                          onClick={() => handleDeleteCustomer(customer.id)}
+                          onClick={() => handleOpenDeleteConfirmation(customer)}
                         >
                           <Icon as={FiTrash2} boxSize={4} />
                         </Button>
@@ -452,6 +491,18 @@ const Customers = () => {
         isOpen={isOpen}
         onClose={onClose}
         customer={selectedCustomer}
+      />
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={isDeleteOpen}
+        onClose={onDeleteClose}
+        onConfirm={handleDeleteCustomer}
+        title="Delete Customer"
+        message={`Are you sure you want to delete "${customerToDelete?.company_name}"? This action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        type="delete"
       />
 
     </Box>

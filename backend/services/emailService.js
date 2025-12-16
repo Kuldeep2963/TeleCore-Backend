@@ -299,7 +299,7 @@ const emailTemplates = {
       </div>
       <div class="info-row">
         <div class="info-label">Amount Due:</div>
-        <div class="info-value" style="font-size: 24px; color: #2e7d32; font-weight: 700;">$${parseFloat(amount).toFixed(2)}</div>
+        <div class="info-value" style="font-size: 24px; color: #2e7d32; font-weight: 700;">$${parseFloat(amount).toFixed(4)}</div>
       </div>
       <div class="info-row">
         <div class="info-label">Due Date:</div>
@@ -360,16 +360,16 @@ const emailTemplates = {
       </div>
       <div class="info-row">
         <div class="info-label">Amount Overdue:</div>
-        <div class="info-value" style="font-size: 22px; color: #dc3545; font-weight: 700;">$${parseFloat(amount).toFixed(2)}</div>
+        <div class="info-value" style="font-size: 22px; color: #dc3545; font-weight: 700;">$${parseFloat(amount).toFixed(4)}</div>
       </div>
       <div class="info-row">
         <div class="info-label">Late Fee:</div>
-        <div class="info-value" style="color: #dc3545;">$${(parseFloat(amount) * 0.05).toFixed(2)} (5%)</div>
+        <div class="info-value" style="color: #dc3545;">$${(parseFloat(amount) * 0.05).toFixed(4)} (5%)</div>
       </div>
       <div class="info-row">
         <div class="info-label">Total Due:</div>
         <div class="info-value" style="font-size: 24px; color: #dc3545; font-weight: 800;">
-          $${(parseFloat(amount) * 1.05).toFixed(2)}
+          $${(parseFloat(amount) * 1.05).toFixed(4)}
         </div>
       </div>
     </div>
@@ -416,7 +416,7 @@ const emailTemplates = {
       </div>
       <div class="info-row">
         <div class="info-label">Amount Due:</div>
-        <div class="info-value" style="font-size: 22px; color: #333; font-weight: 700;">$${parseFloat(amount).toFixed(2)}</div>
+        <div class="info-value" style="font-size: 22px; color: #333; font-weight: 700;">$${parseFloat(amount).toFixed(4)}</div>
       </div>
       <div class="info-row">
         <div class="info-label">Due Date:</div>
@@ -530,11 +530,11 @@ const emailTemplates = {
       </div>
       <div class="info-row">
         <div class="info-label">Current Balance:</div>
-        <div class="info-value" style="font-size: 24px; color: #d32f2f; font-weight: 700;">$${parseFloat(currentBalance).toFixed(2)}</div>
+        <div class="info-value" style="font-size: 24px; color: #d32f2f; font-weight: 700;">$${parseFloat(currentBalance).toFixed(4)}</div>
       </div>
       <div class="info-row">
         <div class="info-label">Threshold Amount:</div>
-        <div class="info-value" style="font-size: 18px; color: #ff9800; font-weight: 600;">$${parseFloat(thresholdAmount).toFixed(2)}</div>
+        <div class="info-value" style="font-size: 18px; color: #ff9800; font-weight: 600;">$${parseFloat(thresholdAmount).toFixed(4)}</div>
       </div>
       <div class="info-row">
         <div class="info-label">Alert Date:</div>

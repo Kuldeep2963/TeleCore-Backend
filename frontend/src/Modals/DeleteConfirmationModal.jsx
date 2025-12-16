@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Modal,
   ModalOverlay,
@@ -11,44 +11,104 @@ import {
   Text,
   VStack,
   Icon,
-  useColorModeValue
+  useColorModeValue,
+  Spinner
 } from '@chakra-ui/react';
-import { FaExclamationTriangle } from 'react-icons/fa';
+import { FaExclamationTriangle, FaCheck, FaCheckCircle, FaTimes } from 'react-icons/fa';
 
-const DeleteConfirmationModal = ({
+const ConfirmationModal = ({
   isOpen,
   onClose,
   onConfirm,
-  title = "Confirm Deletion",
-  message = "Are you sure you want to delete this item? This action cannot be undone.",
-  confirmText = "Delete",
-  cancelText = "Cancel"
+  title = "Confirm Action",
+  message = "Are you sure you want to proceed? This action cannot be undone.",
+  confirmText = "Confirm",
+  cancelText = "Cancel",
+  type = "delete",
+  isLoading = false,
+  size = { base: "sm", md: "md" }
 }) => {
   const bgColor = useColorModeValue('white', 'gray.800');
   const borderColor = useColorModeValue('gray.200', 'gray.600');
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  const handleConfirm = () => {
-    onConfirm();
-    onClose();
+  const getIcon = () => {
+    switch (type.toLowerCase()) {
+      case 'delete':
+      case 'disconnect':
+        return FaExclamationTriangle;
+      case 'approve':
+        return FaCheckCircle;
+      case 'reject':
+        return FaTimes;
+      case 'confirm':
+        return FaCheck;
+      default:
+        return FaExclamationTriangle;
+    }
   };
 
+  const getIconColor = () => {
+    switch (type.toLowerCase()) {
+      case 'delete':
+      case 'disconnect':
+        return 'red.500';
+      case 'approve':
+        return 'green.500';
+      case 'reject':
+        return 'orange.500';
+      case 'confirm':
+        return 'blue.500';
+      default:
+        return 'red.500';
+    }
+  };
+
+  const getButtonColor = () => {
+    switch (type.toLowerCase()) {
+      case 'delete':
+      case 'disconnect':
+        return 'red';
+      case 'approve':
+        return 'green';
+      case 'reject':
+        return 'orange';
+      case 'confirm':
+        return 'blue';
+      default:
+        return 'red';
+    }
+  };
+
+  const handleConfirm = async () => {
+    setIsProcessing(true);
+    try {
+      await onConfirm();
+    } finally {
+      setIsProcessing(false);
+      onClose();
+    }
+  };
+
+  const isDisabled = isLoading || isProcessing;
+
   return (
-    <Modal isOpen={isOpen} onClose={onClose} isCentered size={{base:"sm",md:"md"}}>
+    <Modal isOpen={isOpen} onClose={onClose} isCentered size={size} closeOnOverlayClick={!isDisabled}>
       <ModalOverlay backdropFilter="blur(4px)" />
       <ModalContent bg={bgColor} border="1px solid" borderColor={borderColor}>
         <ModalHeader>
           <VStack spacing={3}>
             <Icon
-              as={FaExclamationTriangle}
-              color="red.500"
+              as={getIcon()}
+              color={getIconColor()}
               boxSize={12}
             />
-            <Text fontSize="lg" fontWeight="semibold" color="gray.800">
+            <Text fontSize="lg" fontWeight="semibold" textAlign="center">
               {title}
             </Text>
           </VStack>
         </ModalHeader>
-        <ModalCloseButton />
+        <ModalCloseButton isDisabled={isDisabled} />
 
         <ModalBody pb={6}>
           <Text color="gray.600" textAlign="center">
@@ -57,19 +117,26 @@ const DeleteConfirmationModal = ({
         </ModalBody>
 
         <ModalFooter>
-          <Button variant="ghost" mr={3} onClick={onClose}>
+          <Button
+            variant="ghost"
+            mr={3}
+            onClick={onClose}
+            isDisabled={isDisabled}
+          >
             {cancelText}
           </Button>
           <Button
-            colorScheme="red"
+            colorScheme={getButtonColor()}
             onClick={handleConfirm}
+            isLoading={isProcessing}
+            isDisabled={isDisabled}
             _hover={{
               transform: 'translateY(-1px)',
               shadow: 'md'
             }}
             transition="all 0.2s"
           >
-            {confirmText}
+            {isProcessing ? 'Processing...' : confirmText}
           </Button>
         </ModalFooter>
       </ModalContent>
@@ -77,4 +144,4 @@ const DeleteConfirmationModal = ({
   );
 };
 
-export default DeleteConfirmationModal;
+export default ConfirmationModal;

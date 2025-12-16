@@ -384,7 +384,7 @@ const VendorDetailModal = ({ isOpen, onClose, vendor }) => {
                           </Td>
                           <Td>
                             <Text fontWeight="medium" color="green.600">
-                              {pricing.mrc ? `$${parseFloat(pricing.mrc).toFixed(2)}` : 'N/A'}
+                              {pricing.mrc ? `$${parseFloat(pricing.mrc).toFixed(4)}` : 'N/A'}
                             </Text>
                           </Td>
                   

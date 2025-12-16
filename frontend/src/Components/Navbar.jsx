@@ -26,6 +26,7 @@ import {
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import ChangePasswordModal from "../Modals/ChangePasswordModal";
+import ConfirmationModal from "../Modals/DeleteConfirmationModal";
 
 function Navbar({
   cartCount = 0,
@@ -38,6 +39,7 @@ function Navbar({
 }) {
   const navigate = useNavigate();
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const { isOpen: isLogoutOpen, onOpen: onLogoutOpen, onClose: onLogoutClose } = useDisclosure();
 
   const handleCartClick = () => {
     navigate("/order-numbers/place-order");
@@ -52,6 +54,10 @@ function Navbar({
   };
 
   const handleLogoutClick = () => {
+    onLogoutOpen();
+  };
+
+  const handleConfirmLogout = async () => {
     onLogout();
   };
 
@@ -313,6 +319,18 @@ function Navbar({
 
       {/* Change Password Modal */}
       <ChangePasswordModal isOpen={isOpen} onClose={onClose} />
+
+      {/* Logout Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={isLogoutOpen}
+        onClose={onLogoutClose}
+        onConfirm={handleConfirmLogout}
+        title="Logout"
+        message={`Are you sure you want to logout? You will need to login again to access your account.`}
+        confirmText="Logout"
+        cancelText="Cancel"
+        type="disconnect"
+      />
     </Box>
   );
 }

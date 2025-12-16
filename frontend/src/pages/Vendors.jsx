@@ -39,6 +39,7 @@ import {
   FiEdit3
 } from 'react-icons/fi';
 import VendorDetailModal from '../Modals/VendorDetailModal';
+import ConfirmationModal from '../Modals/DeleteConfirmationModal';
 import api from '../services/api';
 
 const Vendors = () => {
@@ -47,7 +48,9 @@ const Vendors = () => {
   const [filterStatus, setFilterStatus] = useState('All');
   const toast = useToast();
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onClose: onDeleteClose } = useDisclosure();
   const [selectedVendor, setSelectedVendor] = useState(null);
+  const [vendorToDelete, setVendorToDelete] = useState(null);
   const [vendors, setVendors] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -91,11 +94,18 @@ const Vendors = () => {
     return matchesSearch && matchesStatus;
   });
 
-  const handleDeleteVendor = async (vendorId) => {
+  const handleOpenDeleteConfirmation = (vendor) => {
+    setVendorToDelete(vendor);
+    onDeleteOpen();
+  };
+
+  const handleDeleteVendor = async () => {
+    if (!vendorToDelete) return;
+
     try {
-      const response = await api.vendors.delete(vendorId);
+      const response = await api.vendors.delete(vendorToDelete.id);
       if (response.success) {
-        setVendors(vendors.filter(vendor => vendor.id !== vendorId));
+        setVendors(vendors.filter(vendor => vendor.id !== vendorToDelete.id));
         toast({
           title: 'Vendor deleted',
           description: 'The vendor has been successfully removed.',
@@ -192,7 +202,10 @@ const Vendors = () => {
             >
               <HStack spacing={4}>
                 <Box
-                  p={3}
+                  display="flex" // Add this
+                  alignItems="center" // Center vertically
+                  justifyContent="center"
+                  p={2}
                   borderRadius="full"
                   bgGradient="linear(135deg, blue.50, blue.100)"
                   color="blue.600"
@@ -222,7 +235,10 @@ const Vendors = () => {
             >
               <HStack spacing={4}>
                 <Box
-                  p={3}
+                  display="flex" // Add this
+                  alignItems="center" // Center vertically
+                  justifyContent="center"
+                  p={2}
                   borderRadius="full"
                   bgGradient="linear(135deg, green.50, green.100)"
                   color="green.600"
@@ -252,7 +268,10 @@ const Vendors = () => {
             >
               <HStack spacing={4}>
                 <Box
-                  p={3}
+                  display="flex" // Add this
+                  alignItems="center" // Center vertically
+                  justifyContent="center"
+                  p={2}
                   borderRadius="full"
                   bgGradient="linear(135deg, purple.50, purple.100)"
                   color="purple.600"
@@ -306,11 +325,28 @@ const Vendors = () => {
             boxShadow="0 2px 4px rgba(0, 0, 0, 0.05)"
             border="1px solid"
             borderColor="gray.100"
-            overflow={{base:"scroll",md:"hidden"}}
+            overflow={"auto"}
           >
             <Table variant="simple">
-              <Thead bg="gray.200">
-                <Tr>
+              <Thead>
+                <Tr sx={{
+                          '& > th': {
+                            bg: "blue.500",
+                            color: "white",
+                            fontWeight: "semibold",
+                            fontSize: "sm",
+                            position: "sticky",
+                            top:0,
+                            zIndex:1,
+                            boxShadow: "inset 0 -1px 0 0 rgba(0,0,0,0.1)",
+                            letterSpacing: "0.3px",
+                            borderBottom: "2px solid",
+                            borderColor: "gray.400",
+                            textAlign: "center",
+                            cursor: "pointer",
+                            _hover: { bg: "blue.600" }
+                          }
+                        }}>
                   <Th color={"gray.700"}>Vendor</Th>
                   <Th color={"gray.700"}>Contact</Th>
                   <Th color={"gray.700"}>Location</Th>
@@ -323,7 +359,7 @@ const Vendors = () => {
               <Tbody>
                 {filteredVendors.map((vendor) => (
                   <Tr key={vendor.id} _hover={{ bg: 'gray.50' }}>
-                    <Td>
+                    <Td textAlign={"center"}>
                       <HStack spacing={3}>
                         <Avatar size="sm" name={vendor.name} />
                         <Box>
@@ -333,8 +369,8 @@ const Vendors = () => {
                           </Text>
                         </Box>
                       </HStack>
-                    </Td>
-                    <Td>
+                    </Td >
+                    <Td textAlign={"center"}>
                       <VStack align="start" spacing={1}>
                         <HStack>
                           <Icon as={FiMail} boxSize={3} color="red.600" />
@@ -346,19 +382,19 @@ const Vendors = () => {
                         </HStack>
                       </VStack>
                     </Td>
-                    <Td>
+                    <Td textAlign={"center"}>
                       <HStack>
                         <Icon as={FiMapPin} boxSize={3} color="green.600" />
                         <Text fontSize="sm">{vendor.location}</Text>
                       </HStack>
                     </Td>
-                    <Td>
+                    <Td textAlign={"center"}>
                       <Badge colorScheme={getStatusColor(vendor.status)} borderRadius="full">
                         {vendor.status}
                       </Badge>
                     </Td>
                   
-                    <Td>
+                    <Td textAlign={"center"}>
                       <HStack spacing={0}>
                         <Button size="sm" variant="ghost" colorScheme="blue" onClick={() => handleViewDetails(vendor)}>
                           <HStack spacing={1}><Icon as={FiEdit3} boxSize={4} /><Text>Details</Text></HStack>
@@ -367,7 +403,7 @@ const Vendors = () => {
                           size="sm"
                           variant="ghost"
                           colorScheme="red"
-                          onClick={() => handleDeleteVendor(vendor.id)}
+                          onClick={() => handleOpenDeleteConfirmation(vendor)}
                         >
                           <Icon as={FiTrash2} boxSize={4} />
                         </Button>
@@ -386,6 +422,18 @@ const Vendors = () => {
         isOpen={isOpen}
         onClose={onClose}
         vendor={selectedVendor}
+      />
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={isDeleteOpen}
+        onClose={onDeleteClose}
+        onConfirm={handleDeleteVendor}
+        title="Delete Vendor"
+        message={`Are you sure you want to delete "${vendorToDelete?.name}"? This action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        type="delete"
       />
 
     </Box>

@@ -157,7 +157,7 @@ function Sidebar({ userRole = 'Client', isSidebarOpen = true, onItemClick = () =
       },
       { label: 'My Numbers', path: '/my-numbers', icon: FiPhone },
       { label: 'My Orders', path: '/my-orders', icon: FiPackage },
-      { label: 'Product Info', path: '/product-info', icon: FiInfo },
+      { label: 'Products Info', path: '/product-info', icon: FiInfo },
       { label: 'Billing & Invoices', path: '/billing-invoices', icon: FiCreditCard}
     ];
 

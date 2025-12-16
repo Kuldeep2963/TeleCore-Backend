@@ -25,6 +25,7 @@ import {
   useToast,
   Spinner,
   Center,
+  useDisclosure,
 } from "@chakra-ui/react";
 import {
   FiPackage,
@@ -36,13 +37,21 @@ import {
   FiDollarSign,
 } from "react-icons/fi";
 import api from "../services/api";
-import { transform } from "framer-motion";
-
+import ConfirmationModal from "../Modals/DeleteConfirmationModal";
+// import { handlePaymentConfirm } from "../ut "
 const Orders = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("All");
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const {
+    isOpen: isStatusOpen,
+    onOpen: onStatusOpen,
+    onClose: onStatusClose,
+  } = useDisclosure();
+  const [orderToUpdate, setOrderToUpdate] = useState(null);
+  const [ordernumber, setOrdernumber] = useState(null);
+  const [newStatus, setNewStatus] = useState(null);
 
   const toast = useToast();
   const navigate = useNavigate();
@@ -99,14 +108,23 @@ const Orders = () => {
     return matchesSearch && matchesStatus;
   });
 
-  const handleStatusUpdate = async (orderId, newStatus) => {
+  const handleOpenStatusConfirmation = (orderId, status, orderNo) => {
+    setOrderToUpdate(orderId);
+    setOrdernumber(orderNo);
+    setNewStatus(status);
+    onStatusOpen();
+  };
+
+  const handleStatusUpdate = async () => {
+    if (!orderToUpdate || !newStatus) return;
+
     try {
-      const response = await api.orders.updateStatus(orderId, newStatus);
+      const response = await api.orders.updateStatus(orderToUpdate, newStatus);
       if (response.success) {
         // If status is changed to 'Delivered', update user_id for allocated numbers
         if (newStatus === "Delivered") {
           try {
-            await api.numbers.updateUserForOrder(orderId);
+            await api.numbers.updateUserForOrder(orderToUpdate);
           } catch (numberError) {
             console.error("Error updating user_id for numbers:", numberError);
             // Don't fail the whole operation if number update fails
@@ -115,7 +133,7 @@ const Orders = () => {
 
         setOrders(
           orders.map((order) =>
-            order.id === orderId
+            order.id === orderToUpdate
               ? {
                   ...order,
                   orderStatus: newStatus,
@@ -130,7 +148,7 @@ const Orders = () => {
 
         toast({
           title: "Order status updated",
-          description: `Order ${orderId} status changed to ${newStatus}`,
+          description: `Order ${orderToUpdate} status changed to ${newStatus}`,
           status: "success",
           duration: 3000,
           isClosable: true,
@@ -235,7 +253,7 @@ const Orders = () => {
   return (
     <Box
       flex={1}
-      p={{base:5,md:8}}
+      p={{ base: 5, md: 8 }}
       pr={5}
       pb={5}
       minH="calc(100vh - 76px)"
@@ -271,8 +289,7 @@ const Orders = () => {
             <Box
               bg="white"
               p={6}
-              px={{base:2,md:6}}
-
+              px={{ base: 2, md: 6 }}
               borderRadius="xl"
               boxShadow="0 2px 4px rgba(0, 0, 0, 0.05)"
               border="1px solid"
@@ -280,7 +297,10 @@ const Orders = () => {
             >
               <HStack spacing={4}>
                 <Box
-                  p={3}
+                  display="flex" // Add this
+                  alignItems="center" // Center vertically
+                  justifyContent="center"
+                  p={2}
                   borderRadius="full"
                   bgGradient="linear(135deg, blue.50, blue.100)"
                   color="blue.600"
@@ -301,8 +321,7 @@ const Orders = () => {
             <Box
               bg="white"
               p={6}
-              px={{base:2,md:6}}
-
+              px={{ base: 2, md: 6 }}
               borderRadius="xl"
               boxShadow="0 2px 4px rgba(0, 0, 0, 0.05)"
               border="1px solid"
@@ -310,7 +329,10 @@ const Orders = () => {
             >
               <HStack spacing={4}>
                 <Box
-                  p={3}
+                  display="flex" // Add this
+                  alignItems="center" // Center vertically
+                  justifyContent="center"
+                  p={2}
                   borderRadius="full"
                   bgGradient="linear(135deg, green.50, green.100)"
                   color="green.600"
@@ -331,8 +353,7 @@ const Orders = () => {
             <Box
               bg="white"
               p={6}
-              px={{base:2,md:6}}
-
+              px={{ base: 2, md: 6 }}
               borderRadius="xl"
               boxShadow="0 2px 4px rgba(0, 0, 0, 0.05)"
               border="1px solid"
@@ -340,7 +361,10 @@ const Orders = () => {
             >
               <HStack spacing={4}>
                 <Box
-                  p={3}
+                  display="flex" // Add this
+                  alignItems="center" // Center vertically
+                  justifyContent="center"
+                  p={2}
                   borderRadius="full"
                   bgGradient="linear(135deg, yellow.50, yellow.100)"
                   color="yellow.600"
@@ -361,8 +385,7 @@ const Orders = () => {
             <Box
               bg="white"
               p={6}
-              px={{base:2,md:6}}
-
+              px={{ base: 2, md: 6 }}
               borderRadius="xl"
               boxShadow="0 2px 4px rgba(0, 0, 0, 0.05)"
               border="1px solid"
@@ -370,7 +393,10 @@ const Orders = () => {
             >
               <HStack spacing={4}>
                 <Box
-                  p={3}
+                  display="flex" // Add this
+                  alignItems="center" // Center vertically
+                  justifyContent="center"
+                  p={2}
                   borderRadius="full"
                   bgGradient="linear(135deg, purple.50, purple.100)"
                   color="purple.600"
@@ -427,11 +453,31 @@ const Orders = () => {
             boxShadow="0 2px 4px rgba(0, 0, 0, 0.05)"
             border="1px solid"
             borderColor="gray.100"
-            overflow={{base:"scroll",md:"hidden"}}
+            overflow={"auto"}
+            h={"400px"}
           >
             <Table variant="simple">
               <Thead bg="gray.200">
-                <Tr>
+                <Tr
+                  sx={{
+                    "& > th": {
+                      bg: "blue.500",
+                      color: "white",
+                      fontWeight: "semibold",
+                      fontSize: "sm",
+                      position: "sticky",
+                      top: 0,
+                      zIndex: 1,
+                      boxShadow: "inset 0 -1px 0 0 rgba(0,0,0,0.1)",
+                      letterSpacing: "0.3px",
+                      borderBottom: "2px solid",
+                      borderColor: "gray.400",
+                      textAlign: "center",
+                      cursor: "pointer",
+                      _hover: { bg: "blue.600" },
+                    },
+                  }}
+                >
                   <Th color={"gray.700"}>Order ID</Th>
                   <Th color={"gray.700"}>Customer</Th>
                   <Th color={"gray.700"}>Product Type</Th>
@@ -451,7 +497,7 @@ const Orders = () => {
               </Thead>
               <Tbody>
                 {filteredOrders.map((order) => (
-                  <Tr key={order.ordernumber} _hover={{ bg: "gray.50" }}>
+                  <Tr key={order.id} _hover={{ bg: "gray.50" }}>
                     <Td>
                       <Text fontWeight="medium" color="blue.600">
                         {order.orderNo}
@@ -538,6 +584,29 @@ const Orders = () => {
                             </Button>
                           </HStack>
                         )} */}
+                        {order.orderStatus === "Confirmed" && (
+                          <Button
+                            size="sm"
+                            colorScheme="purple"
+                            fontWeight={"bold"}
+                            variant={"ghost"}
+                            bg={"purple.100"}
+                            borderRadius={"full"}
+                            _hover={(bg) => {
+                              return { bg: "purple.200" };
+                            }}
+                            leftIcon={<FiDollarSign />}
+                            onClick={() =>
+                              handleOpenStatusConfirmation(
+                                order.id,
+                                "Amount Paid",
+                                order.orderNo
+                              )
+                            }
+                          >
+                            Paid
+                          </Button>
+                        )}
                         {order.orderStatus === "Amount Paid" && (
                           <Button
                             size="sm"
@@ -551,7 +620,11 @@ const Orders = () => {
                             }}
                             leftIcon={<FiPackage />}
                             onClick={() =>
-                              handleStatusUpdate(order.id, "Delivered")
+                              handleOpenStatusConfirmation(
+                                order.id,
+                                "Delivered",
+                                order.orderNo
+                              )
                             }
                           >
                             Deliver
@@ -566,6 +639,19 @@ const Orders = () => {
           </Box>
         </Box>
       </VStack>
+
+      <ConfirmationModal
+        isOpen={isStatusOpen}
+        onClose={onStatusClose}
+        onConfirm={() =>
+          handleStatusUpdate(orderToUpdate, newStatus, ordernumber)
+        }
+        title={`Confirm ${newStatus}`}
+        message={`Are you sure you want to mark order ${ordernumber} as ${newStatus}? This action cannot be undone.`}
+        confirmText={newStatus}
+        cancelText="Cancel"
+        type="approve"
+      />
     </Box>
   );
 };

@@ -101,6 +101,7 @@ const api = {
     delete: (id) => apiCall(`/orders/${id}`, { method: 'DELETE' }),
     updateStatus: (id, status) => apiCall(`/orders/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
     confirm: (id) => apiCall(`/orders/${id}/confirm`, { method: 'PATCH', body: JSON.stringify({}) }),
+    pay: (id) => apiCall(`/orders/${id}/pay`, { method: 'POST' }),
     createPricing: (orderId, data) => apiCall(`/orders/${orderId}/pricing`, { 
       method: 'POST', 
       body: JSON.stringify(data) 
@@ -123,6 +124,7 @@ const api = {
     create: (data) => apiCall('/invoices', { method: 'POST', body: JSON.stringify(data) }),
     update: (id, data) => apiCall(`/invoices/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     delete: (id) => apiCall(`/invoices/${id}`, { method: 'DELETE' }),
+    pay: (id) => apiCall(`/invoices/${id}/pay`, { method: 'POST' }),
     updateStatus: (id, status, paidDate) => apiCall(`/invoices/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status, paid_date: paidDate }) }),
     updateUsage: (id, data) => apiCall(`/invoices/${id}/usage`, { method: 'PATCH', body: JSON.stringify(data) }),
   },
@@ -243,6 +245,11 @@ const api = {
     create: (data) => apiCall('/vendor-pricing', { method: 'POST', body: JSON.stringify(data) }),
     update: (id, data) => apiCall(`/vendor-pricing/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     delete: (id) => apiCall(`/vendor-pricing/${id}`, { method: 'DELETE' }),
+  },
+
+  wallet: {
+    getTransactions: (userId) => apiCall(`/wallet/transactions/${userId}`),
+    getBalance: (userId) => apiCall(`/wallet/balance/${userId}`),
   },
 };
 

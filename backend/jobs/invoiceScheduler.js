@@ -3,8 +3,8 @@ const { query } = require('../config/database');
 const emailService = require('../services/emailService');
 
 // Utility: Generate invoice number in format "orderNumber-month"
-const generateInvoiceNumber = (orderNumber, month) => {
-  return `${orderNumber}-${month}`;
+const generateInvoiceNumber = (orderNumber, month,year) => {
+  return `${orderNumber}-${month}-${year}`;
 };
 
 // Utility: Get previous month start/end safely (IST timezone)
@@ -109,6 +109,7 @@ const generateMonthlyInvoices = async () => {
         const istOffset = 5.5 * 60 * 60 * 1000;
         const istInvoiceDate = new Date(invoiceDate.getTime() + istOffset);
         const month = String(istInvoiceDate.getUTCMonth() + 1).padStart(2, '0');
+        const year = (istInvoiceDate.getUTCFullYear() % 100).toString().padStart(2, '0');
         const invoiceNumber = generateInvoiceNumber(order.order_number, month);
 
         const dueDate = new Date(invoiceDate.getTime() + 10 * 24 * 60 * 60 * 1000);

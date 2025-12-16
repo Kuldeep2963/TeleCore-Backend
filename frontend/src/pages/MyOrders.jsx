@@ -31,6 +31,7 @@ import {
 import { FiSearch, FiXCircle,FiCheck, FiClock, FiX, FiDollarSign,FiPackage } from 'react-icons/fi';
 import { FaChevronCircleLeft, FaChevronCircleRight, FaEye } from 'react-icons/fa';
 import api from '../services/api';
+import PaymentModal from '../Modals/PaymentModal';
 import { transform } from 'framer-motion';
 function MyOrders({ userId, userRole }) {
   const navigate = useNavigate();
@@ -47,6 +48,9 @@ function MyOrders({ userId, userRole }) {
     endDate: '',
     status: ''
   });
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [selectedOrderForPayment, setSelectedOrderForPayment] = useState(null);
+  const [paymentLoading, setPaymentLoading] = useState(false);
   const toast = useToast();
 
   useEffect(() => {
@@ -192,36 +196,50 @@ function MyOrders({ userId, userRole }) {
     navigate('/order-number-view', { state: { orderData: order } });
   };
 
-  const handlePayOrder = async (orderId) => {
-    try {
-      const response = await api.orders.updateStatus(orderId, 'Amount Paid');
-      if (response.success) {
-        // Update the local state to reflect the new status
-        setOrders(prevOrders =>
-          prevOrders.map(order =>
-            order.id === orderId
-              ? { ...order, orderStatus: 'Amount Paid' }
-              : order
-          )
-        );
+  const openPaymentModal = (order) => {
+    setSelectedOrderForPayment(order);
+    setIsPaymentModalOpen(true);
+  };
 
+  const handlePaymentConfirm = async (method) => {
+    if (!selectedOrderForPayment) return;
+    
+    if (method === 'wallet') {
+      setPaymentLoading(true);
+      try {
+        const response = await api.orders.pay(selectedOrderForPayment.id);
+        if (response.success) {
+          // Update the local state to reflect the new status
+          setOrders(prevOrders =>
+            prevOrders.map(order =>
+              order.id === selectedOrderForPayment.id
+                ? { ...order, orderStatus: 'Amount Paid' }
+                : order
+            )
+          );
+
+          toast({
+            title: 'Payment successful',
+            description: 'Order status updated to Amount Paid',
+            status: 'success',
+            duration: 3000,
+            isClosable: true,
+          });
+          setIsPaymentModalOpen(false);
+          setSelectedOrderForPayment(null);
+        }
+      } catch (error) {
+        console.error('Error updating order status:', error);
         toast({
-          title: 'Payment successful',
-          description: 'Order status updated to Amount Paid',
-          status: 'success',
+          title: 'Error',
+          description: error.message || 'Failed to process payment',
+          status: 'error',
           duration: 3000,
           isClosable: true,
         });
+      } finally {
+        setPaymentLoading(false);
       }
-    } catch (error) {
-      console.error('Error updating order status:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to process payment',
-        status: 'error',
-        duration: 3000,
-        isClosable: true,
-      });
     }
   };
 
@@ -313,41 +331,6 @@ function MyOrders({ userId, userRole }) {
                   ))}
                 </Select>
               </FormControl>
-
-
-
-              {/* <FormControl>
-                <FormLabel color="#1a3a52" fontWeight="medium" fontSize="sm">
-                  Start Date
-                </FormLabel>
-                <Input
-                  ref={startDateRef}
-                  type="date"
-                  value={filters.startDate}
-                  onChange={(e) => setFilters({...filters, startDate: e.target.value})}
-                  bg="white"
-                  borderColor="gray.300"
-                  _hover={{ borderColor: "blue.400" }}
-                  onKeyDown={(e) => handleKeyDown(e, endDateRef)}
-                />
-              </FormControl> */}
-
-              {/* <FormControl>
-                <FormLabel color="#1a3a52" fontWeight="medium" fontSize="sm">
-                  End Date
-                </FormLabel>
-                <Input
-                  ref={endDateRef}
-                  type="date"
-                  value={filters.endDate}
-                  onChange={(e) => setFilters({...filters, endDate: e.target.value})}
-                  bg="white"
-                  borderColor="gray.300"
-                  _hover={{ borderColor: "blue.400" }}
-                  onKeyDown={(e) => handleKeyDown(e, statusRef)}
-                />
-              </FormControl> */}
-
               <FormControl>
                 <FormLabel color="#1a3a52" fontWeight="medium" fontSize="sm">
                   Status
@@ -370,24 +353,6 @@ function MyOrders({ userId, userRole }) {
                   <option value="cancelled">Cancelled</option>
                 </Select>
               </FormControl>
-
-                {/* <Button
-                  variant={"ghost"}
-                  colorScheme="blue"
-                  size="md"
-                  borderRadius="full"
-                  fontWeight="semibold"
-                  boxShadow="0 2px 4px rgba(49, 130, 206, 0.25)"
-                  _hover={{
-                    boxShadow: '0 4px 8px rgba(49, 130, 206, 0.35)'
-                  }}
-                  transition="all 0.2s ease"
-                  leftIcon={<FiSearch />}
-                  onClick={handleSearch}
-                >
-                  Search
-                </Button> */}
-
                 <Button
                   variant="ghost"
                   size="md"
@@ -413,25 +378,30 @@ function MyOrders({ userId, userRole }) {
             boxShadow="0 2px 4px rgba(0, 0, 0, 0.05)"
             border="1px solid"
             borderColor="gray.100"
-            overflow={{base:"scroll",md:"hidden"}}
+            overflow={"auto"}
              h={"400px"} 
+             
         >
           <Table variant="simple">
             <Thead bg={"gray.200"}>
-              <Tr
-                sx={{
-                  '& > th': {
-                    bg: "gray.200",
-                    color: "gray.700",
-                    fontWeight: "semibold",
-                    fontSize: "sm",
-                    letterSpacing: "0.3px",
-                    borderBottom: "2px solid",
-                    borderColor: "gray.400",
-                    textAlign: "center",
-                  }
-                }}
-              >
+              <Tr sx={{
+                          '& > th': {
+                            bg: "blue.500",
+                            color: "white",
+                            fontWeight: "semibold",
+                            fontSize: "sm",
+                            position: "sticky",
+                            top:0,
+                            zIndex:1,
+                            boxShadow: "inset 0 -1px 0 0 rgba(0,0,0,0.1)",
+                            letterSpacing: "0.3px",
+                            borderBottom: "2px solid",
+                            borderColor: "gray.400",
+                            textAlign: "center",
+                            cursor: "pointer",
+                            _hover: { bg: "blue.600" }
+                          }
+                        }}>
                 <Th w="5%">Order</Th>
                 <Th>Country</Th>
                 <Th>Product Type</Th>
@@ -486,7 +456,7 @@ function MyOrders({ userId, userRole }) {
                             borderRadius='full'
                             _hover={bg=>{return {'bg':'green.200'}}}
                             leftIcon={<FiDollarSign />}
-                            onClick={() => handlePayOrder(order.id)}
+                            onClick={() => openPaymentModal(order)}
                           >
                             Pay
                           </Button>
@@ -584,6 +554,15 @@ function MyOrders({ userId, userRole }) {
           </Box>
         )}
       </VStack>
+      
+      <PaymentModal 
+        isOpen={isPaymentModalOpen}
+        onClose={() => setIsPaymentModalOpen(false)}
+        amount={selectedOrderForPayment?.totalAmount || 0}
+        onConfirm={handlePaymentConfirm}
+        title={`Pay for Order -- ${selectedOrderForPayment?.orderNo}`}
+        loading={paymentLoading}
+      />
     </Box>
   );
 }

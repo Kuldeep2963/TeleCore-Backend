@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   Box,
   VStack,
@@ -8,6 +8,8 @@ import {
   CardBody,
   Heading,
   Grid,
+  Wrap,
+  WrapItem,
   Button,
   Input,
   InputGroup,
@@ -27,43 +29,76 @@ import {
   NumberIncrementStepper,
   NumberDecrementStepper,
   Spinner,
-} from '@chakra-ui/react';
+  Table,
+  Thead,
+  Tbody,
+  Tr,
+  Th,
+  Td,
+  TableContainer,
+  Center,
+} from "@chakra-ui/react";
 import {
   FaWallet,
   FaCalendar,
   FaCreditCard,
   FaBell,
   FaDollarSign,
-  FaShieldAlt
-} from 'react-icons/fa';
-import { FiRefreshCw } from 'react-icons/fi';
-import {
-  RiSecurePaymentFill,
-  RiFlashlightFill
-} from 'react-icons/ri';
-import { SiStripe } from 'react-icons/si';
-import walletService from '../../services/walletService';
+  FaShieldAlt,
+  FaArrowDown,
+  FaArrowUp,
+  FaUndoAlt,
+  FaFile,
+} from "react-icons/fa";
+import { FiFile, FiRefreshCw } from "react-icons/fi";
+import { RiSecurePaymentFill, RiFlashlightFill } from "react-icons/ri";
+import { SiStripe } from "react-icons/si";
+import walletService from "../../services/walletService";
+import api from "../../services/api";
 
 const TopUp = ({
   userId,
-  walletBalance = 50.00,
+  walletBalance = 50.0,
   onUpdateBalance = () => {},
-  refreshTrigger = 0
+  refreshTrigger = 0,
 }) => {
-  const [topupAmount, setTopupAmount] = useState('');
-  const [thresholdBalance, setThresholdBalance] = useState(10.00); // Default threshold
-  const [thresholdInput, setThresholdInput] = useState(10.00); // Temporary input value
-  const [selectedPayment, setSelectedPayment] = useState('');
+  const [topupAmount, setTopupAmount] = useState("");
+  const [thresholdBalance, setThresholdBalance] = useState(10.0);
+  const [thresholdInput, setThresholdInput] = useState(10.0);
+  const [selectedPayment, setSelectedPayment] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [currentBalance, setCurrentBalance] = useState(walletBalance);
+  const [transactions, setTransactions] = useState([]);
+  const [loadingTransactions, setLoadingTransactions] = useState(false);
   const toast = useToast();
 
+  const fetchTransactions = async () => {
+    if (!userId) return;
 
+    try {
+      setLoadingTransactions(true);
+      const response = await api.wallet.getTransactions(userId);
+      if (response.success) {
+        setTransactions(response.data || []);
+      }
+    } catch (error) {
+      console.error("Error fetching transactions:", error);
+      toast({
+        title: "Error fetching transactions",
+        description: "Unable to load transaction history",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    } finally {
+      setLoadingTransactions(false);
+    }
+  };
 
-  // Fetch current balance when component mounts or refreshTrigger changes
   useEffect(() => {
     if (userId) {
       fetchCurrentBalance();
+      fetchTransactions();
     }
   }, [userId, refreshTrigger]);
 
@@ -83,7 +118,7 @@ const TopUp = ({
         onUpdateBalance(response.data.wallet_balance || 0);
       }
     } catch (error) {
-      console.error('Error fetching balance:', error);
+      console.error("Error fetching balance:", error);
       toast({
         title: "Error fetching balance",
         description: "Unable to load current wallet balance",
@@ -96,10 +131,10 @@ const TopUp = ({
     }
   };
 
-  const cardBg = useColorModeValue('white', 'gray.800');
-  const borderColor = useColorModeValue('gray.100', 'gray.600');
-  const accentColor = useColorModeValue('blue.500', 'blue.300');
-  const secondaryBg = useColorModeValue('gray.50', 'gray.700');
+  const cardBg = useColorModeValue("white", "gray.800");
+  const borderColor = useColorModeValue("gray.100", "gray.600");
+  const accentColor = useColorModeValue("blue.500", "blue.300");
+  const secondaryBg = useColorModeValue("gray.50", "gray.700");
 
   const handleTopup = async () => {
     const amount = parseFloat(topupAmount) || 0;
@@ -154,24 +189,30 @@ const TopUp = ({
         const newBalance = response.data.newBalance;
         setCurrentBalance(newBalance);
         onUpdateBalance(newBalance);
-        setTopupAmount('');
-        setSelectedPayment('');
+        setTopupAmount("");
+        setSelectedPayment("");
+        fetchTransactions();
 
         toast({
           title: "Top-up successful!",
-          description: `$${typeof amount === 'number' ? amount.toFixed(2) : '0.00'} added to your wallet`,
+          description: `$${
+            typeof amount === "number" ? amount.toFixed(4) : "0.00"
+          } added to your wallet`,
           status: "success",
           duration: 3000,
           isClosable: true,
         });
       } else {
-        throw new Error(response.message || 'Failed to update wallet');
+        throw new Error(response.message || "Failed to update wallet");
       }
     } catch (error) {
-      console.error('Top-up error:', error);
+      console.error("Top-up error:", error);
       toast({
         title: "Top-up failed",
-        description: error.response?.data?.message || error.message || "Unable to process top-up",
+        description:
+          error.response?.data?.message ||
+          error.message ||
+          "Unable to process top-up",
         status: "error",
         duration: 3000,
         isClosable: true,
@@ -191,19 +232,21 @@ const TopUp = ({
         }
 
         // Also save to localStorage as fallback
-        localStorage.setItem('walletThreshold', threshold.toString());
+        localStorage.setItem("walletThreshold", threshold.toString());
 
         setThresholdBalance(threshold);
 
         toast({
           title: "Threshold updated",
-          description: `Notifications will trigger below $${typeof threshold === 'number' ? threshold.toFixed(2) : '10.00'}`,
+          description: `Notifications will trigger below $${
+            typeof threshold === "number" ? threshold.toFixed(4) : "10.00"
+          }`,
           status: "info",
           duration: 3000,
           isClosable: true,
         });
       } catch (error) {
-        console.error('Error updating threshold:', error);
+        console.error("Error updating threshold:", error);
         toast({
           title: "Error updating threshold",
           description: "Unable to save threshold setting",
@@ -228,44 +271,106 @@ const TopUp = ({
     try {
       const response = await walletService.getUserProfile(userId);
       if (response.success && response.data.wallet_threshold !== null) {
-        const threshold = parseFloat(response.data.wallet_threshold) || 10.00;
+        const threshold = parseFloat(response.data.wallet_threshold) || 10.0;
         setThresholdBalance(threshold);
         setThresholdInput(threshold);
       } else {
         // Fallback to localStorage if no backend threshold
-        const savedThreshold = localStorage.getItem('walletThreshold');
+        const savedThreshold = localStorage.getItem("walletThreshold");
         if (savedThreshold) {
-          const threshold = parseFloat(savedThreshold) || 10.00;
+          const threshold = parseFloat(savedThreshold) || 10.0;
           setThresholdBalance(threshold);
           setThresholdInput(threshold);
         } else {
           // Default to 10.00 if nothing is saved
-          setThresholdBalance(10.00);
-          setThresholdInput(10.00);
+          setThresholdBalance(10.0);
+          setThresholdInput(10.0);
         }
       }
     } catch (error) {
-      console.error('Error loading threshold:', error);
+      console.error("Error loading threshold:", error);
       // Fallback to localStorage
-      const savedThreshold = localStorage.getItem('walletThreshold');
+      const savedThreshold = localStorage.getItem("walletThreshold");
       if (savedThreshold) {
-        const threshold = parseFloat(savedThreshold) || 10.00;
+        const threshold = parseFloat(savedThreshold) || 10.0;
         setThresholdBalance(threshold);
         setThresholdInput(threshold);
       } else {
         // Default to 10.00 if nothing is saved
-        setThresholdBalance(10.00);
-        setThresholdInput(10.00);
+        setThresholdBalance(10.0);
+        setThresholdInput(10.0);
       }
     }
+  };
+
+  const getTransactionIcon = (type) => {
+    switch (type?.toLowerCase()) {
+      case "credit":
+        return FaArrowDown;
+      case "debit":
+        return FaArrowUp;
+      case "refund":
+        return FaUndoAlt;
+      default:
+        return FaWallet;
+    }
+  };
+
+  const getTransactionColor = (type) => {
+    switch (type?.toLowerCase()) {
+      case "credit":
+        return "green";
+      case "debit":
+        return "red";
+      case "refund":
+        return "orange";
+      default:
+        return "blue";
+    }
+  };
+
+  const getTransactionBadgeColor = (type) => {
+    switch (type?.toLowerCase()) {
+      case "credit":
+        return "green.100";
+      case "debit":
+        return "red.100";
+      case "refund":
+        return "orange.100";
+      default:
+        return "blue.100";
+    }
+  };
+
+  const getTransactionIconColor = (type) => {
+    switch (type?.toLowerCase()) {
+      case "credit":
+        return "green.600";
+      case "debit":
+        return "red.600";
+      case "refund":
+        return "orange.600";
+      default:
+        return "blue.600";
+    }
+  };
+
+  const formatTransactionDescription = (description) => {
+    if (!description) return "Transaction";
+    return description.replace(/_/g, " ");
   };
 
   const quickAmounts = [10, 25, 50, 100, 200];
   const thresholdOptions = [5, 10, 20, 50];
 
   const paymentMethods = [
-    { id: 'card', name: 'Credit/Debit Card', icon: FaCreditCard, color: 'blue' },
-    { id: 'stripe', name: 'Stripe', icon: SiStripe, color: 'purple' }
+    {
+      id: "card",
+      name: "Credit/Debit Card",
+      icon: FaCreditCard,
+      color: "blue",
+    },
+    { id: "stripe", name: "Stripe", icon: SiStripe, color: "purple" },
   ];
 
   const isLowBalance = currentBalance < thresholdBalance;
@@ -274,11 +379,17 @@ const TopUp = ({
     <VStack spacing={6} align="stretch" w={"full"} mx="auto">
       {/* Page Header */}
       <Box textAlign="left">
-        <Heading size="lg" bgGradient="linear(to-r, blue.500, purple.500)" bgClip="text" mb={3}>
+        <Heading
+          size="lg"
+          bgGradient="linear(to-r, blue.500, purple.500)"
+          bgClip="text"
+          mb={3}
+        >
           Wallet Management
         </Heading>
         <Text fontSize="md" color="gray.600">
-          Manage your balance, set up automatic notifications, and keep your account funded
+          Manage your balance, set up automatic notifications, and keep your
+          account funded
         </Text>
       </Box>
 
@@ -286,29 +397,42 @@ const TopUp = ({
         <Alert status="warning" borderRadius="xl" variant="left-accent">
           <AlertIcon />
           <Box>
-            <Text fontWeight="bold" color={"red.600"}>Low Balance Alert</Text>
+            <Text fontWeight="bold" color={"red.600"}>
+              Low Balance Alert
+            </Text>
             <HStack>
-            
-              <Text>Your balance</Text> <Text fontWeight={"bold"}>${typeof currentBalance === 'number' ? currentBalance.toFixed(2) : '0.00'}</Text> <Text>is below your threshold</Text> <Text fontWeight={"bold"}>${typeof thresholdBalance === 'number' ? thresholdBalance.toFixed(2) : '10.00'}</Text>
-            
+              <Text>Your balance</Text>{" "}
+              <Text fontWeight={"bold"}>
+                $
+                {typeof currentBalance === "number"
+                  ? currentBalance.toFixed(4)
+                  : "0.00"}
+              </Text>{" "}
+              <Text>is below your threshold</Text>{" "}
+              <Text fontWeight={"bold"}>
+                $
+                {typeof thresholdBalance === "number"
+                  ? thresholdBalance.toFixed(4)
+                  : "10.00"}
+              </Text>
             </HStack>
           </Box>
         </Alert>
       )}
 
-      <Grid templateColumns={{ base: '1fr', lg: '2fr 1fr' }} gap={8}>
+      <Grid templateColumns={{ base: "1fr", lg: "1fr 1fr" }} gap={6}>
         {/* Left Column - TopUp & Payment */}
         <VStack spacing={6}>
           {/* Balance Overview Card */}
-          <Card 
-            borderRadius="2xl" 
-            bg={cardBg} 
-            border="1px solid" 
+          <Card
+            borderRadius="2xl"
+            bg={cardBg}
+            border="1px solid"
             borderColor={borderColor}
             boxShadow="lg"
             w="100%"
           >
-            <CardBody p={{base:4,md:8}}>
+            <CardBody p={{ base: 4, md: 6 }}>
               <VStack spacing={6} align="stretch">
                 <Flex justify="space-between" align="center">
                   <VStack align="start" spacing={1}>
@@ -316,12 +440,21 @@ const TopUp = ({
                       CURRENT BALANCE
                     </Text>
                     <Flex align="center">
-                      <Heading size="2xl" color={accentColor}>
-                        ${typeof currentBalance === 'number' ? currentBalance.toFixed(2) : '0.00'}
+                      <Heading size="xl" color={accentColor}>
+                        $
+                        {typeof currentBalance === "number"
+                          ? currentBalance.toFixed(4)
+                          : "0.00"}
                       </Heading>
                     </Flex>
                   </VStack>
-                  <Icon as={FaWallet} w={12} h={12} color={accentColor} opacity={0.8} />
+                  <Icon
+                    as={FaWallet}
+                    w={8}
+                    h={8}
+                    color={accentColor}
+                    opacity={0.8}
+                  />
                 </Flex>
 
                 <Button
@@ -340,143 +473,171 @@ const TopUp = ({
           </Card>
 
           {/* TopUp Card */}
-          <Card 
-            borderRadius="2xl" 
-            bg={cardBg} 
-            border="1px solid" 
+          <Card
+            borderRadius="xl"
+            bg={cardBg}
+            border="1px solid"
             borderColor={borderColor}
             boxShadow="lg"
             w="100%"
           >
-            <CardBody p={{base:4,md:8}}>
-              <VStack spacing={6} align="stretch">
-                <Heading size="md" mb={2}>
-                  Add Funds to Wallet
-                </Heading>
+            <CardBody p={{ base: 4, md: 6 }}>
+              <Heading size="md" mb={4}>
+                Add Funds
+              </Heading>
 
-                {/* Quick Amount Buttons */}
-                <Box>
-                  <Text fontWeight="medium" mb={3}>Quick Top-up</Text>
-                  <SimpleGrid columns={5} gap={{base:3,md:12}}>
-                    {quickAmounts.map((amount) => (
-                      <Button
-                        key={amount}
-                        variant={topupAmount === amount.toString() ? 'solid' : 'outline'}
-                        colorScheme="blue"
-                        onClick={() => setTopupAmount(amount.toString())}
-                        size="sm"
-                        isDisabled={isLoading}
-                      >
-                        ${amount}
-                      </Button>
-                    ))}
-                  </SimpleGrid>
-                </Box>
+              <SimpleGrid
+                columns={{ base: 1, md: 2 }}
+                gap={6}
+                alignItems="start"
+              >
+                {/* Left Column */}
+                <VStack spacing={4} align="stretch">
+                  {/* Quick Amounts */}
+                  <Box>
+                    <Text fontSize="sm" fontWeight="medium" mb={2}>
+                      Quick Top-up
+                    </Text>
+                    <Wrap spacing={2}>
+                      {quickAmounts.map((amount) => (
+                        <WrapItem key={amount}>
+                          <Button
+                            variant={
+                              topupAmount === amount.toString()
+                                ? "solid"
+                                : "outline"
+                            }
+                            colorScheme="blue"
+                            onClick={() => setTopupAmount(amount.toString())}
+                            size="sm"
+                            minW="60px"
+                            h={8}
+                            fontSize="sm"
+                            isDisabled={isLoading}
+                          >
+                            ${amount}
+                          </Button>
+                        </WrapItem>
+                      ))}
+                    </Wrap>
+                  </Box>
 
-                {/* Custom Amount Input */}
-                <Box>
-                  <Text fontWeight="medium" mb={3}>Custom Amount</Text>
-                  <NumberInput
-                    value={topupAmount}
-                    onChange={(value) => setTopupAmount(value)}
-                    min={1}
-                    precision={2}
-                    size="lg"
-                    isDisabled={isLoading}
+                  {/* Custom Amount */}
+                  <Box>
+                    <Text fontSize="sm" fontWeight="medium" mb={2}>
+                      Custom Amount
+                    </Text>
+                    <NumberInput
+                      value={topupAmount}
+                      onChange={setTopupAmount}
+                      min={1}
+                      precision={2}
+                      size="md"
+                      isDisabled={isLoading}
+                    >
+                      <NumberInputField h={10} fontSize="sm" />
+                      <NumberInputStepper>
+                        <NumberIncrementStepper />
+                        <NumberDecrementStepper />
+                      </NumberInputStepper>
+                    </NumberInput>
+                  </Box>
+                </VStack>
+
+                {/* Right Column */}
+                <VStack spacing={4} align="stretch">
+                  {/* Payment Methods */}
+                  <Box>
+                    <Text fontSize="sm" fontWeight="medium" mb={2}>
+                      Payment Method
+                    </Text>
+                    <VStack spacing={2}>
+                      {paymentMethods.map((method) => (
+                        <Button
+                          key={method.id}
+                          variant={
+                            selectedPayment === method.id ? "solid" : "outline"
+                          }
+                          colorScheme={method.color}
+                          leftIcon={<Icon as={method.icon} boxSize={4} />}
+                          onClick={() => setSelectedPayment(method.id)}
+                          size="sm"
+                          w="full"
+                          h={10}
+                          fontSize="sm"
+                          justifyContent="flex-start"
+                          isDisabled={isLoading}
+                        >
+                          {method.name}
+                        </Button>
+                      ))}
+                    </VStack>
+                  </Box>
+
+                  {/* TopUp Button */}
+                  <Button
+                    colorScheme="blue"
+                    size="md"
+                    h={12}
+                    mt={4}
+                    fontSize="md"
+                    leftIcon={
+                      isLoading ? <Spinner size="sm" /> : <RiFlashlightFill />
+                    }
+                    onClick={handleTopup}
+                    isDisabled={
+                      !topupAmount ||
+                      parseFloat(topupAmount) <= 0 ||
+                      !selectedPayment ||
+                      isLoading
+                    }
+                    isLoading={isLoading}
+                    loadingText="Processing..."
+                    bgGradient="linear(to-r, blue.500, purple.500)"
+                    _hover={{
+                      bgGradient: "linear(to-r, blue.600, purple.600)",
+                    }}
                   >
-                    <InputGroup>
-                      <InputLeftElement pointerEvents="none">
-                        <FaDollarSign color="gray.300" />
-                      </InputLeftElement>
-                      <NumberInputField pl={10} placeholder="0.00" />
-                    </InputGroup>
-                    <NumberInputStepper>
-                      <NumberIncrementStepper />
-                      <NumberDecrementStepper />
-                    </NumberInputStepper>
-                  </NumberInput>
-                </Box>
-
-                {/* Payment Methods */}
-                <Box>
-                  <Text fontWeight="medium" mb={3}>Payment Method</Text>
-                  <SimpleGrid columns={{ base: 1, md: 2}} gap={3}>
-                    {paymentMethods.map((method) => (
-                      <Button
-                        key={method.id}
-                        variant={selectedPayment === method.id ? 'solid' : 'outline'}
-                        colorScheme={method.color}
-                        leftIcon={<Icon as={method.icon} />}
-                        onClick={() => setSelectedPayment(method.id)}
-                        height="auto"
-                        py={3}
-                        whiteSpace="normal"
-                        textAlign="center"
-                        isDisabled={isLoading}
-                      >
-                        {method.name}
-                      </Button>
-                    ))}
-                  </SimpleGrid>
-                </Box>
-
-                {/* TopUp Button */}
-                <Button
-                  colorScheme="blue"
-                  size="lg"
-                  // height="50px"
-                  fontSize="lg"
-                  leftIcon={isLoading ? <Spinner size="sm" /> : <RiFlashlightFill />}
-                  onClick={handleTopup}
-                  isDisabled={!topupAmount || parseFloat(topupAmount) <= 0 || !selectedPayment || isLoading}
-                  bgGradient="linear(to-r, blue.500, purple.500)"
-                  _hover={{
-                    bgGradient: "linear(to-r, blue.600, purple.600)",
-                    transform: 'translateY(-2px)',
-                    boxShadow: 'xl'
-                  }}
-                  transition="all 0.2s"
-                  isLoading={isLoading}
-                  loadingText="Processing..."
-                >
-                  {isLoading ? 'Processing...' : `Add $${topupAmount || '0.00'} to Wallet`}
-                </Button>
-
-                {/* Security Badge */}
-                <Flex justify="center" align="center" color="gray.500" fontSize="sm">
-                  <Icon as={RiSecurePaymentFill} mr={2} />
-                  <Text>Secure payment · Encrypted transaction</Text>
-                </Flex>
-              </VStack>
+                    {isLoading
+                      ? "Processing..."
+                      : `Add $${topupAmount} to Wallet`}
+                  </Button>
+                </VStack>
+              </SimpleGrid>
             </CardBody>
           </Card>
         </VStack>
 
         {/* Right Column - Threshold Settings */}
-        <VStack spacing={6}>
+        <VStack spacing={5}>
           {/* Threshold Card */}
-          <Card 
-            borderRadius="2xl" 
-            bg={cardBg} 
-            border="1px solid" 
+          <Card
+            borderRadius="2xl"
+            bg={cardBg}
+            border="1px solid"
             borderColor={borderColor}
             boxShadow="lg"
             w="100%"
           >
-            <CardBody p={{base:4,md:8}}>
+            <CardBody p={{ base: 4, md: 6 }}>
               <VStack spacing={6} align="stretch">
                 <Flex align="center" justify="space-between">
                   <Heading size="md">Balance Alerts</Heading>
-                  <Badge colorScheme={isLowBalance ? 'red' : 'green'} px={2} borderRadius={"full"} fontSize="xs">
-                    {isLowBalance ? 'ACTIVE' : 'MONITORING'}
+                  <Badge
+                    colorScheme={isLowBalance ? "red" : "green"}
+                    px={2}
+                    borderRadius={"full"}
+                    fontSize="xs"
+                  >
+                    {isLowBalance ? "ACTIVE" : "MONITORING"}
                   </Badge>
                 </Flex>
 
-                <Box 
-                  p={4} 
-                  bg={useColorModeValue('orange.50', 'orange.900')} 
-                  borderRadius="xl" 
-                  border="1px solid" 
+                <Box
+                  p={4}
+                  bg={useColorModeValue("orange.50", "orange.900")}
+                  borderRadius="xl"
+                  border="1px solid"
                   borderColor="orange.200"
                 >
                   <VStack align="center" spacing={2}>
@@ -485,11 +646,22 @@ const TopUp = ({
                       Notify me when balance drops below
                     </Text>
                     <Text fontSize="2xl" fontWeight="bold" color="orange.500">
-                      ${typeof thresholdBalance === 'number' ? thresholdBalance.toFixed(2) : '10.00'}
+                      $
+                      {typeof thresholdBalance === "number"
+                        ? thresholdBalance.toFixed(4)
+                        : "10.00"}
                     </Text>
                     {thresholdInput !== thresholdBalance && (
-                      <Text fontSize="xs" color="orange.600" fontWeight="medium">
-                        (Pending update: ${typeof thresholdInput === 'number' ? thresholdInput.toFixed(2) : '10.00'})
+                      <Text
+                        fontSize="xs"
+                        color="orange.600"
+                        fontWeight="medium"
+                      >
+                        (Pending update: $
+                        {typeof thresholdInput === "number"
+                          ? thresholdInput.toFixed(4)
+                          : "10.00"}
+                        )
                       </Text>
                     )}
                   </VStack>
@@ -497,10 +669,14 @@ const TopUp = ({
 
                 {/* Threshold Input */}
                 <Box>
-                  <Text fontWeight="medium" mb={3}>Set Alert Threshold</Text>
+                  <Text fontWeight="medium" mb={3}>
+                    Set Alert Threshold
+                  </Text>
                   <NumberInput
                     value={thresholdInput}
-                    onChange={(value) => setThresholdInput(parseFloat(value) || 0)}
+                    onChange={(value) =>
+                      setThresholdInput(parseFloat(value) || 0)
+                    }
                     min={0}
                     precision={2}
                     size="md"
@@ -517,7 +693,9 @@ const TopUp = ({
 
                 {/* Quick Threshold Buttons */}
                 <Box>
-                  <Text fontWeight="medium" mb={3}>Quick Settings</Text>
+                  <Text fontWeight="medium" mb={3}>
+                    Quick Settings
+                  </Text>
                   <SimpleGrid columns={4} gap={3}>
                     {thresholdOptions.map((amount) => (
                       <Button
@@ -544,51 +722,222 @@ const TopUp = ({
                 >
                   Update Alert
                 </Button>
-
-                {/* Info Text */}
-                <Text fontSize="xs" color="gray.500" textAlign="center">
-                  You'll receive email notifications when your balance approaches this limit
-                </Text>
-              </VStack>
-            </CardBody>
-          </Card>
-
-          {/* Features Card */}
-          <Card 
-            borderRadius="2xl" 
-            bg={cardBg} 
-            border="1px solid" 
-            borderColor={borderColor}
-            boxShadow="lg"
-            w="100%"
-          >
-            <CardBody p={6}>
-              <VStack spacing={4} align="stretch">
-                <Heading size="sm">Wallet Features</Heading>
-                < VStack spacing={3} align="start">
-                  <Flex align="center">
-                    <Icon as={FaShieldAlt} color="green.500" mr={3} />
-                    <Text fontSize="sm">Secure transactions</Text>
-                  </Flex>
-                  <Flex align="center">
-                    <Icon as={FaBell} color="blue.500" mr={3} />
-                    <Text fontSize="sm">Low balance alerts</Text>
-                  </Flex>
-                  
-                  <Flex align="center">
-                    <Icon as={RiFlashlightFill} color="purple.500" mr={3} />
-                    <Text fontSize="sm">Instant top-ups</Text>
-                  </Flex>
-                  <Flex align="center">
-                    <Icon as={FaWallet} color="orange.500" mr={3} />
-                    <Text fontSize="sm">Real-time balance updates</Text>
-                  </Flex>
-                </VStack>
               </VStack>
             </CardBody>
           </Card>
         </VStack>
       </Grid>
+
+      <Card
+        borderRadius="2xl"
+        bg={cardBg}
+        border="1px solid"
+        borderColor={borderColor}
+        boxShadow="lg"
+        w="100%"
+      >
+        <CardBody p={{ base: 4, md: 6 }}>
+          <VStack spacing={6} align="stretch">
+            <Flex justify="space-between" align="center">
+              <Heading size="md">Transaction History</Heading>
+              <Button
+                variant="outline"
+                borderRadius={"full"}
+                size="sm"
+                onClick={fetchTransactions}
+                isLoading={loadingTransactions}
+                loadingText="Refreshing"
+                leftIcon={<FiRefreshCw />}
+              >
+                Refresh
+              </Button>
+            </Flex>
+
+            {loadingTransactions ? (
+              <Center py={8}>
+                <Spinner size="lg" color="blue.500" />
+              </Center>
+            ) : transactions.length > 0 ? (
+              <Box
+                borderRadius="lg"
+                border="1px solid"
+                borderColor={useColorModeValue("gray.200", "gray.700")}
+                overflow="hidden"
+              >
+                <TableContainer maxH="500px" overflowY="auto">
+                  <Table
+                    variant="simple"
+                    size="md"
+                    sx={{
+                      "& thead th": {
+                        position: "sticky",
+                        top: 0,
+                        zIndex: 1,
+                        bg: useColorModeValue("gray.100", "gray.700"),
+                        boxShadow:
+                          "0 1px 0 " +
+                          useColorModeValue("gray.300", "gray.600"),
+                      },
+                    }}
+                  >
+                    <Thead>
+                      <Tr>
+                        <Th>Date</Th>
+                        <Th>Type</Th>
+                        <Th>Description</Th>
+                        <Th isNumeric>Amount</Th>
+                        <Th isNumeric>Balance Before</Th>
+                        <Th isNumeric>Balance After</Th>
+                      </Tr>
+                    </Thead>
+                    <Tbody>
+                      {transactions.map((transaction) => (
+                        <Tr key={transaction.id} _hover={{ bg: secondaryBg }}>
+                          <Td
+                            fontSize="sm"
+                            fontWeight={"semibold"}
+                            color="gray.600"
+                          >
+                            <Box>
+                              {new Date(
+                                transaction.created_at
+                              ).toLocaleDateString()}
+                              <Text fontSize="xs" color="gray.500" mt={1}>
+                                {new Date(
+                                  transaction.created_at
+                                ).toLocaleTimeString()}
+                              </Text>
+                            </Box>
+                          </Td>
+                          <Td>
+                            <Badge
+                              display="inline-flex"
+                              alignItems="center"
+                              gap={1}
+                              bg={getTransactionBadgeColor(
+                                transaction.transaction_type
+                              )}
+                              color={getTransactionIconColor(
+                                transaction.transaction_type
+                              )}
+                              px={2}
+                              py={0.5}
+                              borderRadius="full"
+                              fontSize="xs"
+                              fontWeight="bold"
+                            >
+                              <Icon
+                                as={getTransactionIcon(
+                                  transaction.transaction_type
+                                )}
+                                boxSize={2.5}
+                              />
+                              {transaction.transaction_type}
+                            </Badge>
+                          </Td>
+                          <Td fontSize="sm" maxW="250px">
+                            <Text
+                              noOfLines={1}
+                              title={formatTransactionDescription(
+                                transaction.description
+                              )}
+                            >
+                              {formatTransactionDescription(
+                                transaction.description
+                              )}
+                            </Text>
+                          </Td>
+                          <Td isNumeric fontWeight="bold" fontSize="sm">
+                            <Text
+                              color={
+                                transaction.transaction_type?.toLowerCase() ===
+                                "debit"
+                                  ? "red.600"
+                                  : "green.600"
+                              }
+                            >
+                              {transaction.transaction_type?.toLowerCase() ===
+                              "debit"
+                                ? "-"
+                                : "+"}
+                              ${parseFloat(transaction.amount).toFixed(4)}
+                            </Text>
+                          </Td>
+                          <Td isNumeric fontSize="sm" color="gray.600">
+                            ${parseFloat(transaction.balance_before).toFixed(4)}
+                          </Td>
+                          <Td isNumeric fontWeight="bold" fontSize="sm">
+                            <Text
+                              color={
+                                parseFloat(transaction.balance_after) >=
+                                thresholdBalance
+                                  ? "green.600"
+                                  : "orange.600"
+                              }
+                            >
+                              $
+                              {parseFloat(transaction.balance_after).toFixed(4)}
+                            </Text>
+                          </Td>
+                        </Tr>
+                      ))}
+                    </Tbody>
+                  </Table>
+                </TableContainer>
+              </Box>
+            ) : (
+              <Center py={8}>
+                <VStack spacing={2}>
+                  <Icon as={FaWallet} boxSize={8} color="gray.300" />
+                  <Text color="gray.500" fontWeight="medium">
+                    No transactions yet
+                  </Text>
+                  <Text fontSize="sm" color="gray.400">
+                    Your transaction history will appear here
+                  </Text>
+                </VStack>
+              </Center>
+            )}
+
+            {transactions.length > 0 && (
+              <Box pt={4} borderTop="1px solid" borderColor={borderColor}>
+                <Flex justify="space-between" fontSize="sm" color="gray.600">
+                  <Text>
+                    Total Transactions:{" "}
+                    <Text as="span" fontWeight="bold" color="gray.800">
+                      {transactions.length}
+                    </Text>
+                  </Text>
+                  <Text>
+                    Total Credits:{" "}
+                    <Text as="span" fontWeight="bold" color="green.600">
+                      $
+                      {transactions
+                        .filter(
+                          (t) => t.transaction_type?.toLowerCase() === "credit"
+                        )
+                        .reduce((sum, t) => sum + parseFloat(t.amount), 0)
+                        .toFixed(4)}
+                    </Text>
+                  </Text>
+                  <Text>
+                    Total Debits:{" "}
+                    <Text as="span" fontWeight="bold" color="red.600">
+                      $
+                      {transactions
+                        .filter(
+                          (t) => t.transaction_type?.toLowerCase() === "debit"
+                        )
+                        .reduce((sum, t) => sum + parseFloat(t.amount), 0)
+                        .toFixed(4)}
+                    </Text>
+                  </Text>
+                </Flex>
+              </Box>
+            )}
+          </VStack>
+        </CardBody>
+      </Card>
     </VStack>
   );
 };
