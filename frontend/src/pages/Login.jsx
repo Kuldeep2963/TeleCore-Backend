@@ -102,7 +102,6 @@ const Login = ({
 
   return (
     <Box
-      minH="100vh"
       bg={bgColor}
       display="flex"
       alignItems="center"
