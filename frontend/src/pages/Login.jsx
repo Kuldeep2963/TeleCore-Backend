@@ -102,6 +102,7 @@ const Login = ({
 
   return (
     <Box
+      h={"100vh"}
       bg={bgColor}
       display="flex"
       alignItems="center"
@@ -291,11 +292,12 @@ const Login = ({
                 </Button>
                 </Tooltip>
               </HStack>
+               {/* <Text fontSize={"xs"} fontStyle={"italic"} fontWeight={"semibold"} color={"gray.600"} textAlign={"center"}>@ TeleCore 2025 - All Rights Reserved</Text> */}
             </VStack>
           </Box>
         </VStack>
       </Box>
-
+    
       <ForgotPasswordModal isOpen={isOpen} onClose={onClose} />
     </Box>
   );
